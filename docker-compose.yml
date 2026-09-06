@@ -1,0 +1,14 @@
+
+services:
+  ui-frontend:
+    build: .  # Looks for the Dockerfile in the current folder
+    container_name: file-gallery
+    ports:
+      - "3000:3000"
+    restart: always
+    networks:
+      - ui-network
+
+networks:
+  ui-network:
+    driver: bridge
