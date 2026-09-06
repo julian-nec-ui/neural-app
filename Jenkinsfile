@@ -19,13 +19,20 @@ pipeline {
             steps {
                 echo '🚀 Deploying React UI via Docker Compose...'
                 
+                script {
+                    // 1. Remove old containers to prevent port conflicts
+                    if(isUnix()) {
+                        sh 'docker rm -f file-gallery || echo no ghost container'
+                    } else {
+                        bat 'docker rm -f file-gallery || echo no ghost container'
+                    }
+
                 // 1. Remove old containers to prevent port conflicts
-                // We use the specific UI compose file we created
                 script {
                     if(isUnix()) {
-                        sh 'docker-compose down || echo no containers to stop +.+.+.'
+                        sh 'docker-compose -f docker-compose.yml down || echo no containers to stop +.+.+.'
                     } else {
-                        bat 'docker-compose down || echo no containers to stop +.+.+.'
+                        bat 'docker-compose -f docker-compose.yml down || echo no containers to stop +.+.+.'
                     }
                 }
                 
