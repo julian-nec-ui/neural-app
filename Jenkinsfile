@@ -23,9 +23,9 @@ pipeline {
                 // We use the specific UI compose file we created
                 script {
                     if(isUnix()) {
-                        sh 'docker-compose -f docker-compose-ui.yml down || echo no containers to stop +++'
+                        sh 'docker-compose -f docker-compose-ui.yml down || echo no containers to stop +.+.+.'
                     } else {
-                        bat 'docker-compose -f docker-compose-ui.yml down || echo no containers to stop +++'
+                        bat 'docker-compose -f docker-compose-ui.yml down || echo no containers to stop +.+.+.'
                     }
                 }
                 
