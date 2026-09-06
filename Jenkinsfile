@@ -26,6 +26,7 @@ pipeline {
                     } else {
                         bat 'docker rm -f file-gallery || echo no ghost container'
                     }
+                }
 
                 // 1. Remove old containers to prevent port conflicts
                 script {
