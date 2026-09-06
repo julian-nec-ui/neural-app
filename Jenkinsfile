@@ -22,9 +22,9 @@ pipeline {
                 script {
                     // 1. Remove old containers to prevent port conflicts
                     if(isUnix()) {
-                        sh 'docker rm -f file-gallery || echo no ghost container .+.+.'
+                        sh 'docker rm -f file-gallery || echo no ghost container .+.+.+'
                     } else {
-                        bat 'docker rm -f file-gallery || echo no ghost container .+.+.'
+                        bat 'docker rm -f file-gallery || echo no ghost container .+.+.+'
                     }
                 }
 
