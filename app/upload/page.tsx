@@ -23,7 +23,6 @@ export default function UploadPage() {
 
   const [mounted, setMounted] = useState(false);
   const [isUploadingAll, setIsUploadingAll] = useState(false);
-  const [viewMode, setViewMode] = useState<"grid" | "table">("grid");
 
   const [files, setFiles] = useState<File[]>([]);
   const [fileStatuses, setFileStatuses] = useState<Record<string, FileStatus>>(
