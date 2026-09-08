@@ -84,7 +84,7 @@ export default function GalleryPage() {
     client.activate();
     
     return () => {
-      client.deactivate().catch(err => console.error("Error disconnecting:", err));
+      client.deactivate().catch(err => console.error("Error disconnecting :", err));
     };
   }, []);
 
