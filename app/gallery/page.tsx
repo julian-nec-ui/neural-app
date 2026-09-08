@@ -83,8 +83,9 @@ export default function GalleryPage() {
     
     client.activate();
     
-    return () => client.deactivate();
-
+    return () => {
+      client.deactivate().catch(err => console.error("Error disconnecting:", err));
+    };
   }, []);
 
   useEffect(() => {

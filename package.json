@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev-moz": "start firefox http://localhost:3001 &&next dev",
-    "dev-ch": "start http://localhost:3001 &&next dev",
+    "dev-moz": "start firefox http://localhost:3001 && next dev",
+    "dev-ch": "start http://localhost:3001 && next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"
