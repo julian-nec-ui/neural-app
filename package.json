@@ -3,24 +3,31 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev-moz": "start firefox http://localhost:3000 &&next dev",
-    "dev-ch": "start http://localhost:3000 &&next dev",
+    "dev-moz": "start firefox http://localhost:3001 &&next dev",
+    "dev-ch": "start http://localhost:3001 &&next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"
   },
   "dependencies": {
+    "@fortawesome/free-solid-svg-icons": "^7.3.1",
+    "@fortawesome/react-fontawesome": "^3.5.0",
+    "@stomp/stompjs": "^7.3.0",
     "axios": "^1.20.0",
+    "framer-motion": "^13.2.0",
     "lucide-react": "^1.40.0",
     "next": "16.3.4",
     "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react-dom": "19.2.8",
+    "socketjs-client": "^1.0.2",
+    "sockjs-client": "^1.6.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/sockjs-client": "^1.5.4",
     "eslint": "^9.39.5",
     "eslint-config-next": "16.3.4",
     "tailwindcss": "^4",
