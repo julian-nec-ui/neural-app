@@ -241,25 +241,11 @@ export default function CommercePage() {
     }));
   };
 
-  <div className="mt-6 w-full flex flex-col gap-2">
-  {/* ADD THIS BLOCK BELOW */}
-  <div className="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-    <span>Start</span>
-    <span>{Math.round(progress * 100)}%</span>
-    <span>End</span>
-  </div>
-  {/* End of block */}
-  <input
-    type="range"
-    min="0"
-    max="1"
-    step="0.01"
-    value={progress}
-    onChange={(e) => setProgress(parseFloat(e.target.value))}
-    className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600 hover:accent-indigo-500 transition-all"
-  />
-</div>
-
+  const handleAddClient = () => {
+    const clientToAdd = { ...newClient, id: Date.now() };
+    setClients([clientToAdd, ...clients]);
+    setNewClient({ firstName: "", lastName: "", email: "", phone: "", address: "" });
+    setIsAddOpen(false);
   };
 
   const handleDeleteClient = () => {
@@ -348,25 +334,21 @@ export default function CommercePage() {
                   {currentClients.map((client, idx) => (
                     <motion.tr
                       key={`${sortConfig.key}-${sortConfig.direction}-${client.id}`}
-                      // 1. START: Fade in and slide down from -20px
                       initial={{
                         opacity: 0,
                         y: -20,
                         backgroundColor: idx % 2 ? "#ffffff" : "#fcfcfd",
                       }}
-                      // 2. ENTER: Fade in and move to original position
                       animate={{
                         opacity: 1,
                         y: 0,
                         backgroundColor: idx % 2 ? "#ffffff" : "#fcfcfd",
                       }}
-                      // 3. EXIT: Fade out and slide further down to +20px
                       exit={{
                         opacity: 0,
                         y: 20,
                         transition: { duration: 0.6 },
                       }}
-                      // 4. HOVER: Subtle lift effect
                       whileHover={{
                         y: -4,
                         scale: 1.002,
@@ -378,7 +360,6 @@ export default function CommercePage() {
                           damping: 25,
                         }
                       }}
-                      // 5. STAGGER: Delay each row slightly based on its index (idx)
                       transition={{
                         y: {
                           delay: idx * 0.05,
@@ -388,8 +369,7 @@ export default function CommercePage() {
                         opacity: { delay: idx * 0.04, duration: 0.4 },
                         backgroundColor: { duration: 0.8 }
                       }}
-
-                      className="group cursor-pointer whitespa  Qce-nowrap transition-colors will-change-transform"
+                      className="group cursor-pointer whitespace-nowrap transition-colors will-change-transform"
                     >
                       <td className="px-6 py-3 text-slate-700 font-medium border-r border-slate-100">
                         {client.firstName}
