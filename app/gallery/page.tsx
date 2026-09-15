@@ -465,7 +465,7 @@ export default function GalleryPage() {
                   layout
                   className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden"
                 >
-                  <div className="overflow-x-auto">
+                  {/* <div className="overflow-x-auto"> */}
                     <table className="w-full text-left border-separate border-spacing-0">
                       <thead className="bg-slate-50 border-b border-slate-200">
                         <tr className="shrink-0">
@@ -579,7 +579,7 @@ export default function GalleryPage() {
                         </AnimatePresence>
                       </tbody>
                     </table>
-                  </div>
+                  {/* </div> */}
                 </motion.div>
                 <PaginationBar />
               </div>
