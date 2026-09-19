@@ -92,7 +92,7 @@ export default function UploadPage() {
       }));
 
       try {
-        await axios.post("http://localhost:8080/api/files/upload", formData, {
+        await axios.post("http://localhost:8081/api/files/upload", formData, {
           onUploadProgress: (progressEvent) => {
             const percentCompleted = Math.round(
               (progressEvent.loaded * 100) / (progressEvent.total || 1),

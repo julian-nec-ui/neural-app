@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCompactDisc } from "@fortawesome/free-solid-svg-icons";
 import { motion, AnimatePresence } from "framer-motion";
@@ -27,6 +27,9 @@ import {
   FilePlayIcon,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
+  ChevronsDownUp,
 } from "lucide-react";
 
 import Link from "next/link";
@@ -39,6 +42,10 @@ interface FileInfo {
 }
 
 export default function GalleryPage() {
+
+  /**
+   * State
+   */
   const [files, setFiles] = useState<FileInfo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [viewMode, setViewMode] = useState<"grid" | "table">("grid");
@@ -50,10 +57,15 @@ export default function GalleryPage() {
   const [fileToDelete, setFileToDelete] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  const [sortConfig, setSortConfig] = useState({
+    key: "",
+    direction: null as "asc" | "desc" | null
+  });
+
   const fetchFiles = async () => {
     setIsLoading(true);
     try {
-      const response = await axios.get("http://localhost:8080/api/files/list");
+      const response = await axios.get("http://localhost:8081/api/files/list");
       await new Promise((resolve) => setTimeout(resolve, 500));
       setFiles(response.data.files);
       setCurrentPage(1);
@@ -64,9 +76,41 @@ export default function GalleryPage() {
     }
   };
 
+  const sortedData = useMemo(() => {
+    /**
+     * return original data if no sort key is set
+     */
+    if(!sortConfig.key) {
+      return files;
+    }
+
+    return [...files].sort((a, b) => {
+      const aValue = a[sortConfig.key];
+      const bValue = b[sortConfig.key];
+
+      if(typeof aValue === "string" && typeof bValue === "string") {
+        const comparison = aValue.localeCompare(bValue);
+        return sortConfig.direction === "asc" ? comparison : -comparison;
+      }
+
+      if(aValue < bValue) {
+        return sortConfig.direction === "asc" ? -1 : 1;
+      }
+
+      if(aValue > bValue) {
+        return sortConfig.direction === "asc" ? 1 : -1;
+      }
+
+      return 0;
+    });
+
+    
+
+  }, [files, sortConfig]);
+
   useEffect(() => {
     const client = new Client({
-      webSocketFactory: () => new SockJS("http://localhost:8080/api/ws"),
+      webSocketFactory: () => new SockJS("http://localhost:8081/api/ws"),
       onConnect: () => {
         console.log("Connected to SpringBoot WebSocket at ", Date.now());
         client.subscribe("/topic/files", (message) => {
@@ -115,7 +159,7 @@ export default function GalleryPage() {
 
         // 2. Now that the user has picked a path, fetch the file data
         const response = await axios.get(
-          `http://localhost:8080/api/files/download/${filename}`,
+          `http://localhost:8081/api/files/download/${filename}`,
           {
             responseType: "blob",
           },
@@ -128,7 +172,7 @@ export default function GalleryPage() {
       } else {
         // FALLBACK: For Firefox/Safari, use the standard download
         window.open(
-          `http://localhost:8080/api/files/download/${filename}`,
+          `http://localhost:8081/api/files/download/${filename}`,
           "_blank",
         );
       }
@@ -157,7 +201,7 @@ export default function GalleryPage() {
     try {
       setFiles((prev) => prev.filter((f) => f.name !== nameToRemove));
       await axios.delete(
-        `http://localhost:8080/api/files/delete/${nameToRemove}`,
+        `http://localhost:8081/api/files/delete/${nameToRemove}`,
       );
       closeModal();
     } catch (err) {
@@ -234,7 +278,7 @@ export default function GalleryPage() {
         <button
           disabled={currentPage === 1}
           onClick={() => setCurrentPage((prev) => prev - 1)}
-          className="p-2 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+          className="p-2 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40  transition-all"
         >
           <ChevronLeft size={18} />
         </button>
@@ -256,7 +300,7 @@ export default function GalleryPage() {
         <button
           disabled={currentPage === totalPages}
           onClick={() => setCurrentPage((prev) => prev + 1)}
-          className="p-2 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+          className="p-2 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40  transition-all"
         >
           <ChevronRight size={18} />
         </button>
@@ -347,7 +391,7 @@ export default function GalleryPage() {
               Your gallery is empty
             </h2>
             <p className="text-slate-500 mb-8 max-w-xs mx-auto">
-              You haven't uploaded any assets yet.
+              You have not uploaded any assets yet.
             </p>
             <Link
               href="/upload"
@@ -463,7 +507,8 @@ export default function GalleryPage() {
               <div className="flex flex-col gap-4">
                 <motion.div
                   layout
-                  className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden"
+                  className="bg-white rounded-3xl border border-slate-200 sm:rounded-lg 
+                  style={{minHeight: $`{{ite}}`} shadow-sm overflow-x-auto"
                 >
                   {/* <div className="overflow-x-auto"> */}
                     <table className="w-full text-left border-separate border-spacing-0">

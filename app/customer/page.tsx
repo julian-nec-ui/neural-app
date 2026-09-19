@@ -97,7 +97,7 @@ function Customer() {
                   <input
                     type="email"
                     required
-                    className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition"
+                    className="w-full p-2 border border-slate-300 text:[#424C1B] rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition"
                     value={formData.email}
                     onChange={(e) => setFormData({...formData, email: e.target.value})}
                   />
