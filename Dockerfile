@@ -20,13 +20,8 @@ ENV CI=true
 # 4. Copy config and lock files
 COPY package.json pnpm-lock.yaml* .npmrc ./
 
-# --- FIX STARTS HERE ---
-# Tell pnpm to trust the specific package that was failing
-# This solves the [ERR_PNPM_IGNORED_BUILDS] error
-RUN pnpm config set only-built-dependencies unrs-resolver
-# --- FIX ENDS HERE ---
-
 # 5. Install dependencies
+# pnpm will now read "onlyBuiltDependencies" from your package.json
 RUN pnpm install --no-frozen-lockfile --force
 
 # 6. Copy the rest of the source code
