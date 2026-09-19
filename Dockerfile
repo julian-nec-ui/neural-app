@@ -3,7 +3,7 @@ FROM node:20-alpine AS build
 WORKDIR /app
 
 # Install pnpm
-RUN npm install -g pnpm
+RUN npm install -g pnpm@latest
 
 # Tell pnpm this is a CI environment to avoid TTY/Permission errors
 ENV CI=true
@@ -23,7 +23,7 @@ RUN pnpm run build
 # Stage 2: Run
 FROM node:20-alpine
 WORKDIR /app
-RUN npm install -g pnpm
+RUN npm install -g pnpm@latest
 
 COPY --from=build /app/public ./public
 COPY --from=build /app/.next ./.next
