@@ -1,7 +1,7 @@
 # ==========================================
 # Stage 1: Build
 # ==========================================
-FROM node:20-alpine AS builder
+FROM node:20-slim AS builder
 WORKDIR /app
 
 # 1. Install system dependencies 
