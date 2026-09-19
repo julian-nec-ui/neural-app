@@ -5,7 +5,6 @@ FROM node:20-slim AS builder
 WORKDIR /app
 
 # 1. Install system dependencies for Debian Slim
-# We use 'apt-get' because we are no longer using Alpine
 RUN apt-get update && apt-get install -y \
     python3 \
     make \
@@ -21,8 +20,13 @@ ENV CI=true
 # 4. Copy config and lock files
 COPY package.json pnpm-lock.yaml* .npmrc ./
 
+# --- FIX STARTS HERE ---
+# Tell pnpm to trust the specific package that was failing
+# This solves the [ERR_PNPM_IGNORED_BUILDS] error
+RUN pnpm config set only-built-dependencies unrs-resolver
+# --- FIX ENDS HERE ---
+
 # 5. Install dependencies
-# We use --force to handle any peer dependency mismatches
 RUN pnpm install --no-frozen-lockfile --force
 
 # 6. Copy the rest of the source code
@@ -41,7 +45,6 @@ WORKDIR /app
 ENV NODE_ENV=production
 
 # 8. Copy only the necessary files from the builder stage
-# This matches the 'output: standalone' setting in next.config.ts
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
