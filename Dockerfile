@@ -1,44 +1,53 @@
+# ==========================================
 # Stage 1: Build
-FROM node:20-alpine AS build
+# ==========================================
+FROM node:20-alpine AS builder
 WORKDIR /app
 
-# --- FIX STARTS HERE ---
-# Install libc6-compat (Required for Next.js/SWC on Alpine) 
-# and build tools for native modules
+# 1. Install system dependencies 
+# libc6-compat is required for Next.js/SWC on Alpine
+# python3, make, g++ are required for native npm modules (like sharp, bcrypt)
 RUN apk add --no-cache libc6-compat python3 make g++
-# --- FIX ENDS HERE ---
 
-# Install pnpm
+# 2. Install pnpm
 RUN npm install -g pnpm@latest
 
-# Tell pnpm this is a CI environment
+# 3. Tell pnpm this is a CI environment
 ENV CI=true
 
-# Copy config and lock files
+# 4. Copy config and lock files first (to optimize Docker caching)
 COPY package.json pnpm-lock.yaml* .npmrc ./
 
-# Install dependencies
-# Note: we use --frozen-lockfile in CI usually, but I kept your flag
-RUN pnpm install --no-frozen-lockfile --ignore-scripts
+# 5. Install dependencies
+# REMOVED: --ignore-scripts (it was causing failures with binary packages)
+# ADDED: --force (to bypass peer dependency conflicts)
+RUN pnpm install --no-frozen-lockfile --force
 
-# Copy the rest of the code
+# 6. Copy the rest of the source code
 COPY . .
 
-# Build the Next.js app
+# 7. Build the Next.js app
 RUN pnpm run build
 
+# ==========================================
 # Stage 2: Run
-FROM node:20-alpine
+# ==========================================
+FROM node:20-alpine AS runner
 WORKDIR /app
 
-# We still need libc6-compat in the final image for the app to run
+# Install libc6-compat in the runner stage as well
 RUN apk add --no-cache libc6-compat
-RUN npm install -g pnpm@latest
 
-COPY --from=build /app/public ./public
-COPY --from=build /app/.next ./.next
-COPY --from=build /app/node_modules ./node_modules
-COPY --from=build /app/package.json ./package.json
+# Set environment to production
+ENV NODE_ENV=production
+
+# 8. Copy only the necessary files from the builder stage
+# This uses the 'standalone' output from your next.config.ts
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
 
 EXPOSE 3000
-CMD ["pnpm", "start"]
+
+# 9. Start the app using the standalone server.js (not pnpm start)
+CMD ["node", "server.js"]
