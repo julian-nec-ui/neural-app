@@ -7,7 +7,8 @@
     "dev-ch": "start http://localhost:3001 && next dev",
     "dev-ch-mac": "open -a \"Google Chrome\" http://localhost:3000 && next dev",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "build": "next build"
   },
   "dependencies": {
     "@fortawesome/free-solid-svg-icons": "^7.3.1",

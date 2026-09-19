@@ -11,25 +11,19 @@ RUN apt-get update && apt-get install -y \
     g++ \
     && rm -rf /var/lib/apt/lists/*
 
-# 2. Install pnpm (We ONLY use this for the 'run build' command)
-RUN npm install -g pnpm@latest
-
-# 3. Tell pnpm this is a CI environment
-ENV CI=true
-
-# 4. Copy config and lock files
+# 2. Copy config and lock files
 COPY package.json pnpm-lock.yaml* .npmrc* ./
 
-# 5. THE FIX: Use npm install instead of pnpm install
-# npm does NOT block build scripts like 'unrs-resolver'.
-# This bypasses the [ERR_PNPM_IGNORED_BUILDS] error completely.
+# 3. Install dependencies using npm
+# This bypasses pnpm's security blocks entirely
 RUN npm install --force
 
-# 6. Copy the rest of the source code
+# 4. Copy the rest of the source code
 COPY . .
 
-# 7. Build the Next.js app
-RUN pnpm run build
+# 5. Build the Next.js app using npm
+# This will execute the "build" script inside your package.json
+RUN npm run build
 
 # ==========================================
 # Stage 2: Run
@@ -40,7 +34,7 @@ WORKDIR /app
 # Set environment to production
 ENV NODE_ENV=production
 
-# 8. Copy only the necessary files from the builder stage
+# 6. Copy only the necessary files from the builder stage
 # This requires 'output: standalone' in your next.config.ts
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
@@ -48,5 +42,5 @@ COPY --from=builder /app/.next/static ./.next/static
 
 EXPOSE 3000
 
-# 9. Start the app using the standalone server.js
+# 7. Start the app using the standalone server.js
 CMD ["node", "server.js"]
