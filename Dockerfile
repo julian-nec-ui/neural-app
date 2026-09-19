@@ -18,10 +18,16 @@ RUN npm install -g pnpm@latest
 ENV CI=true
 
 # 4. Copy config and lock files
-COPY package.json pnpm-lock.yaml* .npmrc ./
+COPY package.json pnpm-lock.yaml* .npmrc* ./
+
+# --- THE FINAL FIX STARTS HERE ---
+# We manually create/append to the .npmrc file.
+# This tells pnpm: "I trust unrs-resolver to run its build scripts."
+# This is the only place pnpm 9+ reads this setting now.
+RUN echo "only-built-dependencies[]=unrs-resolver" >> .npmrc
+# --- THE FINAL FIX ENDS HERE ---
 
 # 5. Install dependencies
-# pnpm will now read "onlyBuiltDependencies" from your package.json
 RUN pnpm install --no-frozen-lockfile --force
 
 # 6. Copy the rest of the source code
