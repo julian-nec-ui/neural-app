@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y \
     g++ \
     && rm -rf /var/lib/apt/lists/*
 
-# 2. Install pnpm (we use this ONLY to run the build command)
+# 2. Install pnpm
 RUN npm install -g pnpm@latest
 
 # 3. Tell pnpm this is a CI environment
@@ -20,11 +20,15 @@ ENV CI=true
 # 4. Copy config and lock files
 COPY package.json pnpm-lock.yaml* .npmrc* ./
 
-# 5. INSTALL PHASE: Switch to npm
-# We use 'npm install' instead of 'pnpm install' to bypass the 
-# [ERR_PNPM_IGNORED_BUILDS] security error.
-# npm will read your package.json and install everything correctly.
-RUN npm install --force
+# --- THE FINAL FIX STARTS HERE ---
+# We manually create/append to the .npmrc file.
+# This tells pnpm: "I trust unrs-resolver to run its build scripts."
+# This is the only place pnpm 9+ reads this setting now.
+RUN echo "only-built-dependencies[]=unrs-resolver" >> .npmrc
+# --- THE FINAL FIX ENDS HERE ---
+
+# 5. Install dependencies
+RUN pnpm install --no-frozen-lockfile --force
 
 # 6. Copy the rest of the source code
 COPY . .
