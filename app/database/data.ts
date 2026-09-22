@@ -10,6 +10,7 @@ export interface Relation {
   id: string;
   from: string;
   to: string;
+  via?: string; // Only used for N:M
   type: RelationType;
   label: string;
 }
@@ -18,14 +19,11 @@ export const SCHEMA = {
   tables: [
     { id: 'users', name: 'Users', columns: ['id (PK)', 'username', 'email'] },
     { id: 'roles', name: 'Roles', columns: ['id (PK)', 'role_name', 'permissions'] },
-    { id: 'user_roles', name: 'UserRoles (Join)', columns: ['user_id (FK)', 'role_id (FK)'] },
+    { id: 'user_roles', name: 'UserRoles', columns: ['user_id (FK)', 'role_id (FK)'] },
     { id: 'posts', name: 'Posts', columns: ['id (PK)', 'user_id (FK)', 'title'] },
   ] as Table[],
   relations: [
-    { id: 'r1', from: 'users', to: 'posts', type: '1:N', label: 'User $\rightarrow$ Posts' },
-    { id: 'r2', from: 'users', to: 'user_roles', type: '1:N', label: 'User $\rightarrow$ UserRoles' },
-    { id: 'r3', from: 'roles', to: 'user_roles', type: '1:N', label: 'Role $\rightarrow$ UserRoles' },
-    { id: 'r4', from: 'user_roles', to: 'roles', type: 'N:1', label: 'UserRoles $\rightarrow$ Role' },
-    { id: 'r5', from: 'user_roles', to: 'users', type: 'N:1', label: 'UserRoles $\rightarrow$ User' },
+    { id: 'r1', from: 'users', to: 'posts', type: '1:N', label: 'Users ↔ Posts' },
+    { id: 'r2', from: 'users', to: 'roles', via: 'user_roles', type: 'N:M', label: 'Users ↔ Roles (M:M)' },
   ] as Relation[],
 };
