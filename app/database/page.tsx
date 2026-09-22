@@ -163,7 +163,8 @@ export default function DatabaseVisualizer() {
             className="bg-transparent"
           >
             <Background color="#1e293b" gap={30} />
-            <Controls className="bg-slate-900 border-slate-800 fill-slate-300" />
+            <Controls />
+
           </ReactFlow>
         ) : (
           <div className="h-full w-full flex flex-col items-center justify-center text-slate-700 gap-8">

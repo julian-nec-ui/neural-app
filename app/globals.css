@@ -5,6 +5,45 @@
   --foreground: #171717;
 }
 
+/* --- ReactFlow Controls Cyber-Redesign --- */
+
+/* The main container box */
+.reactflow__controls {
+  background: rgba(15, 23, 42, 0.8) !important; /* Deep obsidian glass */
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(59, 130, 246, 0.3) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5), inset 0 0 10px rgba(59, 130, 246, 0.1) !important;
+  gap: 4px !important;
+}
+
+/* Individual buttons */
+.reactflow__control-button {
+  background: rgba(30, 41, 59, 0.5) !important;
+  border: 1px solid rgba(71, 85, 105, 0.4) !important;
+  color: #60a5fa !important; /* Electric Blue */
+  border-radius: 8px !important;
+  transition: all 0.2s ease-in-out !important;
+  width: 32px !important;
+  height: 32px !important;
+}
+
+/* Hover effect: Neon glow */
+.reactflow__control-button:hover {
+  background: rgba(59, 130, 246, 0.2) !important;
+  border-color: #3b82f6 !important;
+  color: #fff !important;
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.5) !important;
+  transform: scale(1.1);
+}
+
+/* The SVG icons inside the buttons */
+.reactflow__control-button svg {
+  fill: currentColor !important;
+  stroke: currentColor !important;
+}
+
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
