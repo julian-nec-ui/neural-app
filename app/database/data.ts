@@ -16,15 +16,16 @@ export interface Relation {
 
 export const SCHEMA = {
   tables: [
-    { id: 'users', name: 'Users', columns: ['id (PK)', 'username', 'email', 'password'] },
-    { id: 'posts', name: 'Posts', columns: ['id (PK)', 'user_id (FK)', 'title', 'content'] },
-    { id: 'tags', name: 'Tags', columns: ['id (PK)', 'name'] },
-    { id: 'post_tags', name: 'PostTags', columns: ['post_id (FK)', 'tag_id (FK)'] },
+    { id: 'users', name: 'Users', columns: ['id (PK)', 'username', 'email'] },
+    { id: 'roles', name: 'Roles', columns: ['id (PK)', 'role_name', 'permissions'] },
+    { id: 'user_roles', name: 'UserRoles (Join)', columns: ['user_id (FK)', 'role_id (FK)'] },
+    { id: 'posts', name: 'Posts', columns: ['id (PK)', 'user_id (FK)', 'title'] },
   ] as Table[],
   relations: [
-    { id: 'r1', from: 'users', to: 'posts', type: '1:N', label: 'One User to Many Posts' },
-    { id: 'r2', from: 'posts', to: 'users', type: 'N:1', label: 'Many Posts to One User' },
-    { id: 'r3', from: 'posts', to: 'post_tags', type: '1:N', label: 'Posts to Link Table' },
-    { id: 'r4', from: 'tags', to: 'post_tags', type: '1:N', label: 'Tags to Link Table' },
+    { id: 'r1', from: 'users', to: 'posts', type: '1:N', label: 'User $\rightarrow$ Posts' },
+    { id: 'r2', from: 'users', to: 'user_roles', type: '1:N', label: 'User $\rightarrow$ UserRoles' },
+    { id: 'r3', from: 'roles', to: 'user_roles', type: '1:N', label: 'Role $\rightarrow$ UserRoles' },
+    { id: 'r4', from: 'user_roles', to: 'roles', type: 'N:1', label: 'UserRoles $\rightarrow$ Role' },
+    { id: 'r5', from: 'user_roles', to: 'users', type: 'N:1', label: 'UserRoles $\rightarrow$ User' },
   ] as Relation[],
 };
