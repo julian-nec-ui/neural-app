@@ -107,6 +107,48 @@
   background: #64748b;
 }
 
+/* --- ReactFlow Edge (Link) Cyber-Redesign --- */
+
+/* The actual line/path of the edge */
+.reactflow__edge-path {
+  stroke-width: 3px !important;
+  stroke: #60a5fa !important; /* Electric Blue */
+  filter: drop-shadow(0 0 5px rgba(59, 130, 246, 0.8)) 
+          drop-shadow(0 0 2px rgba(255, 255, 255, 0.5)) !important;
+  transition: stroke 0.3s, stroke-width 0.3s !important;
+}
+
+/* When hovering over a link, make it "supercharge" */
+.reactflow__edge:hover .reactflow__edge-path {
+  stroke: #93c5fd !important; /* Lighter Blue */
+  stroke-width: 5px !important;
+  filter: drop-shadow(0 0 12px rgba(59, 130, 246, 1)) !important;
+}
+
+/* The labels on the links (1:N, N:M, etc.) */
+.reactflow__edge-text {
+  fill: #94a3b8 !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.1em !important;
+  filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.8)) !important;
+}
+
+/* Hover effect for labels */
+.reactflow__edge:hover .reactflow__edge-text {
+  fill: #fff !important;
+  color: #fff !important;
+}
+
+/* The arrowheads (Markers) */
+.reactflow__edge-marker {
+  fill: #60a5fa !important;
+  filter: drop-shadow(0 0 5px rgba(59, 130, 246, 1)) !important;
+}
+
+
 body {
   background: #0f172a;
   color: #e2e8f0;

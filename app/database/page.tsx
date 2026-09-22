@@ -1,7 +1,8 @@
 "use client";
-import React, { useState, useMemo } from 'react';
+
+import { useState, useMemo } from 'react';
 import ReactFlow, { 
-  Background, Controls, Edge, Node, MarkerType, ConnectionLineType, NodeProps 
+  Background, Controls, Edge, Node, MarkerType, NodeProps 
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -59,22 +60,45 @@ export default function DatabaseVisualizer() {
       { id: toT.id, type: 'tableNode', data: { label: toT.name, columns: toT.columns }, position: { x: 700, y: 150 } },
     ];
 
-    const edges: Edge[] = [];
+        const edges: Edge[] = [];
+
     if (selectedRelation.type === 'N:M' && selectedRelation.via) {
       const viaT = SCHEMA.tables.find(t => t.id === selectedRelation.via);
       if (viaT) {
-        nodes.push({ id: viaT.id, type: 'tableNode', data: { label: viaT.name, columns: viaT.columns }, position: { x: 400, y: 150 } });
         edges.push(
-          { id: 'e1', source: fromT.id, target: viaT.id, animated: true, label: '1:N', markerEnd: { type: MarkerType.ArrowClosed, color: '#60a5fa' }, style: { stroke: '#60a5fa', strokeWidth: 3 } },
-          { id: 'e2', source: toT.id, target: viaT.id, animated: true, label: '1:N', markerEnd: { type: MarkerType.ArrowClosed, color: '#60a5fa' }, style: { stroke: '#60a5fa', strokeWidth: 3 } }
+          { 
+            id: 'e1', 
+            source: fromT.id, 
+            target: viaT.id, 
+            label: '1:N', 
+            animated: true, 
+            type: 'smoothstep',
+            markerEnd: { type: MarkerType.ArrowClosed, color: '#60a5fa' }, 
+          },
+          { 
+            id: 'e2', 
+            source: toT.id, 
+            target: viaT.id, 
+            animated: true, 
+            label: '1:N', 
+            type: 'smoothstep', 
+            markerEnd: { type: MarkerType.ArrowClosed, color: '#60a5fa' }, 
+          }
         );
       }
     } else {
       edges.push({
-        id: 'e1', source: fromT.id, target: toT.id, label: selectedRelation.type, animated: true, 
-        markerEnd: { type: MarkerType.ArrowClosed, color: '#60a5fa' }, style: { stroke: '#60a5fa', strokeWidth: 3 }
+        id: 'e1', 
+        source: fromT.id, 
+        target: toT.id, 
+        label: selectedRelation.type, 
+        animated: true, 
+        type: 'smoothstep',
+        markerEnd: { type: MarkerType.ArrowClosed, color: '#60a5fa' }, 
       });
     }
+
+
     return { nodes, edges };
   }, [selectedRelation]);
 
@@ -146,7 +170,7 @@ export default function DatabaseVisualizer() {
                 {selectedRelation ? `Target: ${selectedRelation.label}` : 'System Idle'}
               </span>
             </div>
-            <div className="h-5 w-[1px] bg-slate-700" />
+            <div className="h-5 w-px bg-slate-700" />
             <div className="flex items-center gap-2 text-cyan-400">
               <Zap size={14} className="animate-pulse" />
               <span className="text-[10px] font-bold uppercase tracking-tighter">Active Scan</span>
