@@ -6,31 +6,31 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  ChevronRight, ChevronDown, Database, Zap, FolderOpen, Folder, Search, Cpu, Share2 
+  ChevronRight, ChevronDown, Database, Zap, FolderOpen, Folder, Search, Cpu 
 } from 'lucide-react';
 import { SCHEMA, Relation } from './data';
 
-// --- REDESIGNED CYBER-METALLIC NODE ---
+// --- ULTIMATE CYBER-METALLIC NODE ---
 const TableNode = ({ data }: NodeProps) => {
   const tableData = data as { label: string; columns: string[] };
   return (
     <div className="relative group">
-      {/* Neon Outer Glow */}
-      <div className="absolute -inset-1 bg-linear-to-r from-blue-600 to-cyan-600 rounded-xl blur opacity-20 group-hover:opacity-60 transition duration-500"></div>
+      {/* Outer Neon Glow */}
+      <div className="absolute -inset-1 bg-linear-to-r from-blue-600 via-cyan-500 to-blue-600 rounded-xl blur opacity-20 group-hover:opacity-60 transition duration-500 animate-pulse"></div>
       
-      <div className="relative bg-slate-900 border border-slate-700 rounded-xl shadow-2xl w-56 overflow-hidden">
-        {/* Brushed Metal Header */}
-        <div className="bg-linear-to-b from-slate-700 via-slate-800 to-slate-900 p-3 flex items-center gap-3 border-b border-slate-600 shadow-inner">
-          <div className="p-1 bg-blue-500 rounded shadow-[0_0_8px_#3b82f6]">
+      <div className="relative bg-slate-950 border border-slate-700 rounded-xl shadow-2xl w-56 overflow-hidden">
+        {/* Header: Brushed Titanium Look */}
+        <div className="bg-linear-to-b from-slate-700 via-slate-800 to-slate-900 p-3 flex items-center gap-3 border-b border-blue-500/30 shadow-inner">
+          <div className="p-1 bg-blue-500 rounded shadow-[0_0_10px_#3b82f6]">
             <Database size={12} className="text-white" />
           </div>
-          <span className="text-slate-200 text-xs font-black uppercase tracking-tighter italic">{tableData.label}</span>
+          <span className="text-slate-100 text-xs font-black uppercase tracking-tighter italic">{tableData.label}</span>
         </div>
-        {/* Glass Columns */}
-        <div className="p-3 space-y-2 bg-slate-950/50 backdrop-blur-md">
+        {/* Content: Deep Glass */}
+        <div className="p-3 space-y-2 bg-slate-900/80 backdrop-blur-md">
           {tableData.columns.map((col, i) => (
-            <div key={i} className="text-[10px] font-mono text-slate-400 py-1.5 px-2 rounded-sm bg-slate-900 border border-slate-800 flex items-center gap-2 hover:bg-slate-800 transition-colors group">
-              <div className="w-1 h-1 rounded-full bg-slate-600 group-hover:bg-blue-400" />
+            <div key={i} className="text-[10px] font-mono text-slate-400 py-1.5 px-2 rounded-sm bg-slate-950/50 border border-slate-800 flex items-center gap-2 hover:border-blue-500/50 hover:text-blue-300 transition-all group">
+              <div className="w-1 h-1 rounded-full bg-slate-600 group-hover:bg-blue-400 transition-colors" />
               {col}
             </div>
           ))}
@@ -50,10 +50,8 @@ export default function DatabaseVisualizer() {
 
   const { nodes, edges } = useMemo(() => {
     if (!selectedRelation) return { nodes: [], edges: [] };
-
     const fromT = SCHEMA.tables.find(t => t.id === selectedRelation.from);
     const toT = SCHEMA.tables.find(t => t.id === selectedRelation.to);
-
     if (!fromT || !toT) return { nodes: [], edges: [] };
 
     const nodes: Node[] = [
@@ -62,17 +60,10 @@ export default function DatabaseVisualizer() {
     ];
 
     const edges: Edge[] = [];
-
     if (selectedRelation.type === 'N:M' && selectedRelation.via) {
       const viaT = SCHEMA.tables.find(t => t.id === selectedRelation.via);
       if (viaT) {
-        nodes.push({
-          id: viaT.id,
-          type: 'tableNode',
-          data: { label: viaT.name, columns: viaT.columns },
-          position: { x: 400, y: 150 },
-        });
-
+        nodes.push({ id: viaT.id, type: 'tableNode', data: { label: viaT.name, columns: viaT.columns }, position: { x: 400, y: 150 } });
         edges.push(
           { id: 'e1', source: fromT.id, target: viaT.id, animated: true, label: '1:N', markerEnd: { type: MarkerType.ArrowClosed, color: '#60a5fa' }, style: { stroke: '#60a5fa', strokeWidth: 3 } },
           { id: 'e2', source: toT.id, target: viaT.id, animated: true, label: '1:N', markerEnd: { type: MarkerType.ArrowClosed, color: '#60a5fa' }, style: { stroke: '#60a5fa', strokeWidth: 3 } }
@@ -84,13 +75,12 @@ export default function DatabaseVisualizer() {
         markerEnd: { type: MarkerType.ArrowClosed, color: '#60a5fa' }, style: { stroke: '#60a5fa', strokeWidth: 3 }
       });
     }
-
     return { nodes, edges };
   }, [selectedRelation]);
 
   return (
-    <div className="flex h-screen w-full bg-[#050810] text-slate-300 overflow-hidden">
-      {/* SIDEBAR: Obsidian Metal */}
+    <div className="flex h-screen w-full bg-[#020617] text-slate-300 overflow-hidden">
+      {/* SIDEBAR */}
       <div className="w-80 bg-slate-950 border-r border-slate-800 flex flex-col shadow-[20px_0_50px_rgba(0,0,0,0.8)] z-20">
         <div className="p-6 bg-linear-to-b from-slate-900 to-slate-950 border-b border-slate-800 flex items-center gap-3">
           <div className="p-2 bg-blue-600 rounded-lg shadow-[0_0_15px_rgba(37,99,235,0.5)]">
@@ -142,24 +132,24 @@ export default function DatabaseVisualizer() {
         </div>
       </div>
 
-      {/* MAIN CANVAS */}
-      <div className="flex-1 relative bg-[#050810]">
-        {/* THE HUD MAGNIFIER: Glassmorphism Redesign */}
+      {/* CANVAS */}
+      <div className="flex-1 relative bg-[#020617]">
+        {/* THE REDESIGNED HUD MAGNIFIER */}
         <div className="absolute top-8 left-1/2 -translate-x-1/2 z-50">
-          <div className="bg-slate-950/40 backdrop-blur-2xl px-8 py-3 rounded-2xl border border-slate-700/50 shadow-[0_0_40px_rgba(0,0,0,0.8)] flex items-center gap-6">
+          <div className="bg-slate-950/60 backdrop-blur-3xl px-8 py-3 rounded-2xl border border-blue-500/30 shadow-[0_0_40px_rgba(0,0,0,0.9),inset_0_0_15px_rgba(59,130,246,0.1)] flex items-center gap-6">
             <div className="flex items-center gap-3">
-              <div className="relative p-2 bg-slate-800 rounded-full border border-slate-700">
+              <div className="relative p-2 bg-blue-600/20 rounded-full border border-blue-500/50 shadow-[0_0_10px_rgba(59,130,246,0.3)]">
                 <Search size={16} className="text-blue-400" />
-                <div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full animate-ping" />
+                <div className="absolute -top-1 -right-1 w-2 h-2 bg-cyan-400 rounded-full animate-ping" />
               </div>
-              <span className="text-[10px] font-mono uppercase tracking-widest text-slate-400 font-bold">
-                {selectedRelation ? `Analyzing: ${selectedRelation.label}` : 'System Idle'}
+              <span className="text-xs font-mono uppercase tracking-widest text-blue-100 font-bold drop-shadow-[0_0_5px_rgba(147,197,253,0.5)]">
+                {selectedRelation ? `Target: ${selectedRelation.label}` : 'System Idle'}
               </span>
             </div>
             <div className="h-5 w-[1px] bg-slate-700" />
-            <div className="flex items-center gap-2 text-blue-400">
+            <div className="flex items-center gap-2 text-cyan-400">
               <Zap size={14} className="animate-pulse" />
-              <span className="text-[10px] font-bold uppercase">Active Scan</span>
+              <span className="text-[10px] font-bold uppercase tracking-tighter">Active Scan</span>
             </div>
           </div>
         </div>
@@ -177,16 +167,12 @@ export default function DatabaseVisualizer() {
           </ReactFlow>
         ) : (
           <div className="h-full w-full flex flex-col items-center justify-center text-slate-700 gap-8">
-            <motion.div 
-              animate={{ rotate: 360 }}
-              transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-              className="relative"
-            >
-              <div className="absolute inset-0 blur-3xl bg-blue-600/20 rounded-full" />
+            <div className="relative">
+              <div className="absolute inset-0 blur-3xl bg-blue-600/20 rounded-full animate-pulse" />
               <div className="relative p-12 rounded-full bg-slate-900 border border-slate-800 shadow-inner">
                 <Database size={80} className="text-slate-800" />
               </div>
-            </motion.div>
+            </div>
             <p className="text-xs font-mono uppercase tracking-[0.5em] opacity-30">Awaiting Schema Input</p>
           </div>
         )}
