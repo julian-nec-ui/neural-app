@@ -55,6 +55,29 @@ type FolderNode = {
   expanded?: boolean;
 };
 
+const ModernDatabaseIcon = ({ className = "w-6 h-6" }: { className?: string }) => (
+  <svg 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    xmlns="http://www.w3.org/2000/svg" 
+    className={className}
+  >
+    <defs>
+      <linearGradient id="db-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#6366f1" /> {/* Indigo 500 */}
+        <stop offset="100%" stopColor="#3b82f6" /> {/* Blue 500 */}
+      </linearGradient>
+    </defs>
+    <ellipse cx="12" cy="6" rx="7" ry="3" fill="url(#db-grad)" fillOpacity="0.9" />
+    <path d="M5 6C5 6 5 10 12 10C19 10 19 6 19 6" stroke="url(#db-grad)" strokeWidth="2" />
+    <ellipse cx="12" cy="12" rx="7" ry="3" fill="url(#db-grad)" fillOpacity="0.7" />
+    <path d="M5 12C5 12 5 16 12 16C19 16 19 12 19 12" stroke="url(#db-grad)" strokeWidth="2" />
+    <ellipse cx="12" cy="18" rx="7" ry="3" fill="url(#db-grad)" fillOpacity="0.5" />
+    <path d="M5 18C5 18 5 22 12 22C19 22 19 18 19 18" stroke="url(#db-grad)" strokeWidth="2" />
+  </svg>
+);
+
+
 // --- Mock Data ---
 const mockTables: Table[] = [
   { id: '1', name: 'users', schema: 'public', fields: [{ id: 'f1', name: 'id', type: 'integer', isPrimary: true, isNullable: false }, { id: 'f2', name: 'username', type: 'varchar(50)', isPrimary: false, isNullable: false }, { id: 'f3', name: 'email', type: 'varchar(100)', isPrimary: false, isNullable: false }, { id: 'f4', name: 'created_at', type: 'timestamp', isPrimary: false, isNullable: true }] },
@@ -92,7 +115,7 @@ const TableNode = ({ data }: NodeProps<Table>) => {
         <span className="text-[10px] bg-blue-800 text-blue-200 px-2 py-1 rounded-full">
           {data.schema}
         </span>
-      </div >
+      </div>
       <div className="p-2">
         <div className="space-y-1 max-h-60 overflow-y-auto">
           {data.fields.map((field) => (
@@ -100,11 +123,11 @@ const TableNode = ({ data }: NodeProps<Table>) => {
               <span className={`w-2 h-2 rounded-full mr-2 ${field.isPrimary ? 'bg-yellow-500' : 'bg-gray-600'}`} />
               <span className="text-gray-200 truncate">{field.name}</span>
               <span className="ml-auto text-gray-400 text-[10px]">{field.type}</span>
-            </div >
+            </div>
           ))}
-        </div >
-      </div >
-    </div >
+        </div>
+      </div>
+    </div>
   );
 };
 
@@ -120,6 +143,16 @@ const CustomEdge = ({ id, sourceX, sourceY, targetX, targetY, data }: EdgeProps)
 
   return (
     <g>
+      <style>{`
+        @keyframes dashFlow {
+          from { stroke-dashoffset: 20; }
+          to { stroke-dashoffset: 0; }
+        }
+        .edge-animate {
+          stroke-dasharray: 5;
+          animation: dashFlow 1s linear infinite;
+        }
+      `}</style>
       <defs>
         <marker
           id="arrowhead"
@@ -139,8 +172,11 @@ const CustomEdge = ({ id, sourceX, sourceY, targetX, targetY, data }: EdgeProps)
         fill="none"
         stroke="#6b7280"
         strokeWidth="2"
+        className="edge-animate"
         markerEnd="url(#arrowhead)"
       />
+      <circle cx={targetX} cy={targetY} r="4" fill="#3b82f6" />
+      
       {data?.type && (
         <foreignObject 
           width="60" 
@@ -150,7 +186,7 @@ const CustomEdge = ({ id, sourceX, sourceY, targetX, targetY, data }: EdgeProps)
         >
           <div className="text-[10px] font-medium text-gray-400 text-center bg-gray-900/50 rounded px-1">
             {data.type}
-          </div >
+          </div>
         </foreignObject>
       )}
     </g>
@@ -182,9 +218,9 @@ const FolderStructure = ({
         >
           <span className="mr-2 text-blue-400">
             {folder.type === 'folder' ? (folder.expanded ? '📂' : '📁') : '📄'}
-          </span >
+          </span>
           <span className="text-gray-200 truncate">{folder.name}</span>
-        </div >
+        </div>
         
         {folder.type === 'folder' && folder.children && (
           <div className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${folder.expanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
@@ -196,9 +232,9 @@ const FolderStructure = ({
                     return (
                       <div 
                         key={child.id} 
-                        className="mb-1 transition-all duration-700 ease-out" // Increased duration for smoothness
+                        className="mb-1 transition-all duration-700 ease-out"
                         style={{ 
-                          transitionDelay: folder.expanded ? `${index * 150}ms` : '0ms', // Slowed down multiplier
+                          transitionDelay: folder.expanded ? `${index * 150}ms` : '0ms',
                           opacity: folder.expanded ? 1 : 0,
                           transform: folder.expanded ? 'translateY(0)' : 'translateY(-10px)'
                         }}
@@ -214,28 +250,27 @@ const FolderStructure = ({
                         >
                           <span className="mr-2 text-blue-400">📄</span>
                           <span className="text-gray-200 truncate">{child.name}</span>
-                        </div >
-                      </div >
+                        </div>
+                      </div>
                     );
                   }
                   return null;
                 })}
-              </div >
-            </div >
+              </div>
+            </div>
           </div>
         )}
-      </div >
+      </div>
     );
   };
 
   return (
     <div className="bg-linear-to-b from-gray-900 to-gray-950 border-r border-gray-800 p-4 w-64 overflow-y-auto h-full">
       <h2 className="text-lg font-bold text-blue-400 mb-4">🗄️ Database Schema</h2>
-      <div className="space-y-1">{folders.map(f => renderFolder(f))}</div >
+      <div className="space-y-1">{folders.map(f => renderFolder(f))}</div>
     </div>
   );
 };
-
 
 // --- Main Component ---
 
@@ -305,7 +340,7 @@ export default function DatabaseVisualizer() {
           onSelectTable={handleSelectTable}
           selectedTableId={selectedTableId}
         />
-      </div >
+      </div>
       
       <div className="flex-1 relative">
         <ReactFlowProvider>
@@ -322,16 +357,17 @@ export default function DatabaseVisualizer() {
             <Background color="#374151" gap={20} />
             <Controls className="bg-gray-900 border-gray-700" position="top-right" />
             <Panel position="top-left" className="bg-gray-900/80 border border-gray-800 rounded-lg p-3">
-              <h3 className="font-bold text-blue-400">📊 Database Schema</h3>
-            </Panel >
+              <h3 className="font-bold text-blue-400"><ModernDatabaseIcon className="w-6 h-6" /> 
+               Database Schema</h3>
+            </Panel>
             <MiniMap 
               nodeColor={() => '#4f46e5'}
               className="bg-gray-900 border-gray-800"
-              position="bottom-right"
+              position="bottom-left"
             />
           </ReactFlow>
         </ReactFlowProvider>
-      </div >
-    </div >
+      </div>
+    </div>
   );
 }
