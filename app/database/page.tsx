@@ -1,38 +1,146 @@
+// components/DatabaseSchemaViewer.tsx
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import ReactFlow, { 
-  Background, Controls, Edge, Node, MarkerType, NodeProps 
+  Controls, 
+  Background,
+  useNodesState,
+  useEdgesState,
+  addEdge,
+  MiniMap,
+  Node,
+  Edge,
+  Connection
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  ChevronRight, ChevronDown, Database, Zap, FolderOpen, Folder, Search, Cpu 
-} from 'lucide-react';
-import { SCHEMA, Relation } from './data';
 
-// --- ULTIMATE CYBER-METALLIC NODE ---
-const TableNode = ({ data }: NodeProps) => {
-  const tableData = data as { label: string; columns: string[] };
+// Define types
+type Table = {
+  id: string;
+  name: string;
+  columns: Column[];
+};
+
+type Column = {
+  id: string;
+  name: string;
+  type: string;
+  isPrimaryKey: boolean;
+  isForeignKey: boolean;
+  references?: string;
+};
+
+type Relation = {
+  id: string;
+  type: '1:N' | 'N:1' | '1:1' | 'M:M';
+  fromTable: string;
+  toTable: string;
+  fromColumn: string;
+  toColumn: string;
+};
+
+type Folder = {
+  id: string;
+  name: string;
+  type: 'folder' | 'table';
+  expanded?: boolean;
+  children?: string[];
+  tables?: Table[];
+};
+
+// Mock data
+const mockTables: Table[] = [
+  {
+    id: 'users',
+    name: 'Users',
+    columns: [
+      { id: 'u1', name: 'id', type: 'INT', isPrimaryKey: true, isForeignKey: false },
+      { id: 'u2', name: 'username', type: 'VARCHAR(50)', isPrimaryKey: false, isForeignKey: false },
+      { id: 'u3', name: 'email', type: 'VARCHAR(100)', isPrimaryKey: false, isForeignKey: false },
+      { id: 'u4', name: 'created_at', type: 'TIMESTAMP', isPrimaryKey: false, isForeignKey: false },
+    ]
+  },
+  {
+    id: 'posts',
+    name: 'Posts',
+    columns: [
+      { id: 'p1', name: 'id', type: 'INT', isPrimaryKey: true, isForeignKey: false },
+      { id: 'p2', name: 'title', type: 'VARCHAR(255)', isPrimaryKey: false, isForeignKey: false },
+      { id: 'p3', name: 'content', type: 'TEXT', isPrimaryKey: false, isForeignKey: false },
+      { id: 'p4', name: 'user_id', type: 'INT', isPrimaryKey: false, isForeignKey: true, references: 'users.id' },
+      { id: 'p5', name: 'created_at', type: 'TIMESTAMP', isPrimaryKey: false, isForeignKey: false },
+    ]
+  },
+  {
+    id: 'topics',
+    name: 'Topics',
+    columns: [
+      { id: 't1', name: 'id', type: 'INT', isPrimaryKey: true, isForeignKey: false },
+      { id: 't2', name: 'name', type: 'VARCHAR(100)', isPrimaryKey: false, isForeignKey: false },
+      { id: 't3', name: 'description', type: 'TEXT', isPrimaryKey: false, isForeignKey: false },
+    ]
+  },
+  {
+    id: 'post_topics',
+    name: 'Post_Topics',
+    columns: [
+      { id: 'pt1', name: 'post_id', type: 'INT', isPrimaryKey: true, isForeignKey: true, references: 'posts.id' },
+      { id: 'pt2', name: 'topic_id', type: 'INT', isPrimaryKey: true, isForeignKey: true, references: 'topics.id' },
+    ]
+  }
+];
+
+const mockRelations: Relation[] = [
+  {
+    id: 'r1',
+    type: '1:N',
+    fromTable: 'users',
+    toTable: 'posts',
+    fromColumn: 'id',
+    toColumn: 'user_id'
+  },
+  {
+    id: 'r2',
+    type: 'M:M',
+    fromTable: 'posts',
+    toTable: 'topics',
+    fromColumn: 'id',
+    toColumn: 'id'
+  }
+];
+
+const mockFolders: Folder[] = [
+  {
+    id: 'folder1',
+    name: 'Users & Posts',
+    type: 'folder',
+    expanded: true,
+    children: ['users', 'posts']
+  },
+  {
+    id: 'folder2',
+    name: 'Topics',
+    type: 'folder',
+    expanded: true,
+    children: ['topics', 'post_topics']
+  }
+];
+
+// Node component for React Flow
+const TableNode = ({ data }: { data: any }) => {
   return (
-    <div className="relative group">
-      {/* Outer Neon Glow */}
-      <div className="absolute -inset-1 bg-linear-to-r from-blue-600 via-cyan-500 to-blue-600 rounded-xl blur opacity-20 group-hover:opacity-60 transition duration-500 animate-pulse"></div>
-      
-      <div className="relative bg-slate-950 border border-slate-700 rounded-xl shadow-2xl w-56 overflow-hidden">
-        {/* Header: Brushed Titanium Look */}
-        <div className="bg-linear-to-b from-slate-700 via-slate-800 to-slate-900 p-3 flex items-center gap-3 border-b border-blue-500/30 shadow-inner">
-          <div className="p-1 bg-blue-500 rounded shadow-[0_0_10px_#3b82f6]">
-            <Database size={12} className="text-white" />
-          </div>
-          <span className="text-slate-100 text-xs font-black uppercase tracking-tighter italic">{tableData.label}</span>
-        </div>
-        {/* Content: Deep Glass */}
-        <div className="p-3 space-y-2 bg-slate-900/80 backdrop-blur-md">
-          {tableData.columns.map((col, i) => (
-            <div key={i} className="text-[10px] font-mono text-slate-400 py-1.5 px-2 rounded-sm bg-slate-950/50 border border-slate-800 flex items-center gap-2 hover:border-blue-500/50 hover:text-blue-300 transition-all group">
-              <div className="w-1 h-1 rounded-full bg-slate-600 group-hover:bg-blue-400 transition-colors" />
-              {col}
+    <div className="bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 rounded-lg shadow-lg w-64">
+      <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-3 rounded-t-lg">
+        <h3 className="font-bold text-white truncate">{data.table.name}</h3>
+      </div>
+      <div className="p-3">
+        <div className="space-y-2">
+          {data.table.columns.map((col: Column) => (
+            <div key={col.id} className="flex items-center text-sm">
+              <span className={`inline-block w-2 h-2 rounded-full mr-2 ${col.isPrimaryKey ? 'bg-yellow-500' : col.isForeignKey ? 'bg-green-500' : 'bg-gray-500'}`}></span>
+              <span className="text-gray-300 truncate">{col.name}</span>
+              <span className="ml-auto text-xs text-gray-500">{col.type}</span>
             </div>
           ))}
         </div>
@@ -41,167 +149,213 @@ const TableNode = ({ data }: NodeProps) => {
   );
 };
 
-const nodeTypes = { tableNode: TableNode };
+const relationTypes = {
+  '1:N': { color: '#3B82F6', label: 'One-to-Many' },
+  'N:1': { color: '#10B981', label: 'Many-to-One' },
+  '1:1': { color: '#8B5CF6', label: 'One-to-One' },
+  'M:M': { color: '#EC4899', label: 'Many-to-Many' }
+};
 
-export default function DatabaseVisualizer() {
-  const [selectedRelation, setSelectedRelation] = useState<Relation | null>(null);
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({ root: true });
+// Custom node types
+const nodeTypes = {
+  tableNode: TableNode
+};
 
-  const toggleExpand = (id: string) => setExpanded(prev => ({ ...prev, [id]: !prev[id] }));
+const DatabaseSchemaViewer = () => {
+  const [folders, setFolders] = useState<Folder[]>(mockFolders);
+  const [selectedTable, setSelectedTable] = useState<Table | null>(null);
+  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set(['folder1', 'folder2']));
+  const [nodes, setNodes, onNodesChange] = useNodesState([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
-  const { nodes, edges } = useMemo(() => {
-    if (!selectedRelation) return { nodes: [], edges: [] };
-    const fromT = SCHEMA.tables.find(t => t.id === selectedRelation.from);
-    const toT = SCHEMA.tables.find(t => t.id === selectedRelation.to);
-    if (!fromT || !toT) return { nodes: [], edges: [] };
+  // Initialize nodes and edges
+  useEffect(() => {
+    if (mockTables.length === 0) return;
 
-    const nodes: Node[] = [
-      { id: fromT.id, type: 'tableNode', data: { label: fromT.name, columns: fromT.columns }, position: { x: 100, y: 150 } },
-      { id: toT.id, type: 'tableNode', data: { label: toT.name, columns: toT.columns }, position: { x: 700, y: 150 } },
-    ];
+    // Create nodes
+    const newNodes: Node[] = mockTables.map((table, index) => ({
+      id: table.id,
+      type: 'tableNode',
+      position: { x: index * 300, y: 100 },
+      data: { table }
+    }));
 
-        const edges: Edge[] = [];
-
-    if (selectedRelation.type === 'N:M' && selectedRelation.via) {
-      const viaT = SCHEMA.tables.find(t => t.id === selectedRelation.via);
-      if (viaT) {
-        edges.push(
-          { 
-            id: 'e1', 
-            source: fromT.id, 
-            target: viaT.id, 
-            label: '1:N', 
-            animated: true, 
-            type: 'smoothstep',
-            markerEnd: { type: MarkerType.ArrowClosed, color: '#60a5fa' }, 
-          },
-          { 
-            id: 'e2', 
-            source: toT.id, 
-            target: viaT.id, 
-            animated: true, 
-            label: '1:N', 
-            type: 'smoothstep', 
-            markerEnd: { type: MarkerType.ArrowClosed, color: '#60a5fa' }, 
-          }
-        );
+    // Create edges
+    const newEdges: Edge[] = [];
+    
+    mockRelations.forEach(rel => {
+      const fromTable = mockTables.find(t => t.id === rel.fromTable);
+      const toTable = mockTables.find(t => t.id === rel.toTable);
+      
+      if (fromTable && toTable) {
+        // Find the specific columns
+        const fromColumn = fromTable.columns.find(c => c.name === rel.fromColumn);
+        const toColumn = toTable.columns.find(c => c.name === rel.toColumn);
+        
+        if (fromColumn && toColumn) {
+          newEdges.push({
+            id: `e${rel.id}`,
+            source: rel.fromTable,
+            target: rel.toTable,
+            animated: true,
+            markerEnd: { type: 'arrowclosed' },
+            style: { 
+              stroke: relationTypes[rel.type].color,
+              strokeWidth: 2
+            },
+            label: rel.type,
+            labelStyle: { fill: '#fff', fontWeight: 'bold' }
+          });
+        }
       }
-    } else {
-      edges.push({
-        id: 'e1', 
-        source: fromT.id, 
-        target: toT.id, 
-        label: selectedRelation.type, 
-        animated: true, 
-        type: 'smoothstep',
-        markerEnd: { type: MarkerType.ArrowClosed, color: '#60a5fa' }, 
-      });
-    }
+    });
 
+    setNodes(newNodes);
+    setEdges(newEdges);
+  }, []);
 
-    return { nodes, edges };
-  }, [selectedRelation]);
+  const toggleFolder = (folderId: string) => {
+    setExpandedFolders(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(folderId)) {
+        newSet.delete(folderId);
+      } else {
+        newSet.add(folderId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleTableClick = (table: Table) => {
+    setSelectedTable(table);
+  };
+
+  const onConnect = (params: Connection) => {
+    setEdges((eds) => addEdge({ ...params, animated: true }, eds));
+  };
 
   return (
-    <div className="flex h-screen w-full bg-[#020617] text-slate-300 overflow-hidden">
-      {/* SIDEBAR */}
-      <div className="w-80 bg-slate-950 border-r border-slate-800 flex flex-col shadow-[20px_0_50px_rgba(0,0,0,0.8)] z-20">
-        <div className="p-6 bg-linear-to-b from-slate-900 to-slate-950 border-b border-slate-800 flex items-center gap-3">
-          <div className="p-2 bg-blue-600 rounded-lg shadow-[0_0_15px_rgba(37,99,235,0.5)]">
-            <Cpu className="text-white" size={20} />
-          </div>
-          <h1 className="font-black text-lg tracking-tighter text-slate-100 uppercase">Neural OS</h1>
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          <div 
-            className="flex items-center gap-2 cursor-pointer p-3 rounded-xl bg-slate-900/50 hover:bg-slate-800 transition-all border border-slate-800 group"
-            onClick={() => toggleExpand('root')}
-          >
-            {expanded.root ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-            <FolderOpen size={18} className="text-blue-500 group-hover:text-blue-300" />
-            <span className="font-bold text-sm uppercase tracking-widest text-slate-400 group-hover:text-slate-100">Relations</span>
-          </div>
-
-          <AnimatePresence>
-            {expanded.root && (
-              <motion.div 
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className="ml-4 space-y-2 border-l border-slate-800 pl-4"
+    <div className="flex h-screen bg-linear-to-br from-gray-900 to-gray-800 text-gray-200">
+      {/* Left Sidebar - Folder Structure */}
+      <div className="w-1/4 border-r border-gray-700 overflow-y-auto p-4">
+        <h2 className="text-xl font-bold mb-4 text-blue-400">Database Schema</h2>
+        
+        <div className="space-y-2">
+          {folders.map(folder => (
+            <div key={folder.id} className="mb-1">
+              <div 
+                className="flex items-center p-2 rounded hover:bg-gray-800 cursor-pointer transition-colors"
+                onClick={() => toggleFolder(folder.id)}
               >
-                {SCHEMA.relations.map((rel) => (
-                  <div 
-                    key={rel.id}
-                    onClick={() => setSelectedRelation(rel)}
-                    className={`group flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all duration-300 ${
-                      selectedRelation?.id === rel.id 
-                      ? 'bg-blue-600 text-white shadow-[0_0_20px_rgba(37,99,235,0.4)] scale-[1.02]' 
-                      : 'hover:bg-slate-900 text-slate-500 hover:text-slate-300 border border-transparent hover:border-slate-800'
-                    }`}
-                  >
-                    <Folder size={14} className="opacity-40" />
-                    <span className="text-xs font-semibold truncate">{rel.label}</span>
-                    <span className={`ml-auto text-[9px] px-2 py-0.5 rounded-full border font-mono ${
-                      selectedRelation?.id === rel.id ? 'bg-blue-800 border-blue-400' : 'bg-slate-950 border-slate-700 text-slate-500'
-                    }`}>
-                      {rel.type}
-                    </span>
-                  </div>
-                ))}
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      </div>
-
-      {/* CANVAS */}
-      <div className="flex-1 relative bg-[#020617]">
-        {/* THE REDESIGNED HUD MAGNIFIER */}
-        <div className="absolute top-8 left-1/2 -translate-x-1/2 z-50">
-          <div className="bg-slate-950/60 backdrop-blur-3xl px-8 py-3 rounded-2xl border border-blue-500/30 shadow-[0_0_40px_rgba(0,0,0,0.9),inset_0_0_15px_rgba(59,130,246,0.1)] flex items-center gap-6">
-            <div className="flex items-center gap-3">
-              <div className="relative p-2 bg-blue-600/20 rounded-full border border-blue-500/50 shadow-[0_0_10px_rgba(59,130,246,0.3)]">
-                <Search size={16} className="text-blue-400" />
-                <div className="absolute -top-1 -right-1 w-2 h-2 bg-cyan-400 rounded-full animate-ping" />
+                <span className="mr-2 text-blue-400">
+                  {expandedFolders.has(folder.id) ? '▼' : '▶'}
+                </span>
+                <span className="font-medium">{folder.name}</span>
               </div>
-              <span className="text-xs font-mono uppercase tracking-widest text-blue-100 font-bold drop-shadow-[0_0_5px_rgba(147,197,253,0.5)]">
-                {selectedRelation ? `Target: ${selectedRelation.label}` : 'System Idle'}
-              </span>
+              
+              {expandedFolders.has(folder.id) && (
+                <div className="ml-6 pl-2 border-l border-gray-700">
+                  {folder.children?.map(childId => {
+                    const table = mockTables.find(t => t.id === childId);
+                    return table ? (
+                      <div 
+                        key={table.id}
+                        className={`p-2 rounded cursor-pointer transition-colors ${selectedTable?.id === table.id ? 'bg-blue-900/30' : 'hover:bg-gray-800'}`}
+                        onClick={() => handleTableClick(table)}
+                      >
+                        <div className="flex items-center">
+                          <span className="mr-2 text-gray-400">📄</span>
+                          <span>{table.name}</span>
+                        </div>
+                      </div>
+                    ) : null;
+                  })}
+                </div>
+              )}
             </div>
-            <div className="h-5 w-px bg-slate-700" />
-            <div className="flex items-center gap-2 text-cyan-400">
-              <Zap size={14} className="animate-pulse" />
-              <span className="text-[10px] font-bold uppercase tracking-tighter">Active Scan</span>
-            </div>
-          </div>
+          ))}
         </div>
-
-        {selectedRelation ? (
-          <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            nodeTypes={nodeTypes}
-            fitView
-            className="bg-transparent"
-          >
-            <Background color="#1e293b" gap={30} />
-            <Controls />
-
-          </ReactFlow>
-        ) : (
-          <div className="h-full w-full flex flex-col items-center justify-center text-slate-700 gap-8">
-            <div className="relative">
-              <div className="absolute inset-0 blur-3xl bg-blue-600/20 rounded-full animate-pulse" />
-              <div className="relative p-12 rounded-full bg-slate-900 border border-slate-800 shadow-inner">
-                <Database size={80} className="text-slate-800" />
+        
+        {/* Selected Table Info */}
+        {selectedTable && (
+          <div className="mt-6 p-4 bg-gray-800/50 rounded-lg border border-gray-700">
+            <h3 className="font-bold text-blue-400 mb-2">Selected Table: {selectedTable.name}</h3>
+            <div className="space-y-1 text-sm">
+              <div className="flex justify-between">
+                <span>Columns:</span>
+                <span className="text-blue-300">{selectedTable.columns.length}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Primary Keys:</span>
+                <span className="text-yellow-400">
+                  {selectedTable.columns.filter(c => c.isPrimaryKey).length}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span>Foreign Keys:</span>
+                <span className="text-green-400">
+                  {selectedTable.columns.filter(c => c.isForeignKey).length}
+                </span>
               </div>
             </div>
-            <p className="text-xs font-mono uppercase tracking-[0.5em] opacity-30">Awaiting Schema Input</p>
           </div>
         )}
       </div>
+
+      {/* Right Panel - Graph Visualization */}
+      <div className="w-3/4 flex flex-col">
+        <div className="p-4 border-b border-gray-700">
+          <h2 className="text-xl font-bold text-blue-400">Schema Diagram</h2>
+          <p className="text-sm text-gray-400 mt-1">
+            Click on tables to view details. Drag to pan, scroll to zoom.
+          </p>
+        </div>
+        
+        <div className="flex-1 relative">
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onConnect={onConnect}
+            nodeTypes={nodeTypes}
+            fitView
+            className="bg-gray-900"
+          >
+            <Background color="#4b5563" gap={16} />
+            <Controls className="bg-gray-800/80 backdrop-blur-sm rounded-lg border border-gray-700" />
+            <MiniMap 
+              className="bg-gray-800/80 backdrop-blur-sm rounded-lg border border-gray-700" 
+              nodeColor={(node) => {
+                if (selectedTable?.id === node.id) return '#3B82F6';
+                return '#4B5563';
+              }}
+            />
+          </ReactFlow>
+        </div>
+        
+        {/* Legend */}
+        <div className="p-3 border-t border-gray-700 bg-gray-800/50 flex flex-wrap gap-4">
+          <div className="flex items-center">
+            <span className="w-3 h-3 rounded-full bg-blue-500 mr-2"></span>
+            <span className="text-sm">One-to-Many (1:N)</span>
+          </div>
+          <div className="flex items-center">
+            <span className="w-3 h-3 rounded-full bg-green-500 mr-2"></span>
+            <span className="text-sm">Many-to-One (N:1)</span>
+          </div>
+          <div className="flex items-center">
+            <span className="w-3 h-3 rounded-full bg-purple-500 mr-2"></span>
+            <span className="text-sm">One-to-One (1:1)</span>
+          </div>
+          <div className="flex items-center">
+            <span className="w-3 h-3 rounded-full bg-pink-500 mr-2"></span>
+            <span className="text-sm">Many-to-Many (M:M)</span>
+          </div>
+        </div>
+      </div>
     </div>
   );
-}
+};
+
+export default DatabaseSchemaViewer;
