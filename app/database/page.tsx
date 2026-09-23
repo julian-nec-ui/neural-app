@@ -459,7 +459,7 @@ export default function DatabaseVisualizer() {
             <Background color="#374151" gap={20} />
             <Controls className="bg-gray-900 border-gray-700" position="top-right" />
             <Panel position="top-left" className="bg-gray-900/80 border border-gray-800 rounded-lg p-3">
-              <h3 className="font-bold text-blue-400"><ModernDatabaseStackIcon className="w-6 h-6" />
+              <h3 className="font-bold flex items-center text-blue-400"><ModernDatabaseStackIcon className="w-6 h-6" />
                 Database Schema</h3>
             </Panel>
             <MiniMap
