@@ -187,6 +187,11 @@ const mockTables: Table[] = [
   { id: '4', name: 'categories', schema: 'public', fields: [{ id: 'f13', name: 'id', type: 'integer', isPrimary: true, isNullable: false }, { id: 'f14', name: 'name', type: 'varchar(50)', isPrimary: false, isNullable: false }] },
   { id: '5', name: 'order_items', schema: 'public', fields: [{ id: 'f15', name: 'order_id', type: 'integer', isPrimary: true, isNullable: false }, { id: 'f16', name: 'product_id', type: 'integer', isPrimary: true, isNullable: false }, { id: 'f17', name: 'quantity', type: 'integer', isPrimary: false, isNullable: false }] },
   { id: '6', name: 'user_profiles', schema: 'public', fields: [{ id: 'f18', name: 'id', type: 'integer', isPrimary: true, isNullable: false }, { id: 'f19', name: 'user_id', type: 'integer', isPrimary: false, isNullable: false }, { id: 'f20', name: 'bio', type: 'text', isPrimary: false, isNullable: true }, { id: 'f21', name: 'avatar_url', type: 'varchar(255)', isPrimary: false, isNullable: true }] },
+  
+  // NEW TABLES FOR MANY-TO-MANY (Author <-> Book)
+  { id: '7', name: 'authors', schema: 'public', fields: [{ id: 'a1', name: 'id', type: 'integer', isPrimary: true, isNullable: false }, { id: 'a2', name: 'name', type: 'varchar(100)', isPrimary: false, isNullable: false }] },
+  { id: '8', name: 'books', schema: 'public', fields: [{ id: 'b1', name: 'id', type: 'integer', isPrimary: true, isNullable: false }, { id: 'b2', name: 'title', type: 'varchar(255)', isPrimary: false, isNullable: false }] },
+  { id: '9', name: 'author_books', schema: 'public', fields: [{ id: 'ab1', name: 'author_id', type: 'integer', isPrimary: true, isNullable: false }, { id: 'ab2', name: 'book_id', type: 'integer', isPrimary: true, isNullable: false }] },
 ];
 
 const mockRelationships: Relationship[] = [
@@ -194,7 +199,11 @@ const mockRelationships: Relationship[] = [
   { id: 'r2', sourceTableId: '3', targetTableId: '4', sourceFieldId: 'f12', targetFieldId: 'f13', type: 'N:1' },
   { id: 'r3', sourceTableId: '2', targetTableId: '5', sourceFieldId: 'f5', targetFieldId: 'f15', type: '1:N' },
   { id: 'r4', sourceTableId: '3', targetTableId: '5', sourceFieldId: 'f9', targetFieldId: 'f16', type: '1:N' },
-  { id: 'r5', sourceTableId: '1', targetTableId: '6', sourceFieldId: 'f1', targetFieldId: 'f19', type: '1:1' }
+  { id: 'r5', sourceTableId: '1', targetTableId: '6', sourceFieldId: 'f1', targetFieldId: 'f19', type: '1:1' },
+
+  // NEW RELATIONSHIPS FOR MANY-TO-MANY (Linking via the junction table)
+  { id: 'r6', sourceTableId: '9', targetTableId: '7', sourceFieldId: 'ab1', targetFieldId: 'a1', type: 'N:1' },
+  { id: 'r7', sourceTableId: '9', targetTableId: '8', sourceFieldId: 'ab2', targetFieldId: 'b1', type: 'N:1' }
 ];
 
 const tableFolders: FolderNode[] = [
