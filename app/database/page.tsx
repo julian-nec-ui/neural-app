@@ -196,9 +196,9 @@ const FolderStructure = ({
                     return (
                       <div 
                         key={child.id} 
-                        className="mb-1 transition-all duration-500 ease-out"
+                        className="mb-1 transition-all duration-700 ease-out" // Increased duration for smoothness
                         style={{ 
-                          transitionDelay: folder.expanded ? `${index * 50}ms` : '0ms',
+                          transitionDelay: folder.expanded ? `${index * 150}ms` : '0ms', // Slowed down multiplier
                           opacity: folder.expanded ? 1 : 0,
                           transform: folder.expanded ? 'translateY(0)' : 'translateY(-10px)'
                         }}
@@ -215,14 +215,14 @@ const FolderStructure = ({
                           <span className="mr-2 text-blue-400">📄</span>
                           <span className="text-gray-200 truncate">{child.name}</span>
                         </div >
-                      </div>
+                      </div >
                     );
                   }
                   return null;
                 })}
               </div >
-            </div>
-          </div >
+            </div >
+          </div>
         )}
       </div >
     );
@@ -232,9 +232,10 @@ const FolderStructure = ({
     <div className="bg-linear-to-b from-gray-900 to-gray-950 border-r border-gray-800 p-4 w-64 overflow-y-auto h-full">
       <h2 className="text-lg font-bold text-blue-400 mb-4">🗄️ Database Schema</h2>
       <div className="space-y-1">{folders.map(f => renderFolder(f))}</div >
-    </div >
+    </div>
   );
 };
+
 
 // --- Main Component ---
 
