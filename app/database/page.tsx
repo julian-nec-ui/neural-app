@@ -1,4 +1,4 @@
-// app/database-visualizer/page.tsx
+
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
@@ -242,6 +242,19 @@ const CustomEdge = ({ id, sourceX, sourceY, targetX, targetY, data }: EdgeProps)
     targetPosition: Position.Left
   });
 
+  // State to hold the calculated midpoint of the curve
+  const [midpoint, setMidpoint] = useState({ x: 0, y: 0 });
+  const pathRef = React.useRef<SVGPathElement>(null);
+
+  // Calculate the actual center of the curved path
+  React.useLayoutEffect(() => {
+    if (pathRef.current) {
+      const length = pathRef.current.getTotalLength();
+      const point = pathRef.current.getPointAtLength(length / 2);
+      setMidpoint({ x: point.x, y: point.y });
+    }
+  }, [edgePath]);
+
   return (
     <g>
       <style>{`
@@ -268,6 +281,7 @@ const CustomEdge = ({ id, sourceX, sourceY, targetX, targetY, data }: EdgeProps)
         </marker>
       </defs>
       <path
+        ref={pathRef}
         id={id}
         d={edgePath}
         fill="none"
@@ -282,8 +296,9 @@ const CustomEdge = ({ id, sourceX, sourceY, targetX, targetY, data }: EdgeProps)
         <foreignObject
           width="60"
           height="20"
-          x={(sourceX + targetX) / 2 - 30}
-          y={(sourceY + targetY) / 2 - 10}
+          // Use the calculated midpoint instead of the bounding box midpoint
+          x={midpoint.x - 30}
+          y={midpoint.y - 10}
         >
           <div className="text-[10px] font-medium text-gray-400 text-center bg-gray-900/50 rounded px-1">
             {data.type}
@@ -293,6 +308,7 @@ const CustomEdge = ({ id, sourceX, sourceY, targetX, targetY, data }: EdgeProps)
     </g>
   );
 };
+
 
 const nodeTypes = { table: TableNode };
 const edgeTypes = { custom: CustomEdge };
