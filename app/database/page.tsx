@@ -232,7 +232,7 @@ const TableNode = ({ data }: NodeProps<Table>) => {
   );
 };
 
-const CustomEdge = ({ id, sourceX, sourceY, targetX, targetY, data, markerEnd }: EdgeProps) => {
+const CustomEdge = ({ id, sourceX, sourceY, targetX, targetY, data }: EdgeProps) => {
   const [edgePath] = getBezierPath({
     sourceX,
     sourceY,
@@ -242,29 +242,49 @@ const CustomEdge = ({ id, sourceX, sourceY, targetX, targetY, data, markerEnd }:
     targetPosition: Position.Left
   });
 
+  const [points, setPoints] = useState({ midpoint: { x: 0, y: 0 }, end: { x: 0, y: 0 } });
   const pathRef = React.useRef<SVGPathElement>(null);
-  const [endPoint, setEndPoint] = React.useState({ x: 0, y: 0 });
-  const [midpoint, setMidpoint] = React.useState({ x: 0, y: 0 });
 
-  // This is the only way to get the "glue" effect: 
-  // Sync the circle to the ACTUAL end of the SVG path string
   React.useLayoutEffect(() => {
     if (pathRef.current) {
       const length = pathRef.current.getTotalLength();
-      const end = pathRef.current.getPointAtLength(length);
       const mid = pathRef.current.getPointAtLength(length / 2);
-      setEndPoint({ x: end.x, y: end.y });
-      setMidpoint({ x: mid.x, y: mid.y });
+      const end = pathRef.current.getPointAtLength(length);
+      setPoints({
+        midpoint: { x: mid.x, y: mid.y },
+        end: { x: end.x, y: end.y }
+      });
     }
-  }, [edgePath]); // Re-run every time the path string changes
+  }, [edgePath]);
 
   return (
     <g>
+      <style>{`
+        @keyframes dashFlow {
+          from { stroke-dashoffset: 20; }
+          to { stroke-dashoffset: 0; }
+        }
+        .edge-animate {
+          stroke-dasharray: 5;
+          animation: dashFlow 1s linear infinite;
+        }
+        /* When the edge container is hovered, move the circle slightly back along its path */
+        /* Since we can't easily detect the NODE hover from here, we detect the EDGE hover */
+        /* Or better: we apply a transform to the circle when the group is hovered */
+        .edge-group:hover .edge-dot {
+          transform: translate(-10px, -10px); 
+        }
+        /* If you want it to move specifically away from the target, 
+           we use a transition to make it smooth */
+        .edge-dot {
+          transition: transform 0.2s ease-out;
+        }
+      `}</style>
       <defs>
         <marker
           id="arrowhead"
           viewBox="0 -5 10 10"
-          refX="5" // Reduced refX so the arrow sits closer to the tip
+          refX="25"
           refY="0"
           markerWidth="6"
           markerHeight="6"
@@ -273,7 +293,6 @@ const CustomEdge = ({ id, sourceX, sourceY, targetX, targetY, data, markerEnd }:
           <path d="M0,-5L10,0L0,5" fill="#6b7280" />
         </marker>
       </defs>
-      
       <path
         ref={pathRef}
         id={id}
@@ -284,36 +303,32 @@ const CustomEdge = ({ id, sourceX, sourceY, targetX, targetY, data, markerEnd }:
         className="edge-animate"
         markerEnd="url(#arrowhead)"
       />
-
-      {/* THE GLUE: The circle is placed at the exact end of the path */}
-      <circle cx={endPoint.x} cy={endPoint.y} r="4" fill="#3b82f6" />
+      
+      {/* Added className edge-dot for the hover effect */}
+      <circle 
+        className="edge-dot"
+        cx={points.end.x} 
+        cy={points.end.y} 
+        r="4" 
+        fill="#3b82f6" 
+      />
 
       {data?.type && (
         <foreignObject
           width="60"
           height="20"
-          x={midpoint.x - 30}
-          y={midpoint.y - 10}
+          x={points.midpoint.x - 30}
+          y={points.midpoint.y - 10}
         >
           <div className="text-[10px] font-medium text-gray-400 text-center bg-gray-900/50 rounded px-1">
             {data.type}
-          </div>
+          </div >
         </foreignObject>
       )}
-
-      <style>{`
-        @keyframes dashFlow {
-          from { stroke-dashoffset: 20; }
-          to { stroke-dashoffset: 0; }
-        }
-        .edge-animate {
-          stroke-dasharray: 5;
-          animation: dashFlow 1s linear infinite;
-        }
-      `}</style>
     </g>
   );
 };
+
 
 const nodeTypes = { table: TableNode };
 const edgeTypes = { custom: CustomEdge };
