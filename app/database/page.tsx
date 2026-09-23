@@ -264,16 +264,17 @@ const CustomEdge = ({ id, sourceX, sourceY, targetX, targetY, data, markerEnd }:
         <marker
           id="arrowhead"
           viewBox="0 -5 10 10"
-          refX="5" // Reduced refX so the arrow sits closer to the tip
+          refX="25"
           refY="0"
-          markerWidth="6"
-          markerHeight="6"
+          markerWidth="7"  // Increased by 1
+          markerHeight="9" // Increased by 3
           orient="auto"
         >
           <path d="M0,-5L10,0L0,5" fill="#6b7280" />
         </marker>
+
       </defs>
-      
+
       <path
         ref={pathRef}
         id={id}
