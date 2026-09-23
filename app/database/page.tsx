@@ -448,7 +448,6 @@ export default function DatabaseVisualizer() {
 
       <div className="flex-1 relative">
         <ReactFlowProvider>
-          {/* Inside your DatabaseVisualizer return statement, within the <ReactFlow> component */}
 
           <ReactFlow
             nodes={nodes}
@@ -462,30 +461,36 @@ export default function DatabaseVisualizer() {
           >
             {/* --- START OF CHANGES --- */}
             <style>{`
+    /* Target the container */
     .react-flow__controls {
       background: #111827 !important; /* bg-gray-900 */
       border: 1px solid #374151 !important; /* border-gray-700 */
-      border-radius: 0.5rem !important; /* rounded-lg */
-      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important; /* shadow-lg */
-      overflow: hidden;
+      border-radius: 8px !important;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5) !important;
     }
 
+    /* Target the individual buttons (+, -, zoom, fit) */
     .react-flow__control-button {
       background: transparent !important;
       border: none !important;
       color: #9ca3af !important; /* text-gray-400 */
+      width: 36px !important;
+      height: 36px !important;
       transition: all 0.2s ease !important;
     }
 
+    /* Hover state for buttons */
     .react-flow__control-button:hover {
       background: #1f2937 !important; /* hover:bg-gray-800 */
       color: #60a5fa !important; /* hover:text-blue-400 */
     }
 
+    /* Remove default focus outlines */
     .react-flow__control-button:focus {
       outline: none !important;
     }
   `}</style>
+
 
             <Controls position="top-right" />
             {/* --- END OF CHANGES --- */}
