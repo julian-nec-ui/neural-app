@@ -308,7 +308,7 @@ const FolderStructure = ({
   onSelectTable: (id: string) => void;
   selectedTableId: string | null;
 }) => {
-  const renderFolder = (folder: FolderNode, depth = 0) => {
+  const renderFolder = (folder: FolderNode) => {
     return (
       <div key={folder.id} className="mb-1">
         <div
@@ -448,6 +448,8 @@ export default function DatabaseVisualizer() {
 
       <div className="flex-1 relative">
         <ReactFlowProvider>
+          {/* Inside your DatabaseVisualizer return statement, within the <ReactFlow> component */}
+
           <ReactFlow
             nodes={nodes}
             edges={edges}
@@ -458,20 +460,52 @@ export default function DatabaseVisualizer() {
             fitView
             className="bg-gray-950"
           >
+            {/* --- START OF CHANGES --- */}
+            <style>{`
+    .react-flow__controls {
+      background: #111827 !important; /* bg-gray-900 */
+      border: 1px solid #374151 !important; /* border-gray-700 */
+      border-radius: 0.5rem !important; /* rounded-lg */
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important; /* shadow-lg */
+      overflow: hidden;
+    }
+
+    .react-flow__control-button {
+      background: transparent !important;
+      border: none !important;
+      color: #9ca3af !important; /* text-gray-400 */
+      transition: all 0.2s ease !important;
+    }
+
+    .react-flow__control-button:hover {
+      background: #1f2937 !important; /* hover:bg-gray-800 */
+      color: #60a5fa !important; /* hover:text-blue-400 */
+    }
+
+    .react-flow__control-button:focus {
+      outline: none !important;
+    }
+  `}</style>
+
+            <Controls position="top-right" />
+            {/* --- END OF CHANGES --- */}
+
             <Background color="#374151" gap={20} />
-            <Controls className="bg-gray-900 border-gray-700" position="top-right" />
+
             <Panel position="top-left" className="bg-gray-900/80 border border-gray-800 rounded-lg p-3">
               <h3 className="font-bold text-blue-400 flex items-center gap-2">
                 <ModernDatabaseStackIcon className="w-5 h-5" />
                 {selectedTableName}
               </h3>
             </Panel>
+
             <MiniMap
               nodeColor={() => '#4f46e5'}
               className="bg-gray-900 border-gray-800"
               position="bottom-left"
             />
           </ReactFlow>
+
         </ReactFlowProvider>
       </div>
     </div>
