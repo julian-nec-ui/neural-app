@@ -140,7 +140,8 @@ const mockRelationships: Relationship[] = [
 const tableFolders: FolderNode[] = [
   { id: 'folder-1', name: 'Customers', type: 'folder', children: ['1', '6'], expanded: true },
   { id: 'folder-2', name: 'Orders', type: 'folder', children: ['2', '5'], expanded: true },
-  { id: 'folder-3', name: 'Products', type: 'folder', children: ['3', '4'], expanded: false }
+  { id: 'folder-3', name: 'Products', type: 'folder', children: ['3', '4'], expanded: false },
+  { id: 'folder-4', name: 'Library', type: 'folder', children: ['7', '8', '9'], expanded: true }
 ];
 
 // --- Node & Edge Components ---
@@ -279,7 +280,7 @@ export default function DatabaseVisualizer() {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
-  const syncGraph = useCallback((targetId: string | null) => {
+    const syncGraph = useCallback((targetId: string | null) => {
     // 1. Prepare all nodes
     const allNodes: Node[] = mockTables.map((table, index) => ({
       id: table.id,
@@ -288,7 +289,7 @@ export default function DatabaseVisualizer() {
       data: table
     }));
 
-    // 2. Detect Junction Tables (tables used in > 1 relationship)
+    // 2. Detect Junction Tables
     const junctionTableIds = new Set<string>();
     const tableUsageCount: Record<string, number> = {};
     mockRelationships.forEach(rel => {
@@ -313,8 +314,7 @@ export default function DatabaseVisualizer() {
       });
     });
 
-    // ADD VIRTUAL M:M EDGES (The "Left Side" logic)
-    // For every junction table, find its neighbors and connect them directly
+    // ADD VIRTUAL M:M EDGES (Bypassing the junction table)
     junctionTableIds.forEach(jId => {
       const neighbors = new Set<string>();
       mockRelationships.forEach(rel => {
@@ -330,49 +330,45 @@ export default function DatabaseVisualizer() {
             source: neighborArr[i],
             target: neighborArr[j],
             type: 'custom',
-            data: { type: 'M:M' }
+            data: { type: 'M:M' } // This triggers the pink line
           });
         }
       }
     });
 
+    // 4. Filtering Logic
     if (!targetId) {
       setNodes(allNodes);
       setEdges(allEdges);
       return;
     }
 
-    // 4. Filtering logic for focused view
     const relatedIds = new Set<string>([targetId]);
     
-    // Standard neighbors
+    // Include direct neighbors
     mockRelationships.forEach(rel => {
       if (rel.sourceTableId === targetId) relatedIds.add(rel.targetTableId);
       if (rel.targetTableId === targetId) relatedIds.add(rel.sourceTableId);
     });
 
-    // If we click a junction table, we must also show its "other" neighbors to allow the M:M edge to render
-    if (junctionTableIds.has(targetId)) {
-        mockRelationships.forEach(rel => {
-            if (rel.sourceTableId === targetId) relatedIds.add(rel.targetTableId);
-            if (rel.targetTableId === targetId) relatedIds.add(rel.sourceTableId);
-        });
-    }
-
-    // If we click a table that is part of an M:M, ensure its M:M partner is included
+    // IMPORTANT: If target is part of an M:M connection, 
+    // we must find the "partner" table via the virtual edge
     allEdges.forEach(edge => {
-        if (edge.data?.type === 'M:M') {
-            if (edge.source === targetId) relatedIds.add(edge.target);
-            if (edge.target === targetId) relatedIds.add(edge.source);
-        }
+      if (edge.data?.type === 'M:M') {
+        if (edge.source === targetId) relatedIds.add(edge.target);
+        if (edge.target === targetId) relatedIds.add(edge.source);
+      }
     });
 
+    // Include the junction table if we want to see the full "physical" path
+    // But the virtual edge will show the "logical" M:M path
     const filteredNodes = allNodes.filter(n => relatedIds.has(n.id));
     const filteredEdges = allEdges.filter(e => relatedIds.has(e.source) && relatedIds.has(e.target));
 
     setNodes(filteredNodes);
     setEdges(filteredEdges);
   }, [setNodes, setEdges]);
+
 
   useEffect(() => { syncGraph(null); }, [syncGraph]);
   useEffect(() => { syncGraph(selectedTableId); }, [selectedTableId, syncGraph]);
