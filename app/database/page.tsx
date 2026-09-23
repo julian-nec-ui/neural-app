@@ -382,6 +382,34 @@ export default function DatabaseVisualizer() {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
+  // --- FIX: Inject Styles into Document Head to override React Flow ---
+  useEffect(() => {
+    const styleTag = document.createElement('style');
+    styleTag.innerHTML = `
+      .react-flow__controls {
+        background: #111827 !important; /* bg-gray-900 */
+        border: 1px solid #374151 !important; /* border-gray-700 */
+        border-radius: 8px !important;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5) !important;
+      }
+      .react-flow__control-button {
+        background: transparent !important;
+        border: none !important;
+        color: #9ca3af !important; /* text-gray-400 */
+        transition: all 0.2s ease !important;
+      }
+      .react-flow__control-button:hover {
+        background: #1f2937 !important; /* hover:bg-gray-800 */
+        color: #60a5fa !important; /* hover:text-blue-400 */
+      }
+      .react-flow__control-button:focus {
+        outline: none !important;
+      }
+    `;
+    document.head.appendChild(styleTag);
+    return () => { document.head.removeChild(styleTag); };
+  }, []);
+
   const syncGraph = useCallback((targetId: string | null) => {
     const allNodes: Node[] = mockTables.map((table, index) => ({
       id: table.id,
@@ -438,17 +466,16 @@ export default function DatabaseVisualizer() {
   return (
     <div className="flex h-screen bg-black text-gray-200">
       <div className="w-64 shrink-0">
-        <FolderStructure
-          folders={folders}
+        <FolderStructure 
+          folders={folders} 
           onToggleFolder={handleToggleFolder}
           onSelectTable={handleSelectTable}
           selectedTableId={selectedTableId}
         />
-      </div>
-
+      </div >
+      
       <div className="flex-1 relative">
         <ReactFlowProvider>
-
           <ReactFlow
             nodes={nodes}
             edges={edges}
@@ -459,60 +486,23 @@ export default function DatabaseVisualizer() {
             fitView
             className="bg-gray-950"
           >
-            {/* --- START OF CHANGES --- */}
-            <style>{`
-    /* Target the container */
-    .react-flow__controls {
-      background: #111827 !important; /* bg-gray-900 */
-      border: 1px solid #374151 !important; /* border-gray-700 */
-      border-radius: 8px !important;
-      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5) !important;
-    }
-
-    /* Target the individual buttons (+, -, zoom, fit) */
-    .react-flow__control-button {
-      background: transparent !important;
-      border: none !important;
-      color: #9ca3af !important; /* text-gray-400 */
-      width: 36px !important;
-      height: 36px !important;
-      transition: all 0.2s ease !important;
-    }
-
-    /* Hover state for buttons */
-    .react-flow__control-button:hover {
-      background: #1f2937 !important; /* hover:bg-gray-800 */
-      color: #60a5fa !important; /* hover:text-blue-400 */
-    }
-
-    /* Remove default focus outlines */
-    .react-flow__control-button:focus {
-      outline: none !important;
-    }
-  `}</style>
-
-
-            <Controls position="top-right" />
-            {/* --- END OF CHANGES --- */}
-
             <Background color="#374151" gap={20} />
-
+            <Controls position="top-right" />
             <Panel position="top-left" className="bg-gray-900/80 border border-gray-800 rounded-lg p-3">
               <h3 className="font-bold text-blue-400 flex items-center gap-2">
                 <ModernDatabaseStackIcon className="w-5 h-5" />
                 {selectedTableName}
               </h3>
             </Panel>
-
-            <MiniMap
+            <MiniMap 
               nodeColor={() => '#4f46e5'}
               className="bg-gray-900 border-gray-800"
               position="bottom-left"
             />
           </ReactFlow>
-
         </ReactFlowProvider>
-      </div>
+      </div >
     </div>
   );
 }
+
