@@ -1,7 +1,7 @@
 // app/database-visualizer/page.tsx
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import ReactFlow, {
   Controls,
   Background,
@@ -231,9 +231,6 @@ const TableNode = ({ data }: NodeProps<Table>) => {
     </div>
   );
 };
-
-import React, { useState, useRef, useLayoutEffect } from 'react';
-import { getBezierPath, Position, EdgeProps } from 'reactflow';
 
 const CustomEdge = ({ 
   id, 
