@@ -55,27 +55,45 @@ type FolderNode = {
   expanded?: boolean;
 };
 
-const ModernDatabaseIcon = ({ className = "w-6 h-6" }: { className?: string }) => (
-  <svg 
-    viewBox="0 0 24 24" 
-    fill="none" 
-    xmlns="http://www.w3.org/2000/svg" 
+const ModernDatabaseStackIcon = ({ className = "w-6 h-6" }: { className?: string }) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
     className={className}
   >
     <defs>
-      <linearGradient id="db-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#6366f1" /> {/* Indigo 500 */}
+      <linearGradient id="db-stack-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stopColor="#818cf8" /> {/* Indigo 400 */}
         <stop offset="100%" stopColor="#3b82f6" /> {/* Blue 500 */}
       </linearGradient>
     </defs>
-    <ellipse cx="12" cy="6" rx="7" ry="3" fill="url(#db-grad)" fillOpacity="0.9" />
-    <path d="M5 6C5 6 5 10 12 10C19 10 19 6 19 6" stroke="url(#db-grad)" strokeWidth="2" />
-    <ellipse cx="12" cy="12" rx="7" ry="3" fill="url(#db-grad)" fillOpacity="0.7" />
-    <path d="M5 12C5 12 5 16 12 16C19 16 19 12 19 12" stroke="url(#db-grad)" strokeWidth="2" />
-    <ellipse cx="12" cy="18" rx="7" ry="3" fill="url(#db-grad)" fillOpacity="0.5" />
-    <path d="M5 18C5 18 5 22 12 22C19 22 19 18 19 18" stroke="url(#db-grad)" strokeWidth="2" />
+
+    {/* Bottom Layer */}
+    <path
+      d="M4 18C4 16.3431 5.34315 15 7 15H17C18.6569 15 20 16.3431 20 18C20 19.6569 18.6569 21 17 21H7C5.34315 21 4 19.6569 4 18Z"
+      fill="url(#db-stack-grad)"
+      fillOpacity="0.4"
+    />
+    <ellipse cx="12" cy="18" rx="8" ry="3" stroke="url(#db-stack-grad)" strokeWidth="2" />
+
+    {/* Middle Layer */}
+    <path
+      d="M4 12C4 10.3431 5.34315 9 7 9H17C18.6569 9 20 10.3431 20 12C20 13.6569 18.6569 15 17 15H7C5.34315 15 4 13.6569 4 12Z"
+      fill="url(#db-stack-grad)"
+      fillOpacity="0.7"
+    />
+    <ellipse cx="12" cy="12" rx="8" ry="3" stroke="url(#db-stack-grad)" strokeWidth="2" />
+
+    {/* Top Layer */}
+    <path
+      d="M4 6C4 4.34315 5.34315 3 7 3H17C18.6569 3 20 4.34315 20 6C20 7.65685 18.6569 9 17 9H7C5.34315 9 4 7.65685 4 6Z"
+      fill="url(#db-stack-grad)"
+    />
+    <ellipse cx="12" cy="6" rx="8" ry="3" stroke="url(#db-stack-grad)" strokeWidth="2" />
   </svg>
 );
+
 
 
 // --- Mock Data ---
@@ -109,7 +127,7 @@ const TableNode = ({ data }: NodeProps<Table>) => {
     <div className="bg-linear-to-b from-gray-800 to-gray-900 border border-gray-700 rounded-lg shadow-lg w-64 overflow-hidden transition-all duration-300 hover:shadow-xl transform hover:scale-105">
       <Handle type="target" position={Position.Left} className="w-2 h-2 bg-blue-500!" />
       <Handle type="source" position={Position.Right} className="w-2 h-2 bg-blue-500!" />
-      
+
       <div className="bg-linear-to-r from-blue-900 to-indigo-900 p-3 flex items-center justify-between">
         <h3 className="text-white font-bold truncate">{data.name}</h3>
         <span className="text-[10px] bg-blue-800 text-blue-200 px-2 py-1 rounded-full">
@@ -176,12 +194,12 @@ const CustomEdge = ({ id, sourceX, sourceY, targetX, targetY, data }: EdgeProps)
         markerEnd="url(#arrowhead)"
       />
       <circle cx={targetX} cy={targetY} r="4" fill="#3b82f6" />
-      
+
       {data?.type && (
-        <foreignObject 
-          width="60" 
-          height="20" 
-          x={(sourceX + targetX) / 2 - 30} 
+        <foreignObject
+          width="60"
+          height="20"
+          x={(sourceX + targetX) / 2 - 30}
           y={(sourceY + targetY) / 2 - 10}
         >
           <div className="text-[10px] font-medium text-gray-400 text-center bg-gray-900/50 rounded px-1">
@@ -196,13 +214,13 @@ const CustomEdge = ({ id, sourceX, sourceY, targetX, targetY, data }: EdgeProps)
 const nodeTypes = { table: TableNode };
 const edgeTypes = { custom: CustomEdge };
 
-const FolderStructure = ({ 
-  folders, 
-  onToggleFolder, 
+const FolderStructure = ({
+  folders,
+  onToggleFolder,
   onSelectTable,
   selectedTableId
-}: { 
-  folders: FolderNode[]; 
+}: {
+  folders: FolderNode[];
   onToggleFolder: (id: string) => void;
   onSelectTable: (id: string) => void;
   selectedTableId: string | null;
@@ -210,10 +228,9 @@ const FolderStructure = ({
   const renderFolder = (folder: FolderNode, depth = 0) => {
     return (
       <div key={folder.id} className="mb-1">
-        <div 
-          className={`flex items-center p-2 rounded cursor-pointer transition-all duration-300 ${
-            selectedTableId === folder.id ? 'bg-blue-900/50' : 'hover:bg-gray-800'
-          }`}
+        <div
+          className={`flex items-center p-2 rounded cursor-pointer transition-all duration-300 ${selectedTableId === folder.id ? 'bg-blue-900/50' : 'hover:bg-gray-800'
+            }`}
           onClick={() => folder.type === 'folder' ? onToggleFolder(folder.id) : onSelectTable(folder.id)}
         >
           <span className="mr-2 text-blue-400">
@@ -221,7 +238,7 @@ const FolderStructure = ({
           </span>
           <span className="text-gray-200 truncate">{folder.name}</span>
         </div>
-        
+
         {folder.type === 'folder' && folder.children && (
           <div className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${folder.expanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
             <div className="overflow-hidden">
@@ -230,19 +247,18 @@ const FolderStructure = ({
                   const child = mockTables.find(t => t.id === childId);
                   if (child) {
                     return (
-                      <div 
-                        key={child.id} 
+                      <div
+                        key={child.id}
                         className="mb-1 transition-all duration-700 ease-out"
-                        style={{ 
+                        style={{
                           transitionDelay: folder.expanded ? `${index * 150}ms` : '0ms',
                           opacity: folder.expanded ? 1 : 0,
                           transform: folder.expanded ? 'translateY(0)' : 'translateY(-10px)'
                         }}
                       >
-                        <div 
-                          className={`flex items-center p-2 rounded cursor-pointer transition-all duration-300 ${
-                            selectedTableId === child.id ? 'bg-blue-900/50' : 'hover:bg-gray-800'
-                          }`}
+                        <div
+                          className={`flex items-center p-2 rounded cursor-pointer transition-all duration-300 ${selectedTableId === child.id ? 'bg-blue-900/50' : 'hover:bg-gray-800'
+                            }`}
                           onClick={(e) => {
                             e.stopPropagation();
                             onSelectTable(child.id);
@@ -266,7 +282,10 @@ const FolderStructure = ({
 
   return (
     <div className="bg-linear-to-b from-gray-900 to-gray-950 border-r border-gray-800 p-4 w-64 overflow-y-auto h-full">
-      <h2 className="text-lg font-bold text-blue-400 mb-4">🗄️ Database Schema</h2>
+      <h2 className="text-lg font-bold text-blue-400 mb-4">
+        <ModernDatabaseStackIcon className="w-5 h-5" />
+        Database Schema
+      </h2>
       <div className="space-y-1">{folders.map(f => renderFolder(f))}</div>
     </div>
   );
@@ -334,14 +353,14 @@ export default function DatabaseVisualizer() {
   return (
     <div className="flex h-screen bg-black text-gray-200">
       <div className="w-64 shrink-0">
-        <FolderStructure 
-          folders={folders} 
+        <FolderStructure
+          folders={folders}
           onToggleFolder={handleToggleFolder}
           onSelectTable={handleSelectTable}
           selectedTableId={selectedTableId}
         />
       </div>
-      
+
       <div className="flex-1 relative">
         <ReactFlowProvider>
           <ReactFlow
@@ -357,10 +376,10 @@ export default function DatabaseVisualizer() {
             <Background color="#374151" gap={20} />
             <Controls className="bg-gray-900 border-gray-700" position="top-right" />
             <Panel position="top-left" className="bg-gray-900/80 border border-gray-800 rounded-lg p-3">
-              <h3 className="font-bold text-blue-400"><ModernDatabaseIcon className="w-6 h-6" /> 
-               Database Schema</h3>
+              <h3 className="font-bold text-blue-400"><ModernDatabaseStackIcon className="w-6 h-6" />
+                Database Schema</h3>
             </Panel>
-            <MiniMap 
+            <MiniMap
               nodeColor={() => '#4f46e5'}
               className="bg-gray-900 border-gray-800"
               position="bottom-left"
