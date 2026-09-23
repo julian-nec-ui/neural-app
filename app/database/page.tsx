@@ -242,27 +242,6 @@ const CustomEdge = ({ id, sourceX, sourceY, targetX, targetY, data }: EdgeProps)
     targetPosition: Position.Left
   });
 
-  // State to hold both the midpoint and the endpoint
-  const [points, setPoints] = useState({ midpoint: { x: 0, y: 0 }, end: { x: 0, y: 0 } });
-  const pathRef = React.useRef<SVGPathElement>(null);
-
-  React.useLayoutEffect(() => {
-    if (pathRef.current) {
-      const length = pathRef.current.getTotalLength();
-      
-      // Calculate midpoint for the label
-      const mid = pathRef.current.getPointAtLength(length / 2);
-      
-      // Calculate the very end of the path for the circle
-      const end = pathRef.current.getPointAtLength(length);
-      
-      setPoints({
-        midpoint: { x: mid.x, y: mid.y },
-        end: { x: end.x, y: end.y }
-      });
-    }
-  }, [edgePath]);
-
   return (
     <g>
       <style>{`
@@ -289,7 +268,6 @@ const CustomEdge = ({ id, sourceX, sourceY, targetX, targetY, data }: EdgeProps)
         </marker>
       </defs>
       <path
-        ref={pathRef}
         id={id}
         d={edgePath}
         fill="none"
@@ -298,16 +276,14 @@ const CustomEdge = ({ id, sourceX, sourceY, targetX, targetY, data }: EdgeProps)
         className="edge-animate"
         markerEnd="url(#arrowhead)"
       />
-      
-      {/* Use the end point calculated from the path itself */}
-      <circle cx={points.end.x} cy={points.end.y} r="4" fill="#3b82f6" />
+      <circle cx={targetX} cy={targetY} r="4" fill="#3b82f6" />
 
       {data?.type && (
         <foreignObject
           width="60"
           height="20"
-          x={points.midpoint.x - 30}
-          y={points.midpoint.y - 10}
+          x={(sourceX + targetX) / 2 - 30}
+          y={(sourceY + targetY) / 2 - 10}
         >
           <div className="text-[10px] font-medium text-gray-400 text-center bg-gray-900/50 rounded px-1">
             {data.type}
