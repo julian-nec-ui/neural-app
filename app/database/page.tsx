@@ -16,7 +16,10 @@ import ReactFlow, {
   Position,
   Handle,
   NodeProps,
-  EdgeProps
+  EdgeProps,
+  addEdge, // ADDED
+  Connection, // ADDED
+  ConnectionLineType // ADDED
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 
@@ -74,11 +77,10 @@ const ModernDatabaseStackIcon: React.FC<DatabaseIconProps> = ({
       height={height}
       viewBox="0 0 200 200"
       fill="none"
-      xmlns="http://w3.org"
+      xmlns="http://www.w3.org"
       className={className}
     >
       <defs>
-        {/* Metallic Dark Body Gradient */}
         <linearGradient id="metalBody" x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor="#4A5568" />
           <stop offset="40%" stopColor="#718096" />
@@ -86,58 +88,40 @@ const ModernDatabaseStackIcon: React.FC<DatabaseIconProps> = ({
           <stop offset="60%" stopColor="#718096" />
           <stop offset="100%" stopColor="#2D3748" />
         </linearGradient>
-
-        {/* Metallic Edge/Highlight Gradient */}
         <linearGradient id="metalHighlight" x1="0%" y1="0%" x2="0%" y2="100%">
           <stop offset="0%" stopColor="#E2E8F0" stopOpacity="0.8" />
           <stop offset="100%" stopColor="#4A5568" stopOpacity="0.2" />
         </linearGradient>
-
-        {/* Cyber Neon Cyan Glow for Data Rings */}
         <linearGradient id="neonCyan" x1="0%" y1="0%" x2="100%" y2="0%">
           <stop offset="0%" stopColor="#00F2FE" />
           <stop offset="100%" stopColor="#4FACFE" />
         </linearGradient>
-
-        {/* Cyber Neon Pink Glow for Accents */}
         <linearGradient id="neonPink" x1="0%" y1="0%" x2="100%" y2="0%">
           <stop offset="0%" stopColor="#FF0844" />
           <stop offset="100%" stopColor="#FFB199" />
         </linearGradient>
-
-        {/* Soft Drop Shadow for Depth */}
         <filter id="dropShadow" x="-10%" y="-10%" width="120%" height="120%">
           <feDropShadow dx="0" dy="8" stdDeviation="6" floodColor="#000000" floodOpacity="0.4" />
         </filter>
-
-        {/* Neon Glow Filter */}
         <filter id="cyanGlow" x="-20%" y="-20%" width="140%" height="140%">
           <feGaussianBlur stdDeviation="2" result="blur" />
           <feComposite in="SourceGraphic" in2="blur" operator="over" />
         </filter>
       </defs>
-
-      {/* Main Database Structure */}
       <g filter="url(#dropShadow)">
-        {/* Top Segment */}
         <path
           d="M20 50 C 20 25, 180 25, 180 50 L 180 75 C 180 100, 20 100, 20 75 Z"
           fill="url(#metalBody)"
           stroke="url(#metalHighlight)"
           strokeWidth="1.5"
         />
-        {/* Top Cap Ring */}
         <ellipse cx="100" cy="50" rx="80" ry="25" fill="none" stroke="url(#neonCyan)" strokeWidth="1.5" opacity="0.4" />
-
-        {/* Middle Segment */}
         <path
           d="M20 90 C 20 65, 180 65, 180 90 L 180 115 C 180 140, 20 140, 20 115 Z"
           fill="url(#metalBody)"
           stroke="url(#metalHighlight)"
           strokeWidth="1.5"
         />
-
-        {/* Bottom Segment */}
         <path
           d="M20 130 C 20 105, 180 105, 180 130 L 180 155 C 180 180, 20 180, 20 155 Z"
           fill="url(#metalBody)"
@@ -145,34 +129,20 @@ const ModernDatabaseStackIcon: React.FC<DatabaseIconProps> = ({
           strokeWidth="1.5"
         />
       </g>
-
-      {/* Front Panel Grid & Tech Details (Stacked Perspective Lines) */}
       <path d="M 60 72 Q 100 85 140 72" stroke="#2D3748" strokeWidth="2" opacity="0.5" />
       <path d="M 60 112 Q 100 125 140 112" stroke="#2D3748" strokeWidth="2" opacity="0.5" />
       <path d="M 60 152 Q 100 165 140 152" stroke="#2D3748" strokeWidth="2" opacity="0.5" />
-
-      {/* Glowing Neon Data Slots / Link Status Lights */}
       <g filter="url(#cyanGlow)">
-        {/* Top Unit Light */}
         <path d="M 45 62 Q 100 77 155 62" stroke="url(#neonCyan)" strokeWidth="3" strokeLinecap="round" />
         <circle cx="35" cy="58" r="3" fill="url(#neonCyan)" />
-
-        {/* Middle Unit Light */}
         <path d="M 45 102 Q 100 117 155 102" stroke="url(#neonCyan)" strokeWidth="3" strokeLinecap="round" />
         <circle cx="35" cy="98" r="3" fill="url(#neonCyan)" />
-
-        {/* Bottom Unit Light */}
         <path d="M 45 142 Q 100 157 155 142" stroke="url(#neonCyan)" strokeWidth="3" strokeLinecap="round" />
         <circle cx="35" cy="138" r="3" fill="url(#neonCyan)" />
       </g>
-
-      {/* Activity / Drive Indicators (Right Side) */}
       <g>
-        {/* Top Active */}
         <circle cx="165" cy="58" r="2.5" fill="url(#neonPink)" filter="url(#cyanGlow)" />
-        {/* Middle Active */}
         <circle cx="165" cy="98" r="2.5" fill="#4A5568" />
-        {/* Bottom Active */}
         <circle cx="165" cy="138" r="2.5" fill="url(#neonPink)" filter="url(#cyanGlow)" />
       </g>
     </svg>
@@ -224,11 +194,11 @@ const TableNode = ({ data }: NodeProps<Table>) => {
               <span className={`w-2 h-2 rounded-full mr-2 ${field.isPrimary ? 'bg-yellow-500' : 'bg-gray-600'}`} />
               <span className="text-gray-200 truncate">{field.name}</span>
               <span className="ml-auto text-gray-400 text-[10px]">{field.type}</span>
-            </div>
+            </div >
           ))}
-        </div>
-      </div>
-    </div>
+        </div >
+      </div >
+    </div >
   );
 };
 
@@ -246,8 +216,6 @@ const CustomEdge = ({ id, sourceX, sourceY, targetX, targetY, data, markerEnd }:
   const [endPoint, setEndPoint] = React.useState({ x: 0, y: 0 });
   const [midpoint, setMidpoint] = React.useState({ x: 0, y: 0 });
 
-  // This is the only way to get the "glue" effect: 
-  // Sync the circle to the ACTUAL end of the SVG path string
   React.useLayoutEffect(() => {
     if (pathRef.current) {
       const length = pathRef.current.getTotalLength();
@@ -256,7 +224,7 @@ const CustomEdge = ({ id, sourceX, sourceY, targetX, targetY, data, markerEnd }:
       setEndPoint({ x: end.x, y: end.y });
       setMidpoint({ x: mid.x, y: mid.y });
     }
-  }, [edgePath]); // Re-run every time the path string changes
+  }, [edgePath]);
 
   return (
     <g>
@@ -264,7 +232,7 @@ const CustomEdge = ({ id, sourceX, sourceY, targetX, targetY, data, markerEnd }:
         <marker
           id="arrowhead"
           viewBox="0 -5 10 10"
-          refX="5" // Reduced refX so the arrow sits closer to the tip
+          refX="5"
           refY="0"
           markerWidth="6"
           markerHeight="6"
@@ -285,7 +253,6 @@ const CustomEdge = ({ id, sourceX, sourceY, targetX, targetY, data, markerEnd }:
         markerEnd="url(#arrowhead)"
       />
 
-      {/* THE GLUE: The circle is placed at the exact end of the path */}
       <circle cx={endPoint.x} cy={endPoint.y} r="4" fill="#3b82f6" />
 
       {data?.type && (
@@ -297,7 +264,7 @@ const CustomEdge = ({ id, sourceX, sourceY, targetX, targetY, data, markerEnd }:
         >
           <div className="text-[10px] font-medium text-gray-400 text-center bg-gray-900/50 rounded px-1">
             {data.type}
-          </div>
+          </div >
         </foreignObject>
       )}
 
@@ -391,7 +358,7 @@ const FolderStructure = ({
         Database Schema
       </h2>
       <div className="space-y-1">{folders.map(f => renderFolder(f))}</div>
-    </div>
+    </div >
   );
 };
 
@@ -454,6 +421,18 @@ export default function DatabaseVisualizer() {
     setSelectedTableId(tableId);
   }, []);
 
+  // ADDED: onConnect function to enable many-to-many
+  const onConnect = useCallback(
+    (params: Connection) => {
+      setEdges((eds) => addEdge({ 
+        ...params, 
+        type: 'custom', 
+        data: { type: 'M:M' } 
+      }, eds));
+    },
+    [setEdges]
+  );
+
   const selectedTableName = mockTables.find(t => t.id === selectedTableId)?.name || "Database Schema";
 
   return (
@@ -469,53 +448,42 @@ export default function DatabaseVisualizer() {
 
       <div className="flex-1 relative">
         <ReactFlowProvider>
-
           <ReactFlow
             nodes={nodes}
             edges={edges}
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
+            onConnect={onConnect} // ADDED
             nodeTypes={nodeTypes}
             edgeTypes={edgeTypes}
+            connectionLineType={ConnectionLineType.Bezier} // ADDED
             fitView
             className="bg-gray-950"
           >
-            {/* --- START OF CHANGES --- */}
             <style>{`
-    /* Target the container */
-    .react-flow__controls {
-      background: #111827 !important; /* bg-gray-900 */
-      border: 1px solid #374151 !important; /* border-gray-700 */
-      border-radius: 8px !important;
-      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5) !important;
-    }
-
-    /* Target the individual buttons (+, -, zoom, fit) */
-    .react-flow__control-button {
-      background: transparent !important;
-      border: none !important;
-      color: #9ca3af !important; /* text-gray-400 */
-      width: 36px !important;
-      height: 36px !important;
-      transition: all 0.2s ease !important;
-    }
-
-    /* Hover state for buttons */
-    .react-flow__control-button:hover {
-      background: #1f2937 !important; /* hover:bg-gray-800 */
-      color: #60a5fa !important; /* hover:text-blue-400 */
-    }
-
-    /* Remove default focus outlines */
-    .react-flow__control-button:focus {
-      outline: none !important;
-    }
-  `}</style>
-
-
+                .react-flow__controls {
+                  background: #111827 !important;
+                  border: 1px solid #374151 !important;
+                  border-radius: 8px !important;
+                  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5) !important;
+                }
+                .react-flow__control-button {
+                  background: transparent !important;
+                  border: none !important;
+                  color: #9ca3af !important;
+                  width: 36px !important;
+                  height: 36px !important;
+                  transition: all 0.2s ease !important;
+                }
+                .react-flow__control-button:hover {
+                  background: #1f2937 !important;
+                  color: #60a5fa !important;
+                }
+                .react-flow__control-button:focus {
+                  outline: none !important;
+                }
+              `}</style>
             <Controls position="top-right" />
-            {/* --- END OF CHANGES --- */}
-
             <Background color="#374151" gap={20} />
 
             <Panel position="top-left" className="bg-gray-900/80 border border-gray-800 rounded-lg p-3">
@@ -531,7 +499,6 @@ export default function DatabaseVisualizer() {
               position="bottom-left"
             />
           </ReactFlow>
-
         </ReactFlowProvider>
       </div>
     </div>
