@@ -1,7 +1,7 @@
 // app/database-visualizer/page.tsx
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import ReactFlow, {
   Controls,
   Background,
@@ -232,69 +232,48 @@ const TableNode = ({ data }: NodeProps<Table>) => {
   );
 };
 
-const CustomEdge = ({ 
-  id, 
-  sourceX, 
-  sourceY, 
-  targetX, 
-  targetY, 
-  data, 
-  sourcePosition, 
-  targetPosition 
-}: EdgeProps) => {
+const CustomEdge = ({ id, sourceX, sourceY, targetX, targetY, data, markerEnd }: EdgeProps) => {
   const [edgePath] = getBezierPath({
     sourceX,
     sourceY,
     targetX,
     targetY,
-    sourcePosition: sourcePosition || Position.Right,
-    targetPosition: targetPosition || Position.Left
+    sourcePosition: Position.Right,
+    targetPosition: Position.Left
   });
 
-  const [midpoint, setMidpoint] = useState({ x: 0, y: 0 });
-  const pathRef = useRef<SVGPathElement>(null);
+  const pathRef = React.useRef<SVGPathElement>(null);
+  const [endPoint, setEndPoint] = React.useState({ x: 0, y: 0 });
+  const [midpoint, setMidpoint] = React.useState({ x: 0, y: 0 });
 
+  // This is the only way to get the "glue" effect: 
+  // Sync the circle to the ACTUAL end of the SVG path string
   React.useLayoutEffect(() => {
     if (pathRef.current) {
       const length = pathRef.current.getTotalLength();
+      const end = pathRef.current.getPointAtLength(length);
       const mid = pathRef.current.getPointAtLength(length / 2);
+      setEndPoint({ x: end.x, y: end.y });
       setMidpoint({ x: mid.x, y: mid.y });
     }
-  }, [edgePath]);
-
-  // Calculate the translation based on target position.
-  // If target is on the Left, we need to push the circle RIGHT (positive X) 
-  // to get it out of the center and onto the edge.
-  // Adjust the '50' value if your tables are wider.
-  const translateX = targetPosition === Position.Left ? 50 : -50;
+  }, [edgePath]); // Re-run every time the path string changes
 
   return (
     <g>
-      <style>{`
-        @keyframes dashFlow {
-          from { stroke-dashoffset: 20; }
-          to { stroke-dashoffset: 0; }
-        }
-        .edge-animate {
-          stroke-dasharray: 5;
-          animation: dashFlow 1s linear infinite;
-        }
-      `}</style>
-      
       <defs>
         <marker
           id="arrowhead"
           viewBox="0 -5 10 10"
-          refX="25"
+          refX="5" // Reduced refX so the arrow sits closer to the tip
           refY="0"
-          markerWidth="7"
-          markerHeight="9"
+          markerWidth="6"
+          markerHeight="6"
           orient="auto"
         >
           <path d="M0,-5L10,0L0,5" fill="#6b7280" />
         </marker>
       </defs>
-
+      
       <path
         ref={pathRef}
         id={id}
@@ -306,18 +285,8 @@ const CustomEdge = ({
         markerEnd="url(#arrowhead)"
       />
 
-      {/* 
-          The circle is placed at the target center (targetX), 
-          then immediately pushed to the edge using transform.
-          This is the most 'glued' method because it moves with the node instantly.
-      */}
-      <circle 
-        cx={targetX} 
-        cy={targetY} 
-        r="4" 
-        fill="#3b82f6" 
-        transform={`translate(${translateX}, 0)`}
-      />
+      {/* THE GLUE: The circle is placed at the exact end of the path */}
+      <circle cx={endPoint.x} cy={endPoint.y} r="4" fill="#3b82f6" />
 
       {data?.type && (
         <foreignObject
@@ -328,9 +297,20 @@ const CustomEdge = ({
         >
           <div className="text-[10px] font-medium text-gray-400 text-center bg-gray-900/50 rounded px-1">
             {data.type}
-          </div >
+          </div>
         </foreignObject>
       )}
+
+      <style>{`
+        @keyframes dashFlow {
+          from { stroke-dashoffset: 20; }
+          to { stroke-dashoffset: 0; }
+        }
+        .edge-animate {
+          stroke-dasharray: 5;
+          animation: dashFlow 1s linear infinite;
+        }
+      `}</style>
     </g>
   );
 };
