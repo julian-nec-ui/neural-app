@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useRef, useCallback, useLayoutEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import ReactFlow, {
   Controls,
   Background,
@@ -251,31 +251,29 @@ const CustomEdge = ({
     targetPosition: targetPosition || Position.Left
   });
 
-  // State to hold the exact geometric points of the path for "glue" effect and label placement
-  const [points, setPoints] = useState({ 
-    midpoint: { x: 0, y: 0 }, 
-    end: { x: 0, y: 0 } 
-  });
-  
-  const pathRef = useRef<SVGPathElement>(null);
+  /**
+   * THE GLUE FIX:
+   * Instead of math, we use the targetX/Y but shift them.
+   * If the connection is on the LEFT side of the target node, 
+   * the actual connection point is slightly to the RIGHT of the center.
+   * Adjust the '20' below if the circle is still too deep inside the table.
+   */
+  const offset = targetPosition === Position.Left ? 20 : -20;
+  const gluedX = targetX + offset;
+  const gluedY = targetY;
 
-  // The "Glue" Logic: Calculates the exact end of the SVG line to prevent detachment
-  useLayoutEffect(() => {
+  // We use the path string to find the midpoint for the label 
+  // but we don't rely on it for the circle "glue"
+  const [midpoint, setMidpoint] = React.useState({ x: 0, y: 0 });
+  const pathRef = React.useRef<SVGPathElement>(null);
+
+  React.useLayoutEffect(() => {
     if (pathRef.current) {
       const length = pathRef.current.getTotalLength();
-      
-      // Get the point at the exact end of the path (the target handle/edge of the table)
-      const end = pathRef.current.getPointAtLength(length);
-      
-      // Get the point at the exact middle of the path (for the label)
       const mid = pathRef.current.getPointAtLength(length / 2);
-      
-      setPoints({
-        midpoint: { x: mid.x, y: mid.y },
-        end: { x: end.x, y: end.y }
-      });
+      setMidpoint({ x: mid.x, y: mid.y });
     }
-  }, [edgePath]); // Recalculate every time the path changes (during table movement/resizing)
+  }, [edgePath]);
 
   return (
     <g>
@@ -296,15 +294,14 @@ const CustomEdge = ({
           viewBox="0 -5 10 10"
           refX="25"
           refY="0"
-          markerWidth="7"  // Increased width by 1px
-          markerHeight="9" // Increased height by 3px
+          markerWidth="7"
+          markerHeight="9"
           orient="auto"
         >
           <path d="M0,-5L10,0L0,5" fill="#6b7280" />
         </marker>
       </defs>
 
-      {/* The animated dotted line */}
       <path
         ref={pathRef}
         id={id}
@@ -316,21 +313,20 @@ const CustomEdge = ({
         markerEnd="url(#arrowhead)"
       />
 
-      {/* The Glued Arrow (Circle): Positioned at the exact end of the path */}
+      {/* GLUED CIRCLE: Uses the direct offset calculation */}
       <circle 
-        cx={points.end.x} 
-        cy={points.end.y} 
+        cx={gluedX} 
+        cy={gluedY} 
         r="4" 
         fill="#3b82f6" 
       />
 
-      {/* The Midpoint Label */}
       {data?.type && (
         <foreignObject
           width="60"
           height="20"
-          x={points.midpoint.x - 30}
-          y={points.midpoint.y - 10}
+          x={midpoint.x - 30}
+          y={midpoint.y - 10}
         >
           <div className="text-[10px] font-medium text-gray-400 text-center bg-gray-900/50 rounded px-1">
             {data.type}
