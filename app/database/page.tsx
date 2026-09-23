@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useLayoutEffect } from 'react';
 import ReactFlow, {
   Controls,
   Background,
@@ -232,49 +232,79 @@ const TableNode = ({ data }: NodeProps<Table>) => {
   );
 };
 
-const CustomEdge = ({ id, sourceX, sourceY, targetX, targetY, data, markerEnd }: EdgeProps) => {
+const CustomEdge = ({ 
+  id, 
+  sourceX, 
+  sourceY, 
+  targetX, 
+  targetY, 
+  data, 
+  sourcePosition, 
+  targetPosition 
+}: EdgeProps) => {
   const [edgePath] = getBezierPath({
     sourceX,
     sourceY,
     targetX,
     targetY,
-    sourcePosition: Position.Right,
-    targetPosition: Position.Left
+    sourcePosition: sourcePosition || Position.Right,
+    targetPosition: targetPosition || Position.Left
   });
 
-  const pathRef = React.useRef<SVGPathElement>(null);
-  const [endPoint, setEndPoint] = React.useState({ x: 0, y: 0 });
-  const [midpoint, setMidpoint] = React.useState({ x: 0, y: 0 });
+  // State to hold the exact geometric points of the path for "glue" effect and label placement
+  const [points, setPoints] = useState({ 
+    midpoint: { x: 0, y: 0 }, 
+    end: { x: 0, y: 0 } 
+  });
+  
+  const pathRef = useRef<SVGPathElement>(null);
 
-  // This is the only way to get the "glue" effect: 
-  // Sync the circle to the ACTUAL end of the SVG path string
-  React.useLayoutEffect(() => {
+  // The "Glue" Logic: Calculates the exact end of the SVG line to prevent detachment
+  useLayoutEffect(() => {
     if (pathRef.current) {
       const length = pathRef.current.getTotalLength();
+      
+      // Get the point at the exact end of the path (the target handle/edge of the table)
       const end = pathRef.current.getPointAtLength(length);
+      
+      // Get the point at the exact middle of the path (for the label)
       const mid = pathRef.current.getPointAtLength(length / 2);
-      setEndPoint({ x: end.x, y: end.y });
-      setMidpoint({ x: mid.x, y: mid.y });
+      
+      setPoints({
+        midpoint: { x: mid.x, y: mid.y },
+        end: { x: end.x, y: end.y }
+      });
     }
-  }, [edgePath]); // Re-run every time the path string changes
+  }, [edgePath]); // Recalculate every time the path changes (during table movement/resizing)
 
   return (
     <g>
+      <style>{`
+        @keyframes dashFlow {
+          from { stroke-dashoffset: 20; }
+          to { stroke-dashoffset: 0; }
+        }
+        .edge-animate {
+          stroke-dasharray: 5;
+          animation: dashFlow 1s linear infinite;
+        }
+      `}</style>
+      
       <defs>
         <marker
           id="arrowhead"
           viewBox="0 -5 10 10"
           refX="25"
           refY="0"
-          markerWidth="7"  // Increased by 1
-          markerHeight="9" // Increased by 3
+          markerWidth="7"  // Increased width by 1px
+          markerHeight="9" // Increased height by 3px
           orient="auto"
         >
           <path d="M0,-5L10,0L0,5" fill="#6b7280" />
         </marker>
-
       </defs>
 
+      {/* The animated dotted line */}
       <path
         ref={pathRef}
         id={id}
@@ -286,32 +316,27 @@ const CustomEdge = ({ id, sourceX, sourceY, targetX, targetY, data, markerEnd }:
         markerEnd="url(#arrowhead)"
       />
 
-      {/* THE GLUE: The circle is placed at the exact end of the path */}
-      <circle cx={endPoint.x} cy={endPoint.y} r="4" fill="#3b82f6" />
+      {/* The Glued Arrow (Circle): Positioned at the exact end of the path */}
+      <circle 
+        cx={points.end.x} 
+        cy={points.end.y} 
+        r="4" 
+        fill="#3b82f6" 
+      />
 
+      {/* The Midpoint Label */}
       {data?.type && (
         <foreignObject
           width="60"
           height="20"
-          x={midpoint.x - 30}
-          y={midpoint.y - 10}
+          x={points.midpoint.x - 30}
+          y={points.midpoint.y - 10}
         >
           <div className="text-[10px] font-medium text-gray-400 text-center bg-gray-900/50 rounded px-1">
             {data.type}
           </div>
         </foreignObject>
       )}
-
-      <style>{`
-        @keyframes dashFlow {
-          from { stroke-dashoffset: 20; }
-          to { stroke-dashoffset: 0; }
-        }
-        .edge-animate {
-          stroke-dasharray: 5;
-          animation: dashFlow 1s linear infinite;
-        }
-      `}</style>
     </g>
   );
 };
