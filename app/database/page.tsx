@@ -55,46 +55,129 @@ type FolderNode = {
   expanded?: boolean;
 };
 
-const ModernDatabaseStackIcon = ({ className = "w-6 h-6" }: { className?: string }) => (
-  <svg
-    viewBox="0 0 24 24"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-    className={className}
-  >
-    <defs>
-      <linearGradient id="db-stack-grad" x1="0%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" stopColor="#818cf8" /> {/* Indigo 400 */}
-        <stop offset="100%" stopColor="#3b82f6" /> {/* Blue 500 */}
-      </linearGradient>
-    </defs>
+import React from 'react';
 
-    {/* Bottom Layer */}
-    <path
-      d="M4 18C4 16.3431 5.34315 15 7 15H17C18.6569 15 20 16.3431 20 18C20 19.6569 18.6569 21 17 21H7C5.34315 21 4 19.6569 4 18Z"
-      fill="url(#db-stack-grad)"
-      fillOpacity="0.4"
-    />
-    <ellipse cx="12" cy="18" rx="8" ry="3" stroke="url(#db-stack-grad)" strokeWidth="2" />
+interface DatabaseIconProps {
+  width?: string | number;
+  height?: string | number;
+  className?: string;
+}
 
-    {/* Middle Layer */}
-    <path
-      d="M4 12C4 10.3431 5.34315 9 7 9H17C18.6569 9 20 10.3431 20 12C20 13.6569 18.6569 15 17 15H7C5.34315 15 4 13.6569 4 12Z"
-      fill="url(#db-stack-grad)"
-      fillOpacity="0.7"
-    />
-    <ellipse cx="12" cy="12" rx="8" ry="3" stroke="url(#db-stack-grad)" strokeWidth="2" />
+const ModernDatabaseStackIcon: React.FC<DatabaseIconProps> = ({
+  width = 100,
+  height = 100,
+  className = '',
+}) => {
+  return (
+    <svg
+      width={width}
+      height={height}
+      viewBox="0 0 200 200"
+      fill="none"
+      xmlns="http://w3.org"
+      className={className}
+    >
+      <defs>
+        {/* Metallic Dark Body Gradient */}
+        <linearGradient id="metalBody" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#4A5568" />
+          <stop offset="40%" stopColor="#718096" />
+          <stop offset="50%" stopColor="#EDF2F7" />
+          <stop offset="60%" stopColor="#718096" />
+          <stop offset="100%" stopColor="#2D3748" />
+        </linearGradient>
 
-    {/* Top Layer */}
-    <path
-      d="M4 6C4 4.34315 5.34315 3 7 3H17C18.6569 3 20 4.34315 20 6C20 7.65685 18.6569 9 17 9H7C5.34315 9 4 7.65685 4 6Z"
-      fill="url(#db-stack-grad)"
-    />
-    <ellipse cx="12" cy="6" rx="8" ry="3" stroke="url(#db-stack-grad)" strokeWidth="2" />
-  </svg>
-);
+        {/* Metallic Edge/Highlight Gradient */}
+        <linearGradient id="metalHighlight" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="#E2E8F0" stopOpacity="0.8" />
+          <stop offset="100%" stopColor="#4A5568" stopOpacity="0.2" />
+        </linearGradient>
 
+        {/* Cyber Neon Cyan Glow for Data Rings */}
+        <linearGradient id="neonCyan" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor="#00F2FE" />
+          <stop offset="100%" stopColor="#4FACFE" />
+        </linearGradient>
 
+        {/* Cyber Neon Pink Glow for Accents */}
+        <linearGradient id="neonPink" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor="#FF0844" />
+          <stop offset="100%" stopColor="#FFB199" />
+        </linearGradient>
+
+        {/* Soft Drop Shadow for Depth */}
+        <filter id="dropShadow" x="-10%" y="-10%" width="120%" height="120%">
+          <feDropShadow dx="0" dy="8" stdDeviation="6" floodColor="#000000" floodOpacity="0.4" />
+        </filter>
+
+        {/* Neon Glow Filter */}
+        <filter id="cyanGlow" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="2" result="blur" />
+          <feComposite in="SourceGraphic" in2="blur" operator="over" />
+        </filter>
+      </defs>
+
+      {/* Main Database Structure */}
+      <g filter="url(#dropShadow)">
+        {/* Top Segment */}
+        <path
+          d="M20 50 C 20 25, 180 25, 180 50 L 180 75 C 180 100, 20 100, 20 75 Z"
+          fill="url(#metalBody)"
+          stroke="url(#metalHighlight)"
+          strokeWidth="1.5"
+        />
+        {/* Top Cap Ring */}
+        <ellipse cx="100" cy="50" rx="80" ry="25" fill="none" stroke="url(#neonCyan)" strokeWidth="1.5" opacity="0.4" />
+
+        {/* Middle Segment */}
+        <path
+          d="M20 90 C 20 65, 180 65, 180 90 L 180 115 C 180 140, 20 140, 20 115 Z"
+          fill="url(#metalBody)"
+          stroke="url(#metalHighlight)"
+          strokeWidth="1.5"
+        />
+
+        {/* Bottom Segment */}
+        <path
+          d="M20 130 C 20 105, 180 105, 180 130 L 180 155 C 180 180, 20 180, 20 155 Z"
+          fill="url(#metalBody)"
+          stroke="url(#metalHighlight)"
+          strokeWidth="1.5"
+        />
+      </g>
+
+      {/* Front Panel Grid & Tech Details (Stacked Perspective Lines) */}
+      <path d="M 60 72 Q 100 85 140 72" stroke="#2D3748" strokeWidth="2" opacity="0.5" />
+      <path d="M 60 112 Q 100 125 140 112" stroke="#2D3748" strokeWidth="2" opacity="0.5" />
+      <path d="M 60 152 Q 100 165 140 152" stroke="#2D3748" strokeWidth="2" opacity="0.5" />
+
+      {/* Glowing Neon Data Slots / Link Status Lights */}
+      <g filter="url(#cyanGlow)">
+        {/* Top Unit Light */}
+        <path d="M 45 62 Q 100 77 155 62" stroke="url(#neonCyan)" strokeWidth="3" strokeLinecap="round" />
+        <circle cx="35" cy="58" r="3" fill="url(#neonCyan)" />
+        
+        {/* Middle Unit Light */}
+        <path d="M 45 102 Q 100 117 155 102" stroke="url(#neonCyan)" strokeWidth="3" strokeLinecap="round" />
+        <circle cx="35" cy="98" r="3" fill="url(#neonCyan)" />
+
+        {/* Bottom Unit Light */}
+        <path d="M 45 142 Q 100 157 155 142" stroke="url(#neonCyan)" strokeWidth="3" strokeLinecap="round" />
+        <circle cx="35" cy="138" r="3" fill="url(#neonCyan)" />
+      </g>
+
+      {/* Activity / Drive Indicators (Right Side) */}
+      <g>
+        {/* Top Active */}
+        <circle cx="165" cy="58" r="2.5" fill="url(#neonPink)" filter="url(#cyanGlow)" />
+        {/* Middle Active */}
+        <circle cx="165" cy="98" r="2.5" fill="#4A5568" />
+        {/* Bottom Active */}
+        <circle cx="165" cy="138" r="2.5" fill="url(#neonPink)" filter="url(#cyanGlow)" />
+      </g>
+    </svg>
+  );
+};
 
 // --- Mock Data ---
 const mockTables: Table[] = [
