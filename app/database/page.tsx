@@ -190,11 +190,19 @@ const FolderStructure = ({
           <div className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${folder.expanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
             <div className="overflow-hidden">
               <div className="ml-4 border-l border-gray-700 pl-2">
-                {folder.children.map((childId) => {
+                {folder.children.map((childId, index) => {
                   const child = mockTables.find(t => t.id === childId);
                   if (child) {
                     return (
-                      <div key={child.id} className="mb-1">
+                      <div 
+                        key={child.id} 
+                        className="mb-1 transition-all duration-500 ease-out"
+                        style={{ 
+                          transitionDelay: folder.expanded ? `${index * 50}ms` : '0ms',
+                          opacity: folder.expanded ? 1 : 0,
+                          transform: folder.expanded ? 'translateY(0)' : 'translateY(-10px)'
+                        }}
+                      >
                         <div 
                           className={`flex items-center p-2 rounded cursor-pointer transition-all duration-300 ${
                             selectedTableId === child.id ? 'bg-blue-900/50' : 'hover:bg-gray-800'
@@ -207,14 +215,14 @@ const FolderStructure = ({
                           <span className="mr-2 text-blue-400">📄</span>
                           <span className="text-gray-200 truncate">{child.name}</span>
                         </div >
-                      </div >
+                      </div>
                     );
                   }
                   return null;
                 })}
-              </div>
+              </div >
             </div>
-          </div>
+          </div >
         )}
       </div >
     );
