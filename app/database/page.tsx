@@ -365,7 +365,7 @@ const FolderStructure = ({
 
   return (
     <div className="bg-linear-to-b from-gray-900 to-gray-950 border-r border-gray-800 p-4 w-64 overflow-y-auto h-full">
-      <h2 className="text-lg font-bold text-blue-400 mb-4">
+      <h2 className="text-lg flex items-center gap-2 font-bold text-blue-400 mb-4">
         <ModernDatabaseStackIcon className="w-5 h-5" />
         Database Schema
       </h2>
@@ -459,7 +459,7 @@ export default function DatabaseVisualizer() {
             <Background color="#374151" gap={20} />
             <Controls className="bg-gray-900 border-gray-700" position="top-right" />
             <Panel position="top-left" className="bg-gray-900/80 border border-gray-800 rounded-lg p-3">
-              <h3 className="font-bold flex items-center text-blue-400"><ModernDatabaseStackIcon className="w-6 h-6" />
+              <h3 className="font-bold flex items-center gap-2 text-blue-400"><ModernDatabaseStackIcon className="w-6 h-6" />
                 Database Schema</h3>
             </Panel>
             <MiniMap
