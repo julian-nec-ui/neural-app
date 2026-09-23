@@ -1,7 +1,7 @@
 // components/DatabaseSchemaViewer.tsx
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import ReactFlow, { 
   Controls, 
   Background,
@@ -110,6 +110,7 @@ const mockRelations: Relation[] = [
   }
 ];
 
+// Mock folders - this is the only place where setFolders would be used if we had dynamic data
 const mockFolders: Folder[] = [
   {
     id: 'folder1',
@@ -128,10 +129,10 @@ const mockFolders: Folder[] = [
 ];
 
 // Node component for React Flow
-const TableNode = ({ data }: { data: any }) => {
+const TableNode = ({ data }: { data: { table: Table } }) => {
   return (
-    <div className="bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 rounded-lg shadow-lg w-64">
-      <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-3 rounded-t-lg">
+    <div className="bg-linear-to-br from-gray-800 to-gray-900 border border-gray-700 rounded-lg shadow-lg w-64 transition-all duration-300 hover:shadow-xl">
+      <div className="bg-linear-to-r from-blue-600 to-indigo-700 p-3 rounded-t-lg">
         <h3 className="font-bold text-white truncate">{data.table.name}</h3>
       </div>
       <div className="p-3">
@@ -162,11 +163,14 @@ const nodeTypes = {
 };
 
 const DatabaseSchemaViewer = () => {
-  const [folders, setFolders] = useState<Folder[]>(mockFolders);
+  // Using mock data directly instead of state for folders since they're static
+  const [folders] = useState<Folder[]>(mockFolders);
   const [selectedTable, setSelectedTable] = useState<Table | null>(null);
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set(['folder1', 'folder2']));
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const animationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Initialize nodes and edges
   useEffect(() => {
@@ -204,7 +208,11 @@ const DatabaseSchemaViewer = () => {
               strokeWidth: 2
             },
             label: rel.type,
-            labelStyle: { fill: '#fff', fontWeight: 'bold' }
+            labelStyle: { 
+              fill: '#fff', 
+              fontWeight: 'bold',
+              fontSize: '12px'
+            }
           });
         }
       }
@@ -215,15 +223,25 @@ const DatabaseSchemaViewer = () => {
   }, []);
 
   const toggleFolder = (folderId: string) => {
-    setExpandedFolders(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(folderId)) {
-        newSet.delete(folderId);
-      } else {
-        newSet.add(folderId);
-      }
-      return newSet;
-    });
+    setIsAnimating(true);
+    
+    if (animationTimeoutRef.current) {
+      clearTimeout(animationTimeoutRef.current);
+    }
+    
+    animationTimeoutRef.current = setTimeout(() => {
+      setExpandedFolders(prev => {
+        const newSet = new Set(prev);
+        if (newSet.has(folderId)) {
+          newSet.delete(folderId);
+        } else {
+          newSet.add(folderId);
+        }
+        return newSet;
+      });
+      
+      setIsAnimating(false);
+    }, 150); // Match CSS transition duration
   };
 
   const handleTableClick = (table: Table) => {
@@ -244,29 +262,37 @@ const DatabaseSchemaViewer = () => {
           {folders.map(folder => (
             <div key={folder.id} className="mb-1">
               <div 
-                className="flex items-center p-2 rounded hover:bg-gray-800 cursor-pointer transition-colors"
+                className={`flex items-center p-2 rounded hover:bg-gray-800 cursor-pointer transition-colors duration-200 ${isAnimating ? 'opacity-75' : ''}`}
                 onClick={() => toggleFolder(folder.id)}
               >
-                <span className="mr-2 text-blue-400">
-                  {expandedFolders.has(folder.id) ? '▼' : '▶'}
+                <span className="mr-2 text-blue-400 transition-transform duration-300">
+                  {expandedFolders.has(folder.id) ? (
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 transform rotate-180" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                    </svg>
+                  ) : (
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                    </svg>
+                  )}
                 </span>
                 <span className="font-medium">{folder.name}</span>
               </div>
               
               {expandedFolders.has(folder.id) && (
-                <div className="ml-6 pl-2 border-l border-gray-700">
+                <div 
+                  className={`ml-6 pl-2 border-l border-gray-700 transition-all duration-300 ease-in-out ${isAnimating ? 'opacity-0' : 'opacity-100'}`}
+                >
                   {folder.children?.map(childId => {
                     const table = mockTables.find(t => t.id === childId);
                     return table ? (
                       <div 
                         key={table.id}
-                        className={`p-2 rounded cursor-pointer transition-colors ${selectedTable?.id === table.id ? 'bg-blue-900/30' : 'hover:bg-gray-800'}`}
+                        className={`p-2 rounded cursor-pointer transition-colors duration-200 ${selectedTable?.id === table.id ? 'bg-blue-900/30' : 'hover:bg-gray-800'} flex items-center`}
                         onClick={() => handleTableClick(table)}
                       >
-                        <div className="flex items-center">
-                          <span className="mr-2 text-gray-400">📄</span>
-                          <span>{table.name}</span>
-                        </div>
+                        <span className="mr-2 text-gray-400">📄</span>
+                        <span>{table.name}</span>
                       </div>
                     ) : null;
                   })}
@@ -278,7 +304,7 @@ const DatabaseSchemaViewer = () => {
         
         {/* Selected Table Info */}
         {selectedTable && (
-          <div className="mt-6 p-4 bg-gray-800/50 rounded-lg border border-gray-700">
+          <div className="mt-6 p-4 bg-gray-800/50 rounded-lg border border-gray-700 transition-all duration-300">
             <h3 className="font-bold text-blue-400 mb-2">Selected Table: {selectedTable.name}</h3>
             <div className="space-y-1 text-sm">
               <div className="flex justify-between">
@@ -304,11 +330,19 @@ const DatabaseSchemaViewer = () => {
 
       {/* Right Panel - Graph Visualization */}
       <div className="w-3/4 flex flex-col">
-        <div className="p-4 border-b border-gray-700">
+        <div className="p-4 border-b border-gray-700 flex justify-between items-center">
           <h2 className="text-xl font-bold text-blue-400">Schema Diagram</h2>
-          <p className="text-sm text-gray-400 mt-1">
-            Click on tables to view details. Drag to pan, scroll to zoom.
-          </p>
+          <div className="flex items-center space-x-2">
+            <span className="text-sm text-gray-400">Click on tables to view details. Drag to pan, scroll to zoom.</span>
+            <button 
+              className="bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white p-2 rounded-lg shadow-md transition-all duration-200 transform hover:scale-105"
+              onClick={() => window.location.reload()}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
+              </svg>
+            </button>
+          </div>
         </div>
         
         <div className="flex-1 relative">
@@ -323,9 +357,12 @@ const DatabaseSchemaViewer = () => {
             className="bg-gray-900"
           >
             <Background color="#4b5563" gap={16} />
-            <Controls className="bg-gray-800/80 backdrop-blur-sm rounded-lg border border-gray-700" />
+            <Controls 
+              className="bg-gray-800/80 backdrop-blur-sm rounded-lg border border-gray-700 shadow-lg flex items-center justify-center"
+              style={{ right: 20, top: 20 }}
+            />
             <MiniMap 
-              className="bg-gray-800/80 backdrop-blur-sm rounded-lg border border-gray-700" 
+              className="bg-gray-800/80 backdrop-blur-sm rounded-lg border border-gray-700 shadow-lg" 
               nodeColor={(node) => {
                 if (selectedTable?.id === node.id) return '#3B82F6';
                 return '#4B5563';
