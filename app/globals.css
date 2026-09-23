@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 :root {
   --background: #ffffff;
@@ -13,7 +13,8 @@
   backdrop-filter: blur(12px);
   border: 1px solid rgba(59, 130, 246, 0.3) !important;
   border-radius: 12px !important;
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5), inset 0 0 10px rgba(59, 130, 246, 0.1) !important;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5),
+    inset 0 0 10px rgba(59, 130, 246, 0.1) !important;
   gap: 4px !important;
 }
 
@@ -43,6 +44,9 @@
   stroke: currentColor !important;
 }
 
+.react-flow__attribution {
+  display: none !important;
+}
 
 @theme inline {
   --color-background: var(--background);
@@ -60,12 +64,12 @@
 
 /* This targets the scrollbars in your table container */
 .overflow-y-scroll::-webkit-scrollbar {
-  width: 6px;  /* Thin vertical scrollbar */
+  width: 6px; /* Thin vertical scrollbar */
   height: 6px; /* Thin horizontal scrollbar */
 }
 
 .overflow-y-scroll::-webkit-scrollbar-track {
-  background: transparent; 
+  background: transparent;
 }
 
 .overflow-y-scroll::-webkit-scrollbar-thumb {
@@ -78,13 +82,13 @@
 }
 
 @keyframes fadeIn {
-  from { 
-    opacity: 0; 
+  from {
+    opacity: 0;
     transform: translateY(-10px); /* Slides down slightly for a smoother feel */
   }
-  to { 
-    opacity: 1; 
-    transform: translateY(0); 
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
@@ -154,7 +158,6 @@
   filter: drop-shadow(0 0 12px rgba(59, 130, 246, 1)) !important;
 } */
 
-
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
@@ -177,7 +180,7 @@ code {
 }
 
 .react-flow__node-tableNode .react-flow__handle {
-  background: #3B82F6;
+  background: #3b82f6;
   width: 8px;
   height: 8px;
   border-radius: 50%;
@@ -200,7 +203,8 @@ code {
   gap: 8px;
   background: rgba(31, 41, 55, 0.8);
   border-radius: 8px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
 .react-flow__controls-button {
