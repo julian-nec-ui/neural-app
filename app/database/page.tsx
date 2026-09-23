@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useCallback, useLayoutEffect } from 'react';
+import { useState, useEffect, useRef, useCallback, useLayoutEffect } from 'react';
 import ReactFlow, {
   Controls,
   Background,
