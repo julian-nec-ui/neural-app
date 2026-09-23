@@ -156,7 +156,7 @@ const ModernDatabaseStackIcon: React.FC<DatabaseIconProps> = ({
         {/* Top Unit Light */}
         <path d="M 45 62 Q 100 77 155 62" stroke="url(#neonCyan)" strokeWidth="3" strokeLinecap="round" />
         <circle cx="35" cy="58" r="3" fill="url(#neonCyan)" />
-        
+
         {/* Middle Unit Light */}
         <path d="M 45 102 Q 100 117 155 102" stroke="url(#neonCyan)" strokeWidth="3" strokeLinecap="round" />
         <circle cx="35" cy="98" r="3" fill="url(#neonCyan)" />
@@ -433,6 +433,8 @@ export default function DatabaseVisualizer() {
     setSelectedTableId(tableId);
   }, []);
 
+  const selectedTableName = mockTables.find(t => t.id === selectedTableId)?.name || "Database Schema";
+
   return (
     <div className="flex h-screen bg-black text-gray-200">
       <div className="w-64 shrink-0">
@@ -459,8 +461,10 @@ export default function DatabaseVisualizer() {
             <Background color="#374151" gap={20} />
             <Controls className="bg-gray-900 border-gray-700" position="top-right" />
             <Panel position="top-left" className="bg-gray-900/80 border border-gray-800 rounded-lg p-3">
-              <h3 className="font-bold flex items-center gap-2 text-blue-400"><ModernDatabaseStackIcon className="w-6 h-6" />
-                Database Schema</h3>
+              <h3 className="font-bold text-blue-400 flex items-center gap-2">
+                <ModernDatabaseStackIcon className="w-5 h-5" />
+                {selectedTableName}
+              </h3>
             </Panel>
             <MiniMap
               nodeColor={() => '#4f46e5'}
