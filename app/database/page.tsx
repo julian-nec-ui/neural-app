@@ -84,9 +84,8 @@ const tableFolders: FolderNode[] = [
 const TableNode = ({ data }: NodeProps<Table>) => {
   return (
     <div className="bg-linear-to-b from-gray-800 to-gray-900 border border-gray-700 rounded-lg shadow-lg w-64 overflow-hidden transition-all duration-300 hover:shadow-xl transform hover:scale-105">
-      {/* Connection Handles */}
-      <Handle type="target" position={Position.Left} className="w-2 h-2 bg-blue-500!" />
-      <Handle type="source" position={Position.Right} className="w-2 h-2 bg-blue-500!" />
+      <Handle type="target" position={Position.Left} className="w-2 h-2 !bg-blue-500" />
+      <Handle type="source" position={Position.Right} className="w-2 h-2 !bg-blue-500" />
       
       <div className="bg-linear-to-r from-blue-900 to-indigo-900 p-3 flex items-center justify-between">
         <h3 className="text-white font-bold truncate">{data.name}</h3>
@@ -121,7 +120,16 @@ const CustomEdge = ({ id, sourceX, sourceY, targetX, targetY, data }: EdgeProps)
 
   return (
     <g>
-      {/* Define the arrowhead once within the edge group or globally */}
+      <style>{`
+        @keyframes dashFlow {
+          from { stroke-dashoffset: 20; }
+          to { stroke-dashoffset: 0; }
+        }
+        .edge-animate {
+          stroke-dasharray: 5;
+          animation: dashFlow 1s linear infinite;
+        }
+      `}</style>
       <defs>
         <marker
           id="arrowhead"
@@ -141,8 +149,12 @@ const CustomEdge = ({ id, sourceX, sourceY, targetX, targetY, data }: EdgeProps)
         fill="none"
         stroke="#6b7280"
         strokeWidth="2"
+        className="edge-animate"
         markerEnd="url(#arrowhead)"
       />
+      {/* The circle on the child table */}
+      <circle cx={targetX} cy={targetY} r="4" fill="#3b82f6" />
+      
       {data?.type && (
         <foreignObject 
           width="60" 
@@ -188,30 +200,32 @@ const FolderStructure = ({
           <span className="text-gray-200 truncate">{folder.name}</span>
         </div>
         
-        {folder.type === 'folder' && folder.expanded && folder.children && (
-          <div className="ml-4 border-l border-gray-700 pl-2">
-            {folder.children.map((childId) => {
-              const child = mockTables.find(t => t.id === childId);
-              if (child) {
-                return (
-                  <div key={child.id} className="mb-1">
-                    <div 
-                      className={`flex items-center p-2 rounded cursor-pointer transition-all duration-300 ${
-                        selectedTableId === child.id ? 'bg-blue-900/50' : 'hover:bg-gray-800'
-                      }`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onSelectTable(child.id);
-                      }}
-                    >
-                      <span className="mr-2 text-blue-400">📄</span>
-                      <span className="text-gray-200 truncate">{child.name}</span>
+        {folder.type === 'folder' && folder.children && (
+          <div className={`grid transition-all duration-300 ease-in-out ${folder.expanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
+            <div className="overflow-hidden ml-4 border-l border-gray-700 pl-2">
+              {folder.children.map((childId) => {
+                const child = mockTables.find(t => t.id === childId);
+                if (child) {
+                  return (
+                    <div key={child.id} className="mb-1">
+                      <div 
+                        className={`flex items-center p-2 rounded cursor-pointer transition-all duration-300 ${
+                          selectedTableId === child.id ? 'bg-blue-900/50' : 'hover:bg-gray-800'
+                        }`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onSelectTable(child.id);
+                        }}
+                      >
+                        <span className="mr-2 text-blue-400">📄</span>
+                        <span className="text-gray-200 truncate">{child.name}</span>
+                      </div>
                     </div>
-                  </div>
-                );
-              }
-              return null;
-            })}
+                  );
+                }
+                return null;
+              })}
+            </div>
           </div>
         )}
       </div>
@@ -234,10 +248,7 @@ export default function DatabaseVisualizer() {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
-  // This function builds the nodes/edges from scratch based on the mock data
-  // and the current selection. This avoids the "destructive filtering" bug.
   const syncGraph = useCallback((targetId: string | null) => {
-    // 1. Create ALL possible nodes
     const allNodes: Node[] = mockTables.map((table, index) => ({
       id: table.id,
       type: 'table',
@@ -245,7 +256,6 @@ export default function DatabaseVisualizer() {
       data: table
     }));
 
-    // 2. Create ALL possible edges
     const allEdges: Edge[] = mockRelationships.map(rel => ({
       id: `e${rel.id}`,
       source: rel.sourceTableId,
@@ -260,14 +270,12 @@ export default function DatabaseVisualizer() {
       return;
     }
 
-    // 3. If a table is selected, find related IDs
     const relatedIds = new Set<string>([targetId]);
     mockRelationships.forEach(rel => {
       if (rel.sourceTableId === targetId) relatedIds.add(rel.targetTableId);
       if (rel.targetTableId === targetId) relatedIds.add(rel.sourceTableId);
     });
 
-    // 4. Filter based on the set
     const filteredNodes = allNodes.filter(n => relatedIds.has(n.id));
     const filteredEdges = allEdges.filter(e => relatedIds.has(e.source) && relatedIds.has(e.target));
 
@@ -275,12 +283,10 @@ export default function DatabaseVisualizer() {
     setEdges(filteredEdges);
   }, [setNodes, setEdges]);
 
-  // Initialize graph
   useEffect(() => {
     syncGraph(null);
   }, [syncGraph]);
 
-  // Update graph when selection changes
   useEffect(() => {
     syncGraph(selectedTableId);
   }, [selectedTableId, syncGraph]);
@@ -317,7 +323,7 @@ export default function DatabaseVisualizer() {
             className="bg-gray-950"
           >
             <Background color="#374151" gap={20} />
-            <Controls className="bg-gray-900 border-gray-700" position="top-right" />
+            <Controls className="bg-gray-900 border-gray-700" position="bottom-left" />
             <Panel position="top-left" className="bg-gray-900/80 border border-gray-800 rounded-lg p-3">
               <h3 className="font-bold text-blue-400">📊 Database Schema</h3>
             </Panel>
