@@ -34,7 +34,7 @@ export default function ScalarNode({ value, color = "#3b82f6" }: ScalarNodeProps
       >
 
         <span className="text-xl font-mono font-bold z-10">
-          {typeof value === "number" ? value.toFixed(1) : value}
+          {typeof value === "number" ? value.toFixed(1) : '0.0'}
         </span>
 
         <motion.div
