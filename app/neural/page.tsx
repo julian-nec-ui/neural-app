@@ -1,6 +1,5 @@
 "use client";
 
-import React from "react";
 import { motion } from "framer-motion";
 
 interface ScalarNodeProps {
@@ -29,7 +28,31 @@ export default function ScalarNode({ value, color = "#3b82f6" }: ScalarNodeProps
           repeat: Infinity,
           ease: "easeInOut"
         }}
+
+        className="relative flex items-center justify-center w-24 h-24 rounded-full bg-gray-900 border-2 text-white transition-colors"
+        style={{ borderColor: color }} // Set border color via style to use the prop
       >
+
+        <span className="text-xl font-mono font-bold z-10">
+          {value.toFixed(1)}
+        </span>
+
+        <motion.div
+          className="absolute inset-0 rounded-full opacity-20"
+          style={{ backgroundColor: color }}
+          animate={{
+            opacity: [0.1, 0.4, 0.1]
+          }}
+          transition={{
+            duration: 2, repeat: Infinity
+          }}
+        >
+
+        </motion.div>
+
+        <p className="mt-4 text-xs font-mono text-gray-500 uppercase tracking-widest">
+          Scalar
+        </p>
 
       </motion.div>
     </div>
