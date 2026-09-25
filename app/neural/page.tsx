@@ -1,3 +1,5 @@
+"use client";
+
 import ScalarNode from './scalar-node'; // Adjust path based on your folder structure
 
 export default function NeuralPage() {
