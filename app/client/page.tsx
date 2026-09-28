@@ -1,14 +1,29 @@
 "use client";
 
-import React, { useState, useMemo, ReactNode } from 'react';
-import {
-  User, Mail, Phone, MapPin, Eye, Edit2, Trash2,
-  ChevronLeft, ChevronRight, ArrowUpDown, X, ChevronsLeft, ChevronsRight,
-  ChevronUp
-} from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { clientService } from "../service/client-service";
+import { SortableHeader } from "./SortableHeader";
+import { PaginationBar } from "./PaginationBar";
 
-// --- Types & Interfaces ---
+import {
+  Trash2,
+  Eye,
+  Edit,
+  X,
+  AlertTriangle,
+  UserPlus,
+  User,
+  Mail,
+  MapPin,
+  Phone,
+} from "lucide-react";
+
+import axios from "axios";
+import { Client as StompClient } from "@stomp/stompjs";
+import SockJS from "sockjs-client";
+import { AnimatePresence, motion } from "framer-motion";
+
+// Define the Client interface to replace all 'any' types
 interface Client {
   id: number;
   firstName: string;
@@ -18,300 +33,692 @@ interface Client {
   address: string;
 }
 
-interface SortConfig {
-  key: keyof Client;
-  direction: 'asc' | 'desc';
-}
 
-interface ModalState {
-  type: 'view' | 'edit' | 'delete' | null;
-  client: Client | null;
-}
+export default function ClientPage() {
+  const [clients, setClients] = useState<Client[]>([]);
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
+  const [isViewOpen, setIsViewOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
-const MOCK_CLIENTS: Client[] = Array.from({ length: 40 }, (_, i) => ({
-  id: i + 1,
-  firstName: `First${i + 1}`,
-  lastName: `Last${i + 1}`,
-  email: `client${i + 1}@example.com`,
-  phone: `+1 ${100 + i} 555 ${1000 + i}`,
-  address: `${100 + i} Main St, City ${i + 1}`,
-}));
+  const [isAddOpen, setIsAddOpen] = useState(false);
 
-const ClientManagement: React.FC = () => {
-  const [clients, setClients] = useState<Client[]>(MOCK_CLIENTS);
-  const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'lastName', direction: 'asc' });
-  const [currentPage, setCurrentPage] = useState<number>(1);
-  const [itemsPerPage, setItemsPerPage] = useState<number>(5);
-  const [modalState, setModalState] = useState<ModalState>({ type: null, client: null });
+  const [newClient, setNewClient] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    address: "",
+  });
 
-  const handleSort = (key: keyof Client): void => {
-    let direction: 'asc' | 'desc' = 'asc';
-    if (sortConfig.key === key && sortConfig.direction === 'asc') direction = 'desc';
+  const handleSaveNewClient = async () => {
+    try {
+      const response = await clientService.createClient(newClient);
+      const createdClient = { ...newClient, id: response.data.id };
+
+      setClients((prev) => {
+        if (prev.some((client) => client.id === createdClient.id)) {
+          return prev;
+        }
+
+        return [...prev, createdClient];
+      });
+
+      setNewClient({
+        firstName: "",
+        lastName: "",
+        email: "",
+        phone: "",
+        address: "",
+      });
+
+      setIsAddOpen(false);
+    } catch (err) {
+      if (axios.isAxiosError(err)) {
+        const message = err.response?.data?.message || "An API error occurred";
+        console.error("Error: " + message);
+      } else if (err instanceof Error) {
+        console.error("An unexpected error occurred: " + err.message);
+      } else {
+        console.error("An unknown error occurred");
+      }
+      setNewClient({
+        firstName: "",
+        lastName: "",
+        email: "",
+        phone: "",
+        address: "",
+      });
+    }
+  };
+
+  const setWebSocket = () => {
+    const stompClient: StompClient = new StompClient({
+      brokerURL: "ws://localhost:8081/api/ws",
+      reconnectDelay: 5000,
+      heartbeatIncoming: 4000,
+      heartbeatOutgoing: 4000,
+    });
+
+    stompClient.webSocketFactory = () =>
+      new SockJS("http://localhost:8081/api/ws");
+    stompClient.onConnect = () => {
+      console.log("Connected to WebSocket at", new Date().toLocaleTimeString());
+
+      stompClient.subscribe("/topic/clientsCreate", (message) => {
+        const newClientData = JSON.parse(message.body) as Client;
+        setClients((prevClients) => {
+          if (prevClients.some((client) => client.id === newClientData.id)) {
+            return prevClients;
+          }
+
+          return [...prevClients, newClientData];
+        });
+      });
+
+      stompClient.subscribe("/topic/clientsDelete", (message) => {
+        const deletedClient = JSON.parse(message.body) as { id: number };
+        setClients((prevClients) => {
+          console.log(
+            "Received delete message for client ID:",
+            deletedClient.id,
+          );
+          return prevClients.filter((client) => client.id !== deletedClient.id);
+        });
+      });
+    };
+
+    stompClient.onDisconnect = () => {
+      console.log(
+        "Disconnected from WebSocket at",
+        new Date().toLocaleTimeString(),
+      );
+    };
+
+    stompClient.onStompError = (frame) => {
+      console.error("Broker reported error: ", frame);
+    };
+
+    stompClient.activate();
+    return () => stompClient.deactivate();
+  };
+
+  useEffect(() => {
+    const cleanup = setWebSocket();
+    return () => {
+      if (typeof cleanup === "function") cleanup();
+    };
+  }, []);
+
+  const isFormValid = useMemo(() => {
+    return Object.values(newClient).every((value) => value.trim() !== "");
+  }, [newClient]);
+
+  const [sortConfig, setSortConfig] = useState<{
+    key: keyof Client | "";
+    direction: "asc" | "desc" | null;
+  }>({
+    key: "",
+    direction: null,
+  });
+
+
+  const fetchClients = useCallback(async () => {
+    try {
+      const response = await clientService.getAllClients();
+      setClients(response.data);
+    } catch (err) {
+      if (axios.isAxiosError(err)) {
+        const message = err.response?.data?.message || "An API error occurred";
+        console.error("Error: " + message);
+      } else if (err instanceof Error) {
+        console.error("An unexpected error occurred: " + err.message);
+      } else {
+        console.error("An unknown error occurred");
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      await fetchClients()
+    })();
+  }, [fetchClients]);
+
+  
+
+  const handleSort = (key: keyof Client) => {
+    let direction: "asc" | "desc" = "asc";
+    if (sortConfig.key === key && sortConfig.direction === "asc") {
+      direction = "desc";
+    }
     setSortConfig({ key, direction });
   };
 
-  const sortedClients = useMemo(() => {
-    return [...clients].sort((a, b) => {
-      const aValue = a[sortConfig.key];
-      const bValue = b[sortConfig.key];
-      if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
-      if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+    const currentClients = useMemo(() => {
+    // 1. Slice the data first to get only the current page's items
+    const indexOfLastItem = currentPage * itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+    const pageItems = clients.slice(indexOfFirstItem, indexOfLastItem);
+
+    // 2. If no sorting is active, just return the slice
+    if (!sortConfig.key || !sortConfig.direction) return pageItems;
+
+    // 3. Sort ONLY the items on the current page
+    return [...pageItems].sort((a, b) => {
+      // FIX: Cast the key to keyof Client here
+      const key = sortConfig.key as keyof Client; 
+      
+      if (a[key] < b[key]) {
+        return sortConfig.direction === "asc" ? -1 : 1;
+      }
+      if (a[key] > b[key]) {
+        return sortConfig.direction === "asc" ? 1 : -1;
+      }
       return 0;
     });
-  }, [clients, sortConfig]);
+  }, [clients, sortConfig, currentPage, itemsPerPage]);
 
-  const totalPages = Math.ceil(sortedClients.length / itemsPerPage);
-  const activePage = Math.max(1, Math.min(currentPage, totalPages));
 
-  const paginatedClients = sortedClients.slice(
-    (activePage - 1) * itemsPerPage,
-    activePage * itemsPerPage
-  );
+  const totalPages = Math.ceil(clients.length / itemsPerPage);
 
-  const goToPage = (page: number): void => setCurrentPage(page);
+  const handleViewClient = (client: Client) => {
+    setSelectedClient(client);
+    setIsViewOpen(true);
+  };
 
-  const getPaginationRange = (): (number | string)[] => {
-    const range: (number | string)[] = [];
-    if (totalPages <= 5) {
-      for (let i = 1; i <= totalPages; i++) range.push(i);
-    } else {
-      range.push(1);
-      if (activePage > 3) range.push('...');
-      const start = Math.max(2, activePage - 1);
-      const end = Math.min(totalPages - 1, activePage + 1);
-      for (let i = start; i <= end; i++) range.push(i);
-      if (activePage < totalPages - 2) range.push('...');
-      range.push(totalPages);
+  const handleDeleteConfirm = async () => {
+    if (!clientToDelete) return;
+    try {
+      await clientService.deleteClient(clientToDelete.id);
+      setClients((prev) => prev.filter((c) => c.id !== clientToDelete.id));
+      setIsDeleteOpen(false);
+    } catch (err) {
+      if (axios.isAxiosError(err)) {
+        const message = err.response?.data?.message || "An API error occurred";
+        console.error("Error: " + message);
+      } else if (err instanceof Error) {
+        console.error("An unexpected error occurred: " + err.message);
+      } else {
+        console.error("An unknown error occurred");
+      }
     }
-    return range;
   };
 
-  const listMinHeight = itemsPerPage * 76;
-
-  const deleteClient = (id: number): void => {
-    setClients(prev => prev.filter(c => c.id !== id));
-    setModalState({ type: null, client: null });
+  const handleItemsPerPageChange = (
+    e: React.ChangeEvent<HTMLSelectElement>,
+  ) => {
+    setItemsPerPage(Number(e.target.value));
+    setCurrentPage(1);
   };
 
-  const updateClient = (updatedClient: Client): void => {
-    setClients(prev => prev.map(c => c.id === updatedClient.id ? updatedClient : c));
-    setModalState({ type: null, client: null });
+  const renderAddress = (value: string) => {
+    if (!value) return <span className="text-slate-400 italic">N/A</span>;
+    const delimiter = "|";
+    if (!value.includes(delimiter)) {
+      return <span className="text-slate-600">{value}</span>;
+    }
+    return (
+      <div className="flex flex-col gap-0.5">
+        {value.split(delimiter).map((part, i) => (
+          <span key={i} className="text-xs text-slate-400 block leading-tight">
+            {part.trim()}
+          </span>
+        ))}
+      </div>
+    );
   };
 
   return (
-    <div className="p-8 bg-gray-50 min-h-screen font-sans text-gray-800">
-      <div className="max-w-7xl mx-auto relative">
-
-        {/* STICKY TOP SECTION - Direct child of the container for correct stickiness */}
-        <div className="sticky top-0 z-30 bg-gray-50">
-          <div className="py-6">
-            <h1 className="text-2xl font-bold text-gray-900">Client Directory</h1>
+    <div className="p-8 bg-slate-50 min-h-screen font-sans">
+      <div className="max-w-screen-2xl mx-auto">
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
+              Client Management
+            </h1>
+            <p className="text-slate-500 text-sm mt-1">
+              Manage your customer database and contact details.
+            </p>
           </div>
-          {/* Wrapper to ensure horizontal alignment with the body */}
-          <div className="overflow-x-auto no-scrollbar">
-            <div className="grid grid-cols-[1fr_1fr_2fr_1.5fr_2fr_auto_auto] gap-4 px-6 py-3 text-sm font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-200 bg-gray-50 text-left">
-              <HeaderCell label="First Name" onClick={() => handleSort('firstName')} sortConfig={sortConfig} sortKey="firstName" />
-              <HeaderCell label="Last Name" onClick={() => handleSort('lastName')} sortConfig={sortConfig} sortKey="lastName" />
-              <HeaderCell label="Email" onClick={() => handleSort('email')} sortConfig={sortConfig} sortKey="email" />
-              <HeaderCell label="Phone" onClick={() => handleSort('phone')} sortConfig={sortConfig} sortKey="phone" />
-              <HeaderCell label="Address" onClick={() => handleSort('address')} sortConfig={sortConfig} sortKey="address" />
-              <div className="col-span-2 text-left">Actions</div>
-            </div>
-          </div>
-        </div>
-
-        {/* HORIZONTAL SCROLL BODY */}
-        <div className="overflow-x-auto pb-4">
-          <div
-            className="min-w-250 flex flex-col gap-0.5 mt-8"
-            style={{ minHeight: `${listMinHeight}px` }}
+          <button
+            className="flex items-center gap-2 bg-indigo-600 text-white px-5 py-2 rounded-xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 font-semibold"
+            onClick={() => setIsAddOpen(true)}
           >
-            <AnimatePresence mode='popLayout'>
-              {paginatedClients.map((client, index) => (
-                <motion.div
-                  layout
-                  key={client.id}
-                  initial={{ opacity: 0, y: -100 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.2 } }}
-                  transition={{
-                    duration: 0.6,
-                    delay: index * 0.1,
-                    ease: [0.22, 1, 0.36, 1],
-                    layout: { duration: 0.4, ease: "easeInOut" }
-                  }}
-                  className="grid grid-cols-[1fr_1fr_2fr_1.5fr_2fr_auto_auto] gap-4 px-6 py-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 items-center border border-gray-100"
-                >
-                  <div className="flex items-center gap-2 font-medium text-gray-700 whitespace-nowrap">
-                    <User size={16} className="text-gray-400" /> {client.firstName}
-                  </div>
-                  <div className="flex items-center gap-2 font-medium text-gray-700 whitespace-nowrap">
-                    <User size={16} className="text-gray-400" /> {client.lastName}
-                  </div>
-                  <div className="flex items-center gap-2 text-gray-600 whitespace-nowrap">
-                    <Mail size={16} className="text-gray-500" /> {client.email}
-                  </div>
-                  <div className="flex items-center gap-2 text-gray-600 whitespace-nowrap">
-                    <Phone size={16} className="text-gray-500" /> {client.phone}
-                  </div>
-                  <div className="flex items-center gap-2 text-gray-600 whitespace-nowrap">
-                    <MapPin size={16} className="text-gray-500" /> {client.address}
-                  </div>
-                  <div className="col-span-2 flex justify-start gap-2">
-                    <ActionButton onClick={() => setModalState({ type: 'view', client })} icon={<Eye size={16} />} color="bg-blue-50 text-blue-600 hover:bg-blue-100" />
-                    <ActionButton onClick={() => setModalState({ type: 'edit', client })} icon={<Edit2 size={16} />} color="bg-amber-50 text-amber-600 hover:bg-amber-100" />
-                    <ActionButton onClick={() => setModalState({ type: 'delete', client })} icon={<Trash2 size={16} />} color="bg-red-50 text-red-600 hover:bg-red-100" />
-                  </div>
-                </motion.div>
-              ))}
-            </AnimatePresence>
-          </div>
+            <UserPlus size={20} /> Add Client
+          </button>
         </div>
 
-        {/* STICKY BOTTOM FOOTER */}
-        <div className="sticky bottom-0 z-30 bg-gray-50 border-t border-gray-200 py-4 mt-6">
-          <div className="flex flex-col lg:flex-row items-center justify-between px-2 gap-6">
-            <div className="flex items-center gap-6">
-              <div className="flex items-center gap-2 text-sm text-gray-500">
-                <span className="hidden sm:inline">Rows per page:</span>
-                <select
-                  value={itemsPerPage}
-                  onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
-                  className="bg-white border rounded-lg px-2 py-1 outline-none focus:ring-2 focus:ring-blue-500 transition-all text-gray-700"
-                >
-                  {[5, 10, 20, 50].map(num => <option key={num} value={num}>{num}</option>)}
-                </select>
-              </div>
-              <p className="text-sm text-gray-500 border-l pl-6 hidden md:block">
-                Showing <span className="font-semibold text-gray-700">{((activePage - 1) * itemsPerPage) + 1}</span> to <span className="font-semibold text-gray-700">{Math.min(activePage * itemsPerPage, sortedClients.length)}</span> of <span className="font-semibold text-gray-700">{sortedClients.length}</span>
-              </p>
-            </div>
+        <div className="bg-white rounded-2xl shadow-xl shadow-slate-200/60 border border-slate-200 mb-6 overflow-hidden">
+          <div className="overflow-x-auto h-300 max-h-[calc(100vh-300px)]">
+            <table className="w-full text-left border-collapse table-auto">
+              <thead className="bg-slate-50 border-b border-slate-200">
+                <tr className="whitespace-nowrap">
+                  <SortableHeader label="First Name" keyField="firstName" onSort={handleSort} sortConfig={sortConfig} cla/>
+                  <SortableHeader label="Last Name" keyField="lastName" onSort={handleSort} sortConfig={sortConfig} />
+                  <SortableHeader label="Email" keyField="email" onSort={handleSort} sortConfig={sortConfig} />
+                  <SortableHeader label="Phone" keyField="phone" onSort={handleSort} sortConfig={sortConfig} />
+                  <SortableHeader label="Address" keyField="address" onSort={handleSort} sortConfig={sortConfig} />
+                  <th className="px-6 py-4 text-left sticky right-0 bg-slate-50 shadow-[-10px_0_10px_-5px_rgba(0,0,0,0.05)] z-10 text-sm font-bold text-slate-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                <AnimatePresence mode="popLayout">
+                  {currentClients.map((client, idx) => {
+                    const isLast = idx === currentClients.length - 1;
+                    const rowDefaultColor = idx % 2 ? "#ffffff" : "#fcfcfd";
 
-            <div className="flex items-center gap-1">
-              <button onClick={() => goToPage(1)} disabled={activePage === 1} className="p-2 rounded-lg border bg-white disabled:opacity-30 hover:bg-gray-50 transition-colors"><ChevronsLeft size={18} /></button>
-              <button onClick={() => goToPage(activePage - 1)} disabled={activePage === 1} className="p-2 rounded-lg border bg-white disabled:opacity-30 hover:bg-gray-50 transition-colors"><ChevronLeft size={18} /></button>
-              <div className="flex items-center gap-1 mx-2">
-                {getPaginationRange().map((page, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => typeof page === 'number' && goToPage(page)}
-                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${page === activePage ? 'bg-blue-600 text-white shadow-md shadow-blue-200' : page === '...' ? 'text-gray-400 cursor-default' : 'bg-white border text-gray-600 hover:bg-gray-50'
-                      }`}
-                  >
-                    {page}
-                  </button>
-                ))}
-              </div>
-              <button onClick={() => goToPage(activePage + 1)} disabled={activePage === totalPages} className="p-2 rounded-lg border bg-white disabled:opacity-30 hover:bg-gray-50 transition-colors"><ChevronRight size={18} /></button>
-              <button onClick={() => goToPage(totalPages)} disabled={activePage === totalPages} className="p-2 rounded-lg border bg-white disabled:opacity-30 hover:bg-gray-50 transition-colors"><ChevronsRight size={18} /></button>
-            </div>
+                    return (
+                      <motion.tr
+                        key={`${currentPage}-${itemsPerPage}-${client.id}`}
+                        layout
+                        initial={{
+                          opacity: 0,
+                          y: -10,
+                          backgroundColor: isLast ? "#bbf7d0" : rowDefaultColor,
+                        }}
+                        animate={{
+                          opacity: 1,
+                          y: 0,
+                          backgroundColor: rowDefaultColor,
+                        }}
+                        exit={{
+                          opacity: 0,
+                          y: 20,
+                        }}
+                        whileHover={{
+                          y: -6,
+                          scale: 1.01,
+                          zIndex: 10,
+                          boxShadow:
+                            "inset 0 0 0 2px #818cf8, 0 12px 20px -5px rgba(0,0,0,0.15)",
+                          transition: {
+                            type: "spring",
+                            stiffness: 400,
+                            damping: 25,
+                          },
+                        }}
+                        style={{ position: "relative", originY: 0 }}
+                        transition={{
+                          y: { delay: idx * 0.08, duration: 0.4 },
+                          backgroundColor: {
+                            duration: 1.5,
+                            ease: "easeOut",
+                            delay: idx * 0.08,
+                          },
+                          opacity: { delay: idx * 0.08 },
+                          layout: {
+                            type: "spring",
+                            stiffness: 100,
+                            damping: 35,
+                          },
+                        }}
+                        className="group cursor-pointer whitespace-nowrap transition-colors"
+                      >
+                        <td className="px-6 py-2 text-slate-700 font-medium border-r border-slate-100 whitespace-nowrap">
+                          {client.firstName}
+                        </td>
+                        <td className="px-6 py-2 text-slate-700 font-medium border-r border-slate-100 whitespace-nowrap">
+                          {client.lastName}
+                        </td>
+                        <td className="px-6 py-2 text-slate-600 font-medium border-r border-slate-100 whitespace-nowrap">
+                          {client.email}
+                        </td>
+                        <td className="px-6 py-2 text-slate-600 font-medium border-r border-slate-100">
+                          {client.phone}
+                        </td>
+                        <td className="px-6 py-2 border-r border-slate-100 font-medium whitespace-nowrap">
+                          {renderAddress(client.address)}
+                        </td>
+                        <td className="px-6 py-2 sticky right-0 bg-inherit shadow-[-10px_0_10px_-5px_rgba(0,0,0,0.05)] z-10">
+                          <div className="flex justify-start gap-2">
+                            <button
+                              onClick={() => handleViewClient(client)}
+                              className="p-2 text-[#0073d7] hover:bg-indigo-50 rounded-lg transition-all"
+                            >
+                              <Eye size={18} />
+                            </button>
+                            <button className="p-2 text-[#00846e] hover:bg-[#eff3f3] rounded-lg transition-all">
+                              <Edit size={18} />
+                            </button>
+                            <button
+                              onClick={() => {
+                                setClientToDelete(client);
+                                setIsDeleteOpen(true);
+                              }}
+                              className="p-2 text-[#fa0026] hover:bg-[#fdeef0] rounded-lg transition-all"
+                            >
+                              <Trash2 size={18} />
+                            </button>
+                          </div>
+                        </td>
+                      </motion.tr>
+                    );
+                  })}
+                </AnimatePresence>
+              </tbody>
+            </table>
           </div>
         </div>
+        <PaginationBar
+          currentPage={currentPage}
+          totalPages={totalPages}
+          itemsPerPage={itemsPerPage}
+          totalItems={clients.length}
+          onPageChange={setCurrentPage}
+          onItemsPerPageChange={handleItemsPerPageChange}
+        />
       </div>
 
-      <AnimatePresence>
-        {modalState.type && modalState.client && (
-          <Modal type={modalState.type} client={modalState.client} onClose={() => setModalState({ type: null, client: null })} onDelete={deleteClient} onUpdate={updateClient} />
-        )}
-      </AnimatePresence>
-    </div>
-  );
-};
-
-// --- Shared TSX Components ---
-const HeaderCell: React.FC<{ label: string; onClick: () => void; sortConfig: SortConfig; sortKey: keyof Client }> = ({ label, onClick, sortConfig, sortKey }) => {
-  const isSorted = sortConfig.key === sortKey;
-  return (
-    <div 
-      onClick={onClick} 
-      // w-full and justify-start are the keys here
-      className="flex items-center justify-start w-full gap-1 cursor-pointer hover:text-gray-800 transition-colors text-left"
-    >
-      {label}
-      <div className="flex items-center gap-0.5">
-        <ArrowUpDown size={14} className={isSorted ? "text-gray-600" : "text-gray-400"} />
-        {isSorted && (
-          <ChevronUp 
-            size={14} 
-            strokeWidth={4} 
-            className={`text-blue-600 transition-transform duration-300 ${sortConfig.direction === 'desc' ? 'rotate-180' : 'rotate-0'}`} 
+      {/* VIEW MODAL */}
+      {isViewOpen && selectedClient && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div
+            className="fixed inset-0 bg-black/15 z-0"
+            onClick={() => setIsViewOpen(false)}
           />
-        )}
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="flex justify-between items-center p-6 border-b border-slate-100">
+              <h2 className="text-xl font-bold text-slate-800">
+                Client Details
+              </h2>
+              <button
+                onClick={() => setIsViewOpen(false)}
+                className="relative -top-4 -right-4 text-slate-400 hover:text-slate-600 transition-colors p-2 hover:bg-[#e4eff5] rounded-xl"
+              >
+                <X size={22} />
+              </button>
+            </div>
+            <div className="p-6 space-y-2">
+              <DetailRow
+                label="First Name"
+                value={selectedClient.firstName}
+                icon={<User size={22} />}
+              />
+              <DetailRow
+                label="Last Name"
+                value={selectedClient.lastName}
+                icon={<User size={22} />}
+              />
+              <DetailRow
+                label="Email"
+                value={selectedClient.email}
+                icon={<Mail size={22} />}
+              />
+              <DetailRow
+                label="Phone"
+                value={selectedClient.phone}
+                icon={<Phone size={22} />}
+              />
+              <DetailRow
+                label="Address"
+                value={selectedClient.address}
+                icon={<MapPin size={22} />}
+              />
+            </div>
+            <div className="p-6 bg-slate-50 text-right">
+              <button
+                onClick={() => setIsViewOpen(false)}
+                className="px-4 py-2 bg-[#e1e9ee]  text-[#3d4f6c] rounded-lg hover:bg-[#c6e1ee] hover:text-[#3d4f6c] transition font-medium"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* DELETE DIALOG */}
+      {isDeleteOpen && clientToDelete && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div
+            className="fixed inset-0 bg-black/15 z-0"
+            onClick={() => setIsDeleteOpen(false)}
+          />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 animate-in slide-in-from-bottom-4 duration-200">
+            <button
+              onClick={() => setIsDeleteOpen(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors p-1 hover:bg-[#e4eff5] rounded-lg"
+            >
+              <X size={22} />
+            </button>
+            <div className="text-center">
+              <div className="bg-rose-100 text-rose-600 w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Trash2 size={28} />
+              </div>
+              <h2 className="text-2xl font-bold text-slate-800 mb-2">
+                Delete Client?
+              </h2>
+              <p className="text-slate-600 font-medium mb-6">
+                Are you sure you want to delete{" "}
+                <span className="text-indigo-600">
+                  {clientToDelete.firstName} {clientToDelete.lastName}
+                </span>
+                ?
+              </p>
+              <span className="flex items-center justify-center gap-2 text-rose-500 font-semibold text-sm mb-8 uppercase tracking-wide">
+                <AlertTriangle size={18} /> This action is permanent
+              </span>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setIsDeleteOpen(false)}
+                  className="flex-1 px-4 py-3 bg-slate-100 text-slate-600 rounded-xl hover:bg-slate-200 transition font-semibold"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteConfirm}
+                  className="flex-1 px-4 py-3 bg-rose-600 text-white rounded-xl hover:bg-rose-700 transition shadow-lg shadow-rose-200 font-semibold"
+                >
+                  Delete Now
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ADD MODAL */}
+      {isAddOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div
+            className="fixed inset-0 bg-black/15 z-0"
+            onClick={() => {
+              setIsAddOpen(false);
+              setNewClient({
+                firstName: "",
+                lastName: "",
+                email: "",
+                phone: "",
+                address: "",
+              });
+            }}
+          />
+          <div
+            className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md 
+              overflow-hidden animate-in fade-in  zoom-in duration-200"
+          >
+            <div className="flex justify-between items-center p-6 border-b border-slate-100">
+              <h2 className="text-xl font-bold text-slate-800">
+                Add New Client
+              </h2>
+              <button
+                className="
+                bg-[#4f46e5] text-white rounded-lg 
+                  px-2 py-1 font-medium text-xs tracking-wide
+                  shadow-md shadow-slate-300 
+                hover:bg-[#3739d4] active:scale-96 
+                  transition-all duration-200 cursor-pointer"
+                onClick={async () => {
+                  const result = await axios.get("https://randomuser.me/api/");
+                  const user = result.data.results[0];
+                  setNewClient({
+                    firstName: user.name.first,
+                    lastName: user.name.last,
+                    email: user.email,
+                    phone: user.phone,
+                    address:
+                      user.location.street.number +
+                      " " +
+                      user.location.street.name +
+                      " | " +
+                      user.location.city +
+                      " | " +
+                      user.location.state +
+                      " | " +
+                      user.location.country +
+                      " | " +
+                      user.location.postcode,
+                  });
+                }}
+              >
+                Set Random Fields
+              </button>
+
+              <button
+                onClick={() => {
+                  setIsAddOpen(false);
+                  setNewClient({
+                    firstName: "",
+                    lastName: "",
+                    email: "",
+                    phone: "",
+                    address: "",
+                  });
+                }}
+                className="text-slate-400 relative -top-4 -right-4 hover:text-slate-600 transition-colors p-2 hover:bg-[#e4eff5] rounded-xl"
+              >
+                <X size={22} />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-sm font-bold text-slate-500 uppercase ml-1">
+                    First Name
+                  </label>
+                  <input
+                    className="w-full p-2.5 border border-slate-200 rounded-xl outline-none transition-all text-slate-900 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    value={newClient.firstName}
+                    placeholder="Jane"
+                    onChange={(e) =>
+                      setNewClient({ ...newClient, firstName: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-bold text-slate-500 uppercase ml-1">
+                    Last Name
+                  </label>
+                  <input
+                    className="w-full p-2.5 border border-slate-200 rounded-xl outline-none transition-all text-slate-900 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    value={newClient.lastName}
+                    placeholder="Doe"
+                    onChange={(e) =>
+                      setNewClient({ ...newClient, lastName: e.target.value })
+                    }
+                  />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <label className="text-sm font-bold text-slate-500 uppercase ml-1">
+                  Email
+                </label>
+                <input
+                  className="w-full p-2.5 border border-slate-200 rounded-xl outline-none transition-all text-slate-900 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  value={newClient.email}
+                  placeholder="jane@example.com"
+                  onChange={(e) =>
+                    setNewClient({ ...newClient, email: e.target.value })
+                  }
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-sm font-bold text-slate-500 uppercase ml-1">
+                  Phone
+                </label>
+                <input
+                  className="w-full p-2.5 border border-slate-200 rounded-xl outline-none transition-all text-slate-900 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  value={newClient.phone}
+                  placeholder="+1 234 567 890"
+                  onChange={(e) =>
+                    setNewClient({ ...newClient, phone: e.target.value })
+                  }
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-sm font-bold text-slate-500 uppercase ml-1">
+                  Address
+                </label>
+                <input
+                  className="w-full p-2.5 border border-slate-200 rounded-xl outline-none transition-all text-slate-900 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  value={newClient.address}
+                  placeholder="123 Main St | New York | NY"
+                  onChange={(e) =>
+                    setNewClient({ ...newClient, address: e.target.value })
+                  }
+                />
+              </div>
+            </div>
+            <div className="p-6 bg-slate-50 flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setIsAddOpen(false);
+                  setNewClient({
+                    firstName: "",
+                    lastName: "",
+                    email: "",
+                    phone: "",
+                    address: "",
+                  });
+                }}
+                className="px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-100 transition font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveNewClient}
+                disabled={!isFormValid}
+                className={`px-4 py-2 rounded-xl transition shadow-md font-semibold ${
+                  isFormValid
+                    ? "bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer"
+                    : "bg-slate-300 text-white cursor-pointer"
+                }`}
+              >
+                Save Client
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface DetailRowProps {
+  label: string;
+  value: string | number | null | undefined;
+  icon?: React.ReactNode;
+  truncate?: boolean;
+}
+
+function DetailRow({ label, value, icon }: DetailRowProps) {
+  return (
+    <div className="flex justify-start py-3 border-b border-slate-50 last:border-0 gap-6 whitespace-nowrap">
+      <div className="flex items-center gap-2 text-slate-800 font-bold shrink-0">
+        <span className="text-[#0060d6]">{icon}</span>{" "}
+        <span className="text-slate-700 font-medium shrink-0 w-32 text-left">
+          {label}
+        </span>
+      </div>
+
+      <div className="flex items-center gap-2 text-slate-800 font-bold shrink-0">
+        <span>{value ?? "N/A"}</span>
       </div>
     </div>
   );
-};
-
-
-
-const ActionButton: React.FC<{ onClick: () => void; icon: ReactNode; color: string }> = ({ onClick, icon, color }) => (
-  <button onClick={onClick} className={`p-2 rounded-lg transition-all duration-200 ${color}`}>{icon}</button>
-);
-
-const Modal: React.FC<{ type: ModalState['type']; client: Client; onClose: () => void; onDelete: (id: number) => void; onUpdate: (client: Client) => void }> = ({ type, client, onClose, onDelete, onUpdate }) => {
-  const [formData, setFormData] = useState<Client>({ ...client });
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
-      <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
-        <div className="p-6">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-xl font-bold capitalize">{type === 'view' ? 'Client Details' : type === 'edit' ? 'Edit Client' : 'Delete Client'}</h3>
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
-          </div>
-          {type === 'view' && (
-            <div className="space-y-4">
-              <DetailRow icon={<User size={18} />} label="First Name" value={client.firstName} />
-              <DetailRow icon={<User size={18} />} label="Last Name" value={client.lastName} />
-              <DetailRow icon={<Mail size={18} />} label="Email" value={client.email} />
-              <DetailRow icon={<Phone size={18} />} label="Phone" value={client.phone} />
-              <DetailRow icon={<MapPin size={18} />} label="Address" value={client.address} />
-              <button onClick={onClose} className="w-full py-3 mt-4 bg-gray-100 rounded-xl font-semibold hover:bg-gray-200 transition-colors">Close</button>
-            </div>
-          )}
-          {type === 'edit' && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <Input label="First Name" value={formData.firstName} onChange={v => setFormData({ ...formData, firstName: v })} />
-                <Input label="Last Name" value={formData.lastName} onChange={v => setFormData({ ...formData, lastName: v })} />
-              </div>
-              <Input label="Email" value={formData.email} onChange={v => setFormData({ ...formData, email: v })} />
-              <Input label="Phone" value={formData.phone} onChange={v => setFormData({ ...formData, phone: v })} />
-              <Input label="Address" value={formData.address} onChange={v => setFormData({ ...formData, address: v })} />
-              <div className="flex gap-3 mt-6">
-                <button onClick={onClose} className="flex-1 py-3 bg-gray-100 rounded-xl font-semibold hover:bg-gray-200 transition-colors">Cancel</button>
-                <button onClick={() => onUpdate(formData)} className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-colors">Save Changes</button>
-              </div>
-            </div>
-          )}
-          {type === 'delete' && (
-            <div className="text-center py-4">
-              <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4"><Trash2 size={32} /></div>
-              <p className="text-gray-600 mb-6">Are you sure you want to delete <strong className="text-gray-900">{client.firstName} {client.lastName}</strong>?</p>
-              <div className="flex gap-3">
-                <button onClick={onClose} className="flex-1 py-3 bg-gray-100 rounded-xl font-semibold hover:bg-gray-200 transition-colors">Cancel</button>
-                <button onClick={() => onDelete(client.id)} className="flex-1 py-3 bg-red-600 text-white rounded-xl font-semibold hover:bg-red-700 transition-colors">Delete Client</button>
-              </div>
-            </div>
-          )}
-        </div>
-      </motion.div>
-    </div>
-  );
-};
-
-const DetailRow: React.FC<{ icon: ReactNode; label: string; value: string }> = ({ icon, label, value }) => (
-  <div className="flex items-start gap-3 p-3 rounded-lg bg-gray-50">
-    <div className="text-gray-400 mt-1">{icon}</div>
-    <div><p className="text-xs text-gray-500 uppercase font-bold">{label}</p><p className="text-gray-700 font-medium">{value}</p></div>
-  </div>
-);
-
-const Input: React.FC<{ label: string; value: string; onChange: (val: string) => void }> = ({ label, value, onChange }) => (
-  <div>
-    <label className="block text-xs font-bold text-gray-500 uppercase mb-1 ml-1">{label}</label>
-    <input className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all" value={value} onChange={(e) => onChange(e.target.value)} />
-  </div>
-);
-
-export default ClientManagement;
+}
