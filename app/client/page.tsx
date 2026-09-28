@@ -601,7 +601,7 @@ export default function ClientPage() {
                   First Name
                 </label>
                 <div className="relative group">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 group-hover:text-indigo-600 transition-colors" size={18} />
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 group-hover:text-indigo-800 transition-colors" size={18} />
                   <input
                     className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-[0_0_0_3px_rgba(79,70,229,0.1)] focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                     value={newClient.firstName}
@@ -618,7 +618,7 @@ export default function ClientPage() {
                   Last Name
                 </label>
                 <div className="relative group">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 group-hover:text-indigo-600 transition-colors" size={18} />
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 group-hover:text-indigo-800 transition-colors" size={18} />
                   <input
                     className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-[0_0_0_3px_rgba(79,70,229,0.1)] focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                     value={newClient.lastName}
@@ -635,7 +635,7 @@ export default function ClientPage() {
                   Email
                 </label>
                 <div className="relative group">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 group-hover:text-indigo-600 transition-colors" size={18} />
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 group-hover:text-indigo-800 transition-colors" size={18} />
                   <input
                     className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-[0_0_0_3px_rgba(79,70,229,0.1)] focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                     value={newClient.email}
@@ -652,7 +652,7 @@ export default function ClientPage() {
                   Phone
                 </label>
                 <div className="relative group">
-                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 group-hover:text-indigo-600 transition-colors" size={18} />
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 group-hover:text-indigo-800 transition-colors" size={18} />
                   <input
                     className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-[0_0_0_3px_rgba(79,70,229,0.1)] focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                     value={newClient.phone}
@@ -669,7 +669,7 @@ export default function ClientPage() {
                   Address
                 </label>
                 <div className="relative group">
-                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 group-hover:text-indigo-600 transition-colors" size={18} />
+                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 group-hover:text-indigo-800 transition-colors" size={18} />
                   <input
                     className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-[0_0_0_3px_rgba(79,70,229,0.1)] focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                     value={newClient.address}
@@ -711,7 +711,6 @@ export default function ClientPage() {
           </div>
         </div>
       )}
-
 
     </div>
   );
