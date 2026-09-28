@@ -603,7 +603,7 @@ export default function ClientPage() {
                 <div className="relative group">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 group-hover:text-indigo-800 transition-colors" size={20} />
                   <input
-                    className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-[0_0_0_3px_rgba(79,70,229,0.1)] focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-md hover:shadow-indigo-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                     value={newClient.firstName}
                     placeholder="Jane"
                     onChange={(e) =>
@@ -620,7 +620,7 @@ export default function ClientPage() {
                 <div className="relative group">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 group-hover:text-indigo-800 transition-colors" size={20} />
                   <input
-                    className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-[0_0_0_3px_rgba(79,70,229,0.1)] focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-md hover:shadow-indigo-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                     value={newClient.lastName}
                     placeholder="Doe"
                     onChange={(e) =>
@@ -637,7 +637,7 @@ export default function ClientPage() {
                 <div className="relative group">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 group-hover:text-indigo-800 transition-colors" size={20} />
                   <input
-                    className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-[0_0_0_3px_rgba(79,70,229,0.1)] focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-md hover:shadow-indigo-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                     value={newClient.email}
                     placeholder="jane@example.com"
                     onChange={(e) =>
@@ -654,7 +654,7 @@ export default function ClientPage() {
                 <div className="relative group">
                   <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 group-hover:text-indigo-800 transition-colors" size={20} />
                   <input
-                    className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-[0_0_0_3px_rgba(79,70,229,0.1)] focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-md hover:shadow-indigo-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                     value={newClient.phone}
                     placeholder="+1 234 567 890"
                     onChange={(e) =>
@@ -671,7 +671,7 @@ export default function ClientPage() {
                 <div className="relative group">
                   <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 group-hover:text-indigo-800 transition-colors" size={20} />
                   <input
-                    className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-[0_0_0_3px_rgba(79,70,229,0.1)] focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-md hover:shadow-indigo-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                     value={newClient.address}
                     placeholder="123 Main St | New York | NY"
                     onChange={(e) =>
