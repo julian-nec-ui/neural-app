@@ -601,67 +601,82 @@ export default function ClientPage() {
                   <label className="text-sm font-bold text-slate-500 uppercase ml-1">
                     First Name
                   </label>
-                  <input
-                    className="w-full p-2.5 border border-slate-200 rounded-xl outline-none transition-all text-slate-900 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                    value={newClient.firstName}
-                    placeholder="Jane"
-                    onChange={(e) =>
-                      setNewClient({ ...newClient, firstName: e.target.value })
-                    }
-                  />
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                    <input
+                      className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all text-slate-900 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      value={newClient.firstName}
+                      placeholder="Jane"
+                      onChange={(e) =>
+                        setNewClient({ ...newClient, firstName: e.target.value })
+                      }
+                    />
+                  </div>
                 </div>
                 <div className="space-y-1">
                   <label className="text-sm font-bold text-slate-500 uppercase ml-1">
                     Last Name
                   </label>
-                  <input
-                    className="w-full p-2.5 border border-slate-200 rounded-xl outline-none transition-all text-slate-900 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                    value={newClient.lastName}
-                    placeholder="Doe"
-                    onChange={(e) =>
-                      setNewClient({ ...newClient, lastName: e.target.value })
-                    }
-                  />
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                    <input
+                      className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all text-slate-900 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      value={newClient.lastName}
+                      placeholder="Doe"
+                      onChange={(e) =>
+                        setNewClient({ ...newClient, lastName: e.target.value })
+                      }
+                    />
+                  </div>
                 </div>
               </div>
               <div className="space-y-1">
                 <label className="text-sm font-bold text-slate-500 uppercase ml-1">
                   Email
                 </label>
-                <input
-                  className="w-full p-2.5 border border-slate-200 rounded-xl outline-none transition-all text-slate-900 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                  value={newClient.email}
-                  placeholder="jane@example.com"
-                  onChange={(e) =>
-                    setNewClient({ ...newClient, email: e.target.value })
-                  }
-                />
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                  <input
+                    className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all text-slate-900 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    value={newClient.email}
+                    placeholder="jane@example.com"
+                    onChange={(e) =>
+                      setNewClient({ ...newClient, email: e.target.value })
+                    }
+                  />
+                </div>
               </div>
               <div className="space-y-1">
                 <label className="text-sm font-bold text-slate-500 uppercase ml-1">
                   Phone
                 </label>
-                <input
-                  className="w-full p-2.5 border border-slate-200 rounded-xl outline-none transition-all text-slate-900 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                  value={newClient.phone}
-                  placeholder="+1 234 567 890"
-                  onChange={(e) =>
-                    setNewClient({ ...newClient, phone: e.target.value })
-                  }
-                />
+                <div className="relative">
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                  <input
+                    className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all text-slate-900 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    value={newClient.phone}
+                    placeholder="+1 234 567 890"
+                    onChange={(e) =>
+                      setNewClient({ ...newClient, phone: e.target.value })
+                    }
+                  />
+                </div>
               </div>
               <div className="space-y-1">
                 <label className="text-sm font-bold text-slate-500 uppercase ml-1">
                   Address
                 </label>
-                <input
-                  className="w-full p-2.5 border border-slate-200 rounded-xl outline-none transition-all text-slate-900 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                  value={newClient.address}
-                  placeholder="123 Main St | New York | NY"
-                  onChange={(e) =>
-                    setNewClient({ ...newClient, address: e.target.value })
-                  }
-                />
+                <div className="relative">
+                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                  <input
+                    className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all text-slate-900 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    value={newClient.address}
+                    placeholder="123 Main St | New York | NY"
+                    onChange={(e) =>
+                      setNewClient({ ...newClient, address: e.target.value })
+                    }
+                  />
+                </div>
               </div>
             </div>
             <div className="p-6 bg-slate-50 flex justify-end gap-3">
@@ -695,6 +710,7 @@ export default function ClientPage() {
           </div>
         </div>
       )}
+
     </div>
   );
 }
