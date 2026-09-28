@@ -187,7 +187,7 @@ export default function ClientPage() {
     })();
   }, [fetchClients]);
 
-  
+
 
   const handleSort = (key: keyof Client) => {
     let direction: "asc" | "desc" = "asc";
@@ -197,7 +197,7 @@ export default function ClientPage() {
     setSortConfig({ key, direction });
   };
 
-    const currentClients = useMemo(() => {
+  const currentClients = useMemo(() => {
     // 1. Slice the data first to get only the current page's items
     const indexOfLastItem = currentPage * itemsPerPage;
     const indexOfFirstItem = indexOfLastItem - itemsPerPage;
@@ -209,8 +209,8 @@ export default function ClientPage() {
     // 3. Sort ONLY the items on the current page
     return [...pageItems].sort((a, b) => {
       // FIX: Cast the key to keyof Client here
-      const key = sortConfig.key as keyof Client; 
-      
+      const key = sortConfig.key as keyof Client;
+
       if (a[key] < b[key]) {
         return sortConfig.direction === "asc" ? -1 : 1;
       }
@@ -296,7 +296,7 @@ export default function ClientPage() {
             <table className="w-full text-left border-collapse table-auto">
               <thead className="bg-slate-50 border-b border-slate-200">
                 <tr className="whitespace-nowrap">
-                  <SortableHeader label="First Name" keyField="firstName" onSort={handleSort} sortConfig={sortConfig} cla/>
+                  <SortableHeader label="First Name" keyField="firstName" onSort={handleSort} sortConfig={sortConfig} cla />
                   <SortableHeader label="Last Name" keyField="lastName" onSort={handleSort} sortConfig={sortConfig} />
                   <SortableHeader label="Email" keyField="email" onSort={handleSort} sortConfig={sortConfig} />
                   <SortableHeader label="Phone" keyField="phone" onSort={handleSort} sortConfig={sortConfig} />
@@ -596,13 +596,12 @@ export default function ClientPage() {
               </button>
             </div>
             <div className="p-6 space-y-4">
-              {/* Each field now in its own row */}
               <div className="space-y-1">
                 <label className="text-sm font-bold text-slate-500 uppercase ml-1">
                   First Name
                 </label>
                 <div className="relative group">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-hover:text-indigo-500 transition-colors" size={18} />
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 group-hover:text-indigo-400 transition-colors" size={18} />
                   <input
                     className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-[0_0_0_3px_rgba(79,70,229,0.1)] focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                     value={newClient.firstName}
@@ -619,7 +618,7 @@ export default function ClientPage() {
                   Last Name
                 </label>
                 <div className="relative group">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-hover:text-indigo-500 transition-colors" size={18} />
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 group-hover:text-indigo-400 transition-colors" size={18} />
                   <input
                     className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-[0_0_0_3px_rgba(79,70,229,0.1)] focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                     value={newClient.lastName}
@@ -636,7 +635,7 @@ export default function ClientPage() {
                   Email
                 </label>
                 <div className="relative group">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-hover:text-indigo-500 transition-colors" size={18} />
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 group-hover:text-indigo-400 transition-colors" size={18} />
                   <input
                     className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-[0_0_0_3px_rgba(79,70,229,0.1)] focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                     value={newClient.email}
@@ -653,7 +652,7 @@ export default function ClientPage() {
                   Phone
                 </label>
                 <div className="relative group">
-                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-hover:text-indigo-500 transition-colors" size={18} />
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 group-hover:text-indigo-400 transition-colors" size={18} />
                   <input
                     className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-[0_0_0_3px_rgba(79,70,229,0.1)] focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                     value={newClient.phone}
@@ -670,7 +669,7 @@ export default function ClientPage() {
                   Address
                 </label>
                 <div className="relative group">
-                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-hover:text-indigo-500 transition-colors" size={18} />
+                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 group-hover:text-indigo-400 transition-colors" size={18} />
                   <input
                     className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-[0_0_0_3px_rgba(79,70,229,0.1)] focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                     value={newClient.address}
@@ -701,11 +700,10 @@ export default function ClientPage() {
               <button
                 onClick={handleSaveNewClient}
                 disabled={!isFormValid}
-                className={`px-4 py-2 rounded-xl transition shadow-md font-semibold ${
-                  isFormValid
+                className={`px-4 py-2 rounded-xl transition shadow-md font-semibold ${isFormValid
                     ? "bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer"
                     : "bg-slate-300 text-white cursor-pointer"
-                }`}
+                  }`}
               >
                 Save Client
               </button>
@@ -713,7 +711,7 @@ export default function ClientPage() {
           </div>
         </div>
       )}
-
+      
     </div>
   );
 }
