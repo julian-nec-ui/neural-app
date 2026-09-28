@@ -596,48 +596,49 @@ export default function ClientPage() {
               </button>
             </div>
             <div className="p-6 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-sm font-bold text-slate-500 uppercase ml-1">
-                    First Name
-                  </label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                    <input
-                      className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all text-slate-900 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                      value={newClient.firstName}
-                      placeholder="Jane"
-                      onChange={(e) =>
-                        setNewClient({ ...newClient, firstName: e.target.value })
-                      }
-                    />
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-sm font-bold text-slate-500 uppercase ml-1">
-                    Last Name
-                  </label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                    <input
-                      className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all text-slate-900 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                      value={newClient.lastName}
-                      placeholder="Doe"
-                      onChange={(e) =>
-                        setNewClient({ ...newClient, lastName: e.target.value })
-                      }
-                    />
-                  </div>
+              {/* Each field now in its own row */}
+              <div className="space-y-1">
+                <label className="text-sm font-bold text-slate-500 uppercase ml-1">
+                  First Name
+                </label>
+                <div className="relative group">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-hover:text-indigo-500 transition-colors" size={18} />
+                  <input
+                    className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-[0_0_0_3px_rgba(79,70,229,0.1)] focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    value={newClient.firstName}
+                    placeholder="Jane"
+                    onChange={(e) =>
+                      setNewClient({ ...newClient, firstName: e.target.value })
+                    }
+                  />
                 </div>
               </div>
+
+              <div className="space-y-1">
+                <label className="text-sm font-bold text-slate-500 uppercase ml-1">
+                  Last Name
+                </label>
+                <div className="relative group">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-hover:text-indigo-500 transition-colors" size={18} />
+                  <input
+                    className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-[0_0_0_3px_rgba(79,70,229,0.1)] focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    value={newClient.lastName}
+                    placeholder="Doe"
+                    onChange={(e) =>
+                      setNewClient({ ...newClient, lastName: e.target.value })
+                    }
+                  />
+                </div>
+              </div>
+
               <div className="space-y-1">
                 <label className="text-sm font-bold text-slate-500 uppercase ml-1">
                   Email
                 </label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                <div className="relative group">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-hover:text-indigo-500 transition-colors" size={18} />
                   <input
-                    className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all text-slate-900 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-[0_0_0_3px_rgba(79,70,229,0.1)] focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                     value={newClient.email}
                     placeholder="jane@example.com"
                     onChange={(e) =>
@@ -646,14 +647,15 @@ export default function ClientPage() {
                   />
                 </div>
               </div>
+
               <div className="space-y-1">
                 <label className="text-sm font-bold text-slate-500 uppercase ml-1">
                   Phone
                 </label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                <div className="relative group">
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-hover:text-indigo-500 transition-colors" size={18} />
                   <input
-                    className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all text-slate-900 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-[0_0_0_3px_rgba(79,70,229,0.1)] focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                     value={newClient.phone}
                     placeholder="+1 234 567 890"
                     onChange={(e) =>
@@ -662,14 +664,15 @@ export default function ClientPage() {
                   />
                 </div>
               </div>
+
               <div className="space-y-1">
                 <label className="text-sm font-bold text-slate-500 uppercase ml-1">
                   Address
                 </label>
-                <div className="relative">
-                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                <div className="relative group">
+                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-hover:text-indigo-500 transition-colors" size={18} />
                   <input
-                    className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all text-slate-900 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-[0_0_0_3px_rgba(79,70,229,0.1)] focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                     value={newClient.address}
                     placeholder="123 Main St | New York | NY"
                     onChange={(e) =>
