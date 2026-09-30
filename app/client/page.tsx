@@ -328,7 +328,7 @@ export default function ClientPage() {
               </div >
             </div >
             <div className="p-6 bg-slate-50 text-right">
-              <button onClick={() => setIsViewOpen(false)} className="px-4 py-2 bg-slate-200 text-slate-600 rounded-lg hover:bg-slate-300 transition font-medium">Close</button >
+              <button onClick={() => setIsViewOpen(false)} className="px-4 py-2 bg-slate-200 text-slate-600 rounded-lg hover:bg-slate-300 transition font-medium">Close</button>
             </div >
           </div >
         </div >
@@ -377,7 +377,7 @@ export default function ClientPage() {
                           streetName: user.location.street.name, 
                           city: user.location.city, 
                           state: user.location.state, 
-                          zip: user.location.postcode, 
+                          zip: String(user.location.postcode), 
                           country: user.location.country 
                         }
                       });
