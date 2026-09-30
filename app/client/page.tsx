@@ -824,22 +824,21 @@ export default function ClientPage() {
                     country: "",
                   });
                 }}
-                className="h-10 px-4 bg-white border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-100 transition font-medium"
+                className="px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-100 transition font-medium"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSaveNewClient}
                 disabled={!isFormValid}
-                className={`h-10 px-6 rounded-xl transition shadow-md font-semibold ${isFormValid
+                className={`px-6 py-2 rounded-xl transition shadow-md font-semibold ${isFormValid
                   ? "bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer"
-                  : "bg-slate-300 text-white cursor-not-allowed"
+                  : "bg-slate-300 text-white"
                   }`}
               >
                 Save Client
               </button>
             </div>
-
           </div>
         </div>
       )
