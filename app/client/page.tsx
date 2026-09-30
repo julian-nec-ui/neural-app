@@ -507,7 +507,7 @@ export default function ClientPage() {
               <button
                 onClick={handleSaveNewClient}
                 disabled={!isFormValid}
-                className={`h-10 px-6 rounded-xl transition shadow-md font-semibold flex items-center justify-center ${isFormValid ? "bg-indigo-600 text-white hover:bg-indigo-700" : "bg-slate-400 text-white cursor-not-allowed"}`}
+                className={`h-10 px-6 rounded-xl transition shadow-md font-semibold flex items-center justify-center ${isFormValid ? "bg-indigo-600 text-white hover:bg-indigo-700" : "bg-slate-400 text-white"}`}
               >
                 Save Client
               </button>
