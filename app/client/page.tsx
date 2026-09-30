@@ -375,9 +375,9 @@ export default function ClientPage() {
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="fixed inset-0 bg-black/15 z-0" onClick={() => { setIsAddOpen(false); setNewClient({ firstName: "", lastName: "", email: "", phone: "", streetNumber: "", streetName: "", city: "", state: "", zip: "", country: "" }); }} />
           <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden animate-in fade-in zoom-in duration-200">
-            <div className="relative flex justify-between items-center p-6 border-b border-slate-100">
+            <div className="relative flex justify-right gap-30 items-center p-6 border-b border-slate-100">
               <h2 className="text-xl font-bold text-slate-800">Add New Client</h2>
-              <div className="flex items-center justify-right gap-30">
+              <div className="flex items-center mr-8.75">
                 <button
                   className="bg-[#4f46e5] text-white rounded-lg px-3 h-8.25 flex items-center justify-center font-medium text-xs tracking-wide shadow-md hover:bg-[#3739d4] active:scale-95 transition-all cursor-pointer"
                   onClick={async () => {
