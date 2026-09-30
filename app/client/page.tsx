@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { clientService } from "../service/client-service";
 import { SortableHeader } from "./SortableHeader";
 import { PaginationBar } from "./PaginationBar";
@@ -74,7 +74,6 @@ export default function ClientPage() {
 
   const handleSaveNewClient = async () => {
     try {
-      // CHANGE: Construct payload with address as a child node object
       const payload = {
         firstName: newClient.firstName,
         lastName: newClient.lastName,
@@ -154,6 +153,19 @@ export default function ClientPage() {
     };
   }, []);
 
+  useEffect(() => {
+    const fetchClients = async () => {
+      try {
+        const response = await clientService.getAllClients();
+        setClients(response.data);
+      } catch (err) {
+        console.error("Error fetching clients", err);
+      }
+    };
+
+    fetchClients();
+  }, []);
+
   const isFormValid = useMemo(() => {
     return Object.values(newClient).every((value) => String(value).trim() !== "");
   }, [newClient]);
@@ -162,19 +174,6 @@ export default function ClientPage() {
     key: keyof Client | "";
     direction: "asc" | "desc" | null;
   }>({ key: "", direction: null });
-
-  const fetchClients = useCallback(async () => {
-    try {
-      const response = await clientService.getAllClients();
-      setClients(response.data);
-    } catch (err) {
-      console.error("Error fetching clients", err);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchClients();
-  }, [fetchClients]);
 
   const handleSort = (key: keyof Client) => {
     let direction: "asc" | "desc" = "asc";
