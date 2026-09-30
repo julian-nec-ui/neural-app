@@ -45,7 +45,7 @@ interface Client {
   lastName: string;
   email: string;
   phone: string;
-  address: Address; 
+  address: Address;
 }
 
 export default function ClientPage() {
@@ -80,14 +80,16 @@ export default function ClientPage() {
         lastName: newClient.lastName,
         email: newClient.email,
         phone: newClient.phone,
-        address: {
+        address: [
+          {
           streetNumber: newClient.streetNumber,
           streetName: newClient.streetName,
           city: newClient.city,
           state: newClient.state,
           zip: newClient.zip,
           country: newClient.country,
-        },
+          }
+        ]
       };
 
       const response = await clientService.createClient(payload);
@@ -218,7 +220,7 @@ export default function ClientPage() {
   // CHANGE: Updated to handle the address object instead of a delimited string
   const renderAddress = (address: Address) => {
     if (!address) return <span className="text-slate-400 italic">N/A</span>;
-    
+
     return (
       <div className="flex flex-col gap-0.5">
         <span className="text-xs text-slate-600 font-medium">
@@ -319,15 +321,15 @@ export default function ClientPage() {
               <DetailRow label="Email" value={selectedClient.email} icon={<Mail size={22} />} />
               <DetailRow label="Phone" value={selectedClient.phone} icon={<Phone size={22} />} />
               <div className="flex justify-start py-3 border-b border-slate-50 last:border-0 gap-6">
-                 <div className="flex items-center gap-2 text-slate-800 font-bold shrink-0">
-                    <span className="text-[#0060d6]"><MapPin size={22} /></span>
-                    <span className="text-slate-700 font-medium shrink-0 w-32 text-left">Address</span>
-                 </div>
-                 <div className="flex flex-col text-slate-800 font-bold">
-                    <span>{selectedClient.address.streetNumber} {selectedClient.address.streetName}</span>
-                    <span className="text-sm font-medium text-slate-500">{selectedClient.address.city}, {selectedClient.address.state} {selectedClient.address.zip}</span>
-                    <span className="text-sm font-medium text-slate-500">{selectedClient.address.country}</span>
-                 </div>
+                <div className="flex items-center gap-2 text-slate-800 font-bold shrink-0">
+                  <span className="text-[#0060d6]"><MapPin size={22} /></span>
+                  <span className="text-slate-700 font-medium shrink-0 w-32 text-left">Address</span>
+                </div>
+                <div className="flex flex-col text-slate-800 font-bold">
+                  <span>{selectedClient.address.streetNumber} {selectedClient.address.streetName}</span>
+                  <span className="text-sm font-medium text-slate-500">{selectedClient.address.city}, {selectedClient.address.state} {selectedClient.address.zip}</span>
+                  <span className="text-sm font-medium text-slate-500">{selectedClient.address.country}</span>
+                </div>
               </div>
             </div>
             <div className="p-6 bg-slate-50 text-right">
@@ -338,20 +340,36 @@ export default function ClientPage() {
       )}
 
       {/* DELETE DIALOG */}
+      {/* DELETE DIALOG */}
       {isDeleteOpen && clientToDelete && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="fixed inset-0 bg-black/15 z-0" onClick={() => setIsDeleteOpen(false)} />
           <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 animate-in slide-in-from-bottom-4 duration-200 text-center">
-            <div className="bg-rose-100 text-rose-600 w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-6"><Trash2 size={28} /></div>
+            <div className="bg-rose-100 text-rose-600 w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Trash2 size={28} />
+            </div>
             <h2 className="text-2xl font-bold text-slate-800 mb-2">Delete Client?</h2>
-            <p className="text-slate-600 font-medium mb-6">Are you sure you want to delete <span className="text-indigo-600">{clientToDelete.firstName} {clientToDelete.lastName}</span>?</p>
+            <p className="text-slate-600 font-medium mb-6">
+              Are you sure you want to delete <span className="text-indigo-600">{clientToDelete.firstName} {clientToDelete.lastName}</span>?
+            </p>
+
+            {/* ADDED BACK: Warning line using AlertTriangle */}
+            <span className="flex items-center justify-center gap-2 text-rose-500 font-semibold text-sm mb-8 uppercase tracking-wide">
+              <AlertTriangle size={18} /> This action is permanent
+            </span>
+
             <div className="flex gap-3">
-              <button onClick={() => setIsDeleteOpen(false)} className="flex-1 px-4 py-3 bg-slate-100 text-slate-600 rounded-xl hover:bg-slate-200 transition font-semibold">Cancel</button>
-              <button onClick={handleDeleteConfirm} className="flex-1 px-4 py-3 bg-rose-600 text-white rounded-xl hover:bg-rose-700 transition shadow-lg shadow-rose-200 font-semibold">Delete Now</button>
+              <button onClick={() => setIsDeleteOpen(false)} className="flex-1 px-4 py-3 bg-slate-100 text-slate-600 rounded-xl hover:bg-slate-200 transition font-semibold">
+                Cancel
+              </button>
+              <button onClick={handleDeleteConfirm} className="flex-1 px-4 py-3 bg-rose-600 text-white rounded-xl hover:bg-rose-700 transition shadow-lg shadow-rose-200 font-semibold">
+                Delete Now
+              </button>
             </div>
           </div>
         </div>
       )}
+
 
       {/* ADD MODAL */}
       {isAddOpen && (

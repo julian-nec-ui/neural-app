@@ -2,6 +2,8 @@ import axios, { AxiosResponse } from 'axios';
 
 // 1 Define Address interface to match your backend and frontend
 export interface Address {
+  id: string;
+  clientId: string;
   streetNumber: string;
   streetName: string;
   city: string;
@@ -13,11 +15,11 @@ export interface Address {
 // 2. Define the Client interface to match your backend and frontend
 export interface Client {
     id: number;
-    firstName: string;
     lastName: string;
+    firstName: string;
     email: string;
     phone: string;
-    address: Address;
+    address: [Address];
 }
 
 const CLIENT_API = axios.create({
