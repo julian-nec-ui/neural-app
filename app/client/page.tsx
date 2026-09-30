@@ -702,7 +702,7 @@ export default function ClientPage() {
                 <div className="hidden md:flex justify-center w-4 self-stretch group">
                   <div className="w-px h-full transition-all duration-300 
                   bg-slate-200 
-                  shadow-[0_0_5px_rgba(0,0,0,0.1)] 
+                  shadow-[0_0_8px_rgba(0,0,0,0.1)] 
                   group-hover:bg-indigo-500 
                   group-hover:shadow-[0_0_12px_rgba(99,102,241,0.8)] 
                   group-hover:scale-y-105">
