@@ -1,5 +1,15 @@
-
 import { ArrowUpDown } from 'lucide-react';
+
+interface Address {
+  id?: number;
+  streetNumber: string;
+  streetName: string;
+  city: string;
+  state: string;
+  zip: string;
+  country: string;
+  clientId?: number;
+}
 
 interface Client {
   id: number;
@@ -7,7 +17,7 @@ interface Client {
   lastName: string;
   email: string;
   phone: string;
-  address: string;
+  addresses: Address[]; // Changed from 'address: string' to 'addresses: Address[]'
 }
 
 interface SortableHeaderProps {

@@ -19,7 +19,7 @@ export interface Client {
     lastName: string;
     email: string;
     phone: string;
-    address: Address;
+    addresses: [Address];
 }
 
 const CLIENT_API = axios.create({
