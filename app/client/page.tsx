@@ -76,23 +76,13 @@ export default function ClientPage() {
 
   const handleSaveNewClient = async () => {
     try {
+      // FIX: Ensure payload is constructed exactly as the backend expects
       const payload = {
+        ...newClient,
         id: 0,
-        firstName: newClient.firstName,
-        lastName: newClient.lastName,
-        email: newClient.email,
-        phone: newClient.phone,
-        address: {
-          streetNumber: newClient.address.streetNumber,
-          streetName: newClient.address.streetName,
-          city: newClient.address.city,
-          state: newClient.address.state,
-          zip: newClient.address.zip,
-          country: newClient.address.country
-        }
       };
 
-      console.log("====  ",payload, "  ====");
+      console.log("==== Payload being sent: ", payload, " =====");
 
       const response = await clientService.createClient(payload);
       const createdClient = { ...payload, id: response.data.id };
@@ -423,7 +413,7 @@ export default function ClientPage() {
                     <label className="text-sm font-bold text-slate-500 uppercase ml-1">First Name</label>
                     <div className="relative group">
                       <User className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 group-hover:text-indigo-800 transition-all" size={20} />
-                      <input className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-md hover:shadow-indigo-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent" value={newClient.firstName} placeholder="Jane" onChange={(e) => ({ ...newClient, firstName: e.target.value })} />
+                      <input className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-md hover:shadow-indigo-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent" value={newClient.firstName} placeholder="Jane" onChange={(e) => setNewClient({ ...newClient, firstName: e.target.value })} />
                     </div>
                   </div>
                   <div className="space-y-1">
