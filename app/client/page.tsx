@@ -472,7 +472,7 @@ export default function ClientPage() {
                       country: "",
                     });
                   }}
-                   className="absolute top-1 right-1 z-10 text-slate-400 hover:text-slate-600 transition-colors p-2 hover:bg-[#e4eff5] rounded-xl"
+                   className="absolute top-4 right-4 z-10 text-slate-400 hover:text-slate-600 transition-colors p-2 hover:bg-[#e4eff5] rounded-xl"
                 >
                   <X size={22} />
                 </button>
