@@ -602,7 +602,7 @@ export default function ClientPage() {
               {/* Put back on the right, but nudged 7px to the left */}
               <div className="flex items-center mr-8.75">
                 <button
-                  className="bg-[#4f46e5] text-white rounded-lg px-3 py-1.5 font-medium text-xs tracking-wide shadow-md hover:bg-[#3739d4] active:scale-95 transition-all cursor-pointer"
+                  className="bg-[#4f46e5] text-white rounded-lg px-3 h-[33px] flex items-center justify-center font-medium text-xs tracking-wide shadow-md hover:bg-[#3739d4] active:scale-95 transition-all cursor-pointer"
                   onClick={async () => {
                     const result = await axios.get("https://randomuser.me/api/");
                     const user = result.data.results[0];
@@ -622,6 +622,7 @@ export default function ClientPage() {
                 >
                   Set Random Fields
                 </button>
+
               </div>
 
               <button
@@ -846,8 +847,8 @@ export default function ClientPage() {
                 onClick={handleSaveNewClient}
                 disabled={!isFormValid}
                 className={`h-10 px-6 rounded-xl transition shadow-md font-semibold flex items-center justify-center ${isFormValid
-                    ? "bg-indigo-600 text-white hover:bg-indigo-700"
-                    : "bg-slate-400 text-white"
+                  ? "bg-indigo-600 text-white hover:bg-indigo-700"
+                  : "bg-slate-400 text-white"
                   }`}
               >
                 Save Client
