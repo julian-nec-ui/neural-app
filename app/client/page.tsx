@@ -602,7 +602,7 @@ export default function ClientPage() {
               {/* Put back on the right, but nudged 7px to the left */}
               <div className="flex items-center mr-8.75">
                 <button
-                  className="bg-[#4f46e5] text-white rounded-lg px-3 h-[33px] flex items-center justify-center font-medium text-xs tracking-wide shadow-md hover:bg-[#3739d4] active:scale-95 transition-all cursor-pointer"
+                  className="bg-[#4f46e5] text-white rounded-lg px-3 h-10.25 flex items-center justify-center font-medium text-xs tracking-wide shadow-md hover:bg-[#3739d4] active:scale-95 transition-all cursor-pointer"
                   onClick={async () => {
                     const result = await axios.get("https://randomuser.me/api/");
                     const user = result.data.results[0];
