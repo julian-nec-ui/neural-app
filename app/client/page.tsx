@@ -263,11 +263,11 @@ export default function ClientPage() {
             <table className="w-full text-left border-collapse table-auto">
               <thead className="bg-slate-50 border-b border-slate-200">
                 <tr className="whitespace-nowrap">
-                  <SortableHeader label="First Name" keyField="firstName" onSort={handleSort as any} sortConfig={sortConfig} />
-                  <SortableHeader label="Last Name" keyField="lastName" onSort={handleSort as any} sortConfig={sortConfig} />
-                  <SortableHeader label="Email" keyField="email" onSort={handleSort as any} sortConfig={sortConfig} />
-                  <SortableHeader label="Phone" keyField="phone" onSort={handleSort as any} sortConfig={sortConfig} />
-                  <SortableHeader label="Address" keyField="address" onSort={handleSort as any} sortConfig={sortConfig} />
+                  <SortableHeader label="First Name" keyField="firstName" onSort={handleSort} sortConfig={sortConfig} />
+                  <SortableHeader label="Last Name" keyField="lastName" onSort={handleSort} sortConfig={sortConfig} />
+                  <SortableHeader label="Email" keyField="email" onSort={handleSort} sortConfig={sortConfig} />
+                  <SortableHeader label="Phone" keyField="phone" onSort={handleSort} sortConfig={sortConfig} />
+                  <SortableHeader label="Address" keyField="address" onSort={handleSort} sortConfig={sortConfig} />
                   <th className="px-6 py-4 text-left sticky right-0 bg-slate-50 shadow-[-10px_0_10px_-5px_rgba(0,0,0,0.05)] z-10 text-sm font-bold text-slate-500 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
