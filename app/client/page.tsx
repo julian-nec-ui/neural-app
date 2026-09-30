@@ -455,6 +455,28 @@ export default function ClientPage() {
             onClick={() => setIsViewOpen(false)}
           />
           <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden animate-in fade-in zoom-in duration-200">
+            
+            <button
+                  onClick={() => {
+                    setIsAddOpen(false);
+                    setNewClient({
+                      firstName: "",
+                      lastName: "",
+                      email: "",
+                      phone: "",
+                      streetNumber: "",
+                      streetName: "",
+                      city: "",
+                      state: "",
+                      zip: "",
+                      country: "",
+                    });
+                  }}
+                   className="absolute top-4 right-4 z-10 text-slate-400 hover:text-slate-600 transition-colors p-2 hover:bg-[#e4eff5] rounded-xl"
+                >
+                  <X size={22} />
+                </button>
+            
             <div className="flex justify-between items-center p-6 border-b border-slate-100">
               <h2 className="text-xl font-bold text-slate-800">
                 Client Details
@@ -610,27 +632,7 @@ export default function ClientPage() {
                 >
                   Set Random Fields
                 </button>
-
-                <button
-                  onClick={() => {
-                    setIsAddOpen(false);
-                    setNewClient({
-                      firstName: "",
-                      lastName: "",
-                      email: "",
-                      phone: "",
-                      streetNumber: "",
-                      streetName: "",
-                      city: "",
-                      state: "",
-                      zip: "",
-                      country: "",
-                    });
-                  }}
-                  className="text-slate-400 hover:text-slate-600 transition-colors p-2 hover:bg-[#e4eff5] rounded-xl"
-                >
-                  <X size={22} />
-                </button>
+                
               </div>
             </div>
 
@@ -835,7 +837,7 @@ export default function ClientPage() {
                 disabled={!isFormValid}
                 className={`px-6 py-2 rounded-xl transition shadow-md font-semibold ${isFormValid
                   ? "bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer"
-                  : "bg-slate-300 text-white cursor-not-allowed"
+                  : "bg-slate-300 text-white"
                   }`}
               >
                 Save Client
