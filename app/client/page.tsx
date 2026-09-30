@@ -717,8 +717,8 @@ export default function ClientPage() {
 
                 {/* COLUMN 2: Address Details */}
                 <div className="flex-1 space-y-4">
-                  <div className="flex items-center gap-2 text-sm font-bold text-slate-500 uppercase mb-4">
-                    <MapPin size={20} /> Address Details
+                  <div className="flex items-center gap-2 text-sm font-bold text-slate-500 uppercase">
+                    <MapPin size={24} /> Address Details
                   </div>
 
                   {/* Street Number & Name Row */}
