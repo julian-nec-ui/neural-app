@@ -44,7 +44,7 @@ export const clientService = {
      * an optional id. This is necessary because we are sending 'id: 0' 
      * from the frontend to prevent the Java NullPointerException.
      */
-    createClient: (clientData: Partial<ClientRequest> & { firstName: string; lastName: string; email: string; phone: string; address: Address }): Promise<AxiosResponse<Client>> => 
+    createClient: (clientData: Partial<ClientRequest> & { firstName: string; lastName: string; email: string; phone: string; address: Address }): Promise<AxiosResponse<ClientRequest>> => 
         CLIENT_API.post('/clients', clientData),
 
     updateClient: (id: number, clientData: Partial<Client>): Promise<AxiosResponse<Client>> => 
