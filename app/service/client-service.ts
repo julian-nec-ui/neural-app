@@ -3,6 +3,7 @@ import axios, { AxiosResponse } from 'axios';
 // The structure of the address
 export interface Address {
     id?: number; 
+    clientId?: number;
     streetNumber: string;
     streetName: string;
     city: string;
