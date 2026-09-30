@@ -451,12 +451,12 @@ export default function ClientPage() {
                       email: user.email,
                       phone: user.phone,
                       address: {
-                        streetNumber: String(user.location.street.number),
-                        streetName: user.location.street.name,
-                        city: user.location.city,
-                        state: user.location.state,
-                        zip: user.location.postcode,
-                        country: user.location.country,
+                        streetNumber: String(user.address.streetNumber),
+                        streetName: user.address.streetName,
+                        city: user.address.city,
+                        state: user.address.state,
+                        zip: user.address.zip,
+                        country: user.address.country
                       }
                     });
                   }}
