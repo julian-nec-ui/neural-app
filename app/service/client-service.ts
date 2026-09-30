@@ -18,7 +18,7 @@ export interface Client {
     lastName: string;
     email: string;
     phone: string;
-    addresses: [Address];
+    addresses: Address[];
 }
 
 
