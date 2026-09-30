@@ -580,7 +580,7 @@ export default function ClientPage() {
             className="relative bg-white rounded-2xl shadow-2xl w-full max-w-4xl 
               overflow-hidden animate-in fade-in zoom-in duration-200"
           >
-            <div className="relative flex justify-between items-center p-6 border-b border-slate-100">
+            <div className="relative flex justify-right items-center p-6 border-b border-slate-100">
               <h2 className="text-xl font-bold text-slate-800">
                 Add New Client
               </h2>
@@ -626,7 +626,7 @@ export default function ClientPage() {
                     country: "",
                   });
                 }}
-                className="absolute top-2 right-2 z-20 text-slate-400 transition-colors p-1.5 hover:bg-[#fa5e78] hover:text-[#ffffff] rounded-lg"
+                className="absolute top-2 right-2 z-20 text-slate-400 transition-colors p-1.25 hover:bg-[#fa5e78] hover:text-[#ffffff] rounded-lg"
               >
                 <X size={23} />
               </button>
