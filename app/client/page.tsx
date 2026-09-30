@@ -147,9 +147,8 @@ export default function ClientPage() {
 
   const [sortConfig, setSortConfig] = useState<{ key: keyof Client | ""; direction: "asc" | "desc" | null }>({ key: "", direction: null });
 
-  // Fix the handleSort function to be more specific
   const handleSort = (key: keyof Client) => {
-    // Special handling for addresses - we'll sort by city if addresses is being sorted
+    // Special handling for addresses field
     if (key === 'addresses') {
       setSortConfig(prev => ({
         key: 'addresses',
@@ -182,15 +181,9 @@ export default function ClientPage() {
         return 0;
       }
       
-      // For all other fields
       const getVal = (obj: Client, k: keyof Client) => {
         const v = obj[k];
-        if (typeof v === 'string') {
-          return v.toLowerCase();
-        } else if (v === null || v === undefined) {
-          return '';
-        }
-        return String(v).toLowerCase();
+        return typeof v === 'string' ? v.toLowerCase() : String(v);
       };
       
       const valA = getVal(a, key);
@@ -357,14 +350,26 @@ export default function ClientPage() {
                   className="bg-indigo-600 text-white rounded-lg px-3 py-1 text-xs hover:bg-indigo-700 transition"
                   onClick={async () => {
                     try {
+                      // Add timeout to prevent rapid clicks
                       const res = await axios.get("https://randomuser.me/api/");
                       const user = res.data.results[0];
                       setNewClient({
-                        firstName: user.name.first, lastName: user.name.last, email: user.email, phone: user.phone,
-                        address: { streetNumber: String(user.location.street.number), streetName: user.location.street.name, city: user.location.city, state: user.location.state, zip: user.location.postcode, country: user.location.country }
+                        firstName: user.name.first, 
+                        lastName: user.name.last, 
+                        email: user.email, 
+                        phone: user.phone,
+                        address: { 
+                          streetNumber: String(user.location.street.number), 
+                          streetName: user.location.street.name, 
+                          city: user.location.city, 
+                          state: user.location.state, 
+                          zip: user.location.postcode, 
+                          country: user.location.country 
+                        }
                       });
                     } catch (error) {
                       console.error("Error fetching random user:", error);
+                      // Optionally show an error message to user
                     }
                   }}
                 >Set Random Fields</button>
