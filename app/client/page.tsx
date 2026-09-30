@@ -699,13 +699,16 @@ export default function ClientPage() {
                 </div>
 
                 {/* VERTICAL DIVIDER */}
-                <div className="hidden md:flex justify-center w-4 self-stretch group cursor-pointer">
-                  <div className="w-px bg-slate-200 h-full transition-all duration-300 
+                <div className="hidden md:flex justify-center w-4 self-stretch group">
+                  <div className="w-px h-full transition-all duration-300 
+                  bg-slate-200 
+                  shadow-[0_0_5px_rgba(0,0,0,0.1)] 
                   group-hover:bg-indigo-500 
                   group-hover:shadow-[0_0_12px_rgba(99,102,241,0.8)] 
                   group-hover:scale-y-105">
                   </div>
                 </div>
+
 
                 {/* COLUMN 2: Address Details */}
                 <div className="flex-1 space-y-4">
@@ -715,7 +718,7 @@ export default function ClientPage() {
 
                   <div className="flex gap-3">
                     <div className="space-y-1 w-1/3">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">No.</label>
+                      <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Street No.</label>
                       <input
                         className="w-full p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-md hover:shadow-indigo-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                         value={newClient.streetNumber}
