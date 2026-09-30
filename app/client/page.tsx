@@ -28,7 +28,7 @@ import { Client as StompClient } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 import { AnimatePresence, motion } from "framer-motion";
 
-// --- TYPES ---
+// 1. Define Address as its own interface
 interface Address {
   id?: number;
   streetNumber: string;
@@ -40,15 +40,17 @@ interface Address {
   clientId?: number;
 }
 
+// 2. Update Client interface for the UI state
 interface Client {
   id?: number;
   firstName: string;
   lastName: string;
   email: string;
   phone: string;
-  addresses: Address[];
+  addresses: Address[]; // FIXED: Changed [Address] (tuple) to Address[] (array)
 }
 
+// 3. Define ClientRequest to match the Java Backend (ClientRequest.java)
 interface ClientRequest {
   firstName: string;
   lastName: string;
@@ -65,6 +67,7 @@ export default function ClientPage() {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+
   const [isAddOpen, setIsAddOpen] = useState(false);
 
   const [newClient, setNewClient] = useState({
@@ -89,29 +92,63 @@ export default function ClientPage() {
         lastName: newClient.lastName,
         email: newClient.email,
         phone: newClient.phone,
-        address: { ...newClient.address }
+        address: {
+          streetNumber: newClient.address.streetNumber,
+          streetName: newClient.address.streetName,
+          city: newClient.address.city,
+          state: newClient.address.state,
+          zip: newClient.address.zip,
+          country: newClient.address.country,
+        }
       };
 
+      // FIXED: Removed redundant 'as unknown as ClientRequest'
       const response = await clientService.createClient(payload);
-      const createdClient: Client = response.data;
+
+      const createdClient: Client = {
+        id: response.data.id,
+        firstName: response.data.firstName,
+        lastName: response.data.lastName,
+        email: response.data.email,
+        phone: response.data.phone,
+        addresses: response.data.addresses
+      };
 
       setClients((prev) => {
-        if (prev.some((c) => c.id === createdClient.id)) return prev;
+        if (prev.some((client) => client.id === createdClient.id)) {
+          return prev;
+        }
         return [...prev, createdClient];
       });
 
       setNewClient({
-        firstName: "", lastName: "", email: "", phone: "",
-        address: { streetNumber: "", streetName: "", city: "", state: "", zip: "", country: "" }
+        firstName: "",
+        lastName: "",
+        email: "",
+        phone: "",
+        address: {
+          streetNumber: "",
+          streetName: "",
+          city: "",
+          state: "",
+          zip: "",
+          country: "",
+        }
       });
+
       setIsAddOpen(false);
     } catch (err) {
-      console.error("Error saving client:", err);
+      if (axios.isAxiosError(err)) {
+        const message = err.response?.data?.message || "An API error occurred";
+        console.error("Error: " + message);
+      } else {
+        console.error("An unknown error occurred");
+      }
     }
   };
 
   useEffect(() => {
-    const stompClient = new StompClient({
+    const stompClient: StompClient = new StompClient({
       brokerURL: "ws://localhost:8081/api/ws",
       reconnectDelay: 5000,
       heartbeatIncoming: 4000,
@@ -120,78 +157,130 @@ export default function ClientPage() {
 
     stompClient.webSocketFactory = () => new SockJS("http://localhost:8081/api/ws");
     stompClient.onConnect = () => {
-      stompClient.subscribe("/topic/clientsCreate", (msg) => {
-        const data = JSON.parse(msg.body) as Client;
-        setClients((prev) => prev.some(c => c.id === data.id) ? prev : [...prev, data]);
+      stompClient.subscribe("/topic/clientsCreate", (message) => {
+        const newClientData = JSON.parse(message.body) as Client;
+        setClients((prevClients) => {
+          if (prevClients.some((client) => client.id === newClientData.id)) return prevClients;
+          return [...prevClients, newClientData];
+        });
       });
-      stompClient.subscribe("/topic/clientsDelete", (msg) => {
-        const data = JSON.parse(msg.body) as { id: number };
-        setClients((prev) => prev.filter(c => c.id !== data.id));
+      stompClient.subscribe("/topic/clientsDelete", (message) => {
+        const deletedClient = JSON.parse(message.body) as { id: number };
+        setClients((prevClients) => prevClients.filter((client) => client.id !== deletedClient.id));
       });
     };
     stompClient.activate();
-    return () => stompClient.deactivate();
+
+    return () => {
+      stompClient.deactivate();
+    };
   }, []);
 
   useEffect(() => {
-    clientService.getAllClients().then(res => setClients(res.data)).catch(console.error);
+    const fetchClients = async () => {
+      try {
+        const response = await clientService.getAllClients();
+        setClients(response.data);
+      } catch (err) {
+        console.error("Error fetching clients", err);
+      }
+    };
+
+    fetchClients();
   }, []);
 
   const isFormValid = useMemo(() => {
-    const vals = [newClient.firstName, newClient.lastName, newClient.email, newClient.phone, ...Object.values(newClient.address)];
-    return vals.every(v => String(v).trim() !== "");
+    const flatValues = [
+      newClient.firstName,
+      newClient.lastName,
+      newClient.email,
+      newClient.phone,
+      ...Object.values(newClient.address)
+    ];
+    return flatValues.every((value) => String(value).trim() !== "");
   }, [newClient]);
 
-  const [sortConfig, setSortConfig] = useState<{ key: keyof Client | ""; direction: "asc" | "desc" | null }>({ key: "", direction: null });
+  const [sortConfig, setSortConfig] = useState<{
+    key: keyof Client | "";
+    direction: "asc" | "desc" | null;
+  }>({ key: "", direction: null });
 
   const handleSort = (key: keyof Client) => {
-    setSortConfig(prev => ({
-      key,
-      direction: prev.key === key && prev.direction === "asc" ? "desc" : "asc"
-    }));
+    let direction: "asc" | "desc" = "asc";
+    if (sortConfig.key === key && sortConfig.direction === "asc") direction = "desc";
+    setSortConfig({ key, direction });
   };
 
   const currentClients = useMemo(() => {
-    const start = (currentPage - 1) * itemsPerPage;
-    const pageItems = clients.slice(start, start + itemsPerPage);
+    const indexOfLastItem = currentPage * itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+    const pageItems = clients.slice(indexOfFirstItem, indexOfLastItem);
 
     if (!sortConfig.key || !sortConfig.direction) return pageItems;
 
+    // Inside the currentClients useMemo, replace the sorting logic with this:
+
     return [...pageItems].sort((a, b) => {
-      const key = sortConfig.key;
+      // Cast key to keyof Client to satisfy TypeScript, 
+      // since we already checked if sortConfig.key is truthy above
+      const key = sortConfig.key as keyof Client;
+
+      if (key === 'addresses') {
+        const valA = a.addresses?.[0]?.city?.toLowerCase() || "";
+        const valB = b.addresses?.[0]?.city?.toLowerCase() || "";
+
+        if (valA < valB) return sortConfig.direction === "asc" ? -1 : 1;
+        if (valA > valB) return sortConfig.direction === "asc" ? 1 : -1;
+        return 0;
+      }
+
       const getVal = (obj: Client, k: keyof Client) => {
-        if (k === 'addresses') return obj.addresses?.[0]?.city?.toLowerCase() || "";
         const v = obj[k];
         return typeof v === 'string' ? v.toLowerCase() : String(v);
       };
+
       const valA = getVal(a, key);
       const valB = getVal(b, key);
+
       if (valA < valB) return sortConfig.direction === "asc" ? -1 : 1;
       if (valA > valB) return sortConfig.direction === "asc" ? 1 : -1;
       return 0;
     });
+
   }, [clients, sortConfig, currentPage, itemsPerPage]);
+
+
 
   const totalPages = Math.ceil(clients.length / itemsPerPage);
 
   const handleDeleteConfirm = async () => {
-    if (!clientToDelete?.id) return;
+    if (!clientToDelete) return;
+
     try {
-      await clientService.deleteClient(clientToDelete.id);
-      setClients(prev => prev.filter(c => c.id !== clientToDelete.id));
+      await clientService.deleteClient(clientToDelete.id as number);
+
+      setClients((prev) => prev.filter((c) => c.id !== clientToDelete.id));
       setIsDeleteOpen(false);
     } catch (err) {
-      console.error(err);
+      console.error("Error deleting client", err);
     }
   };
 
+
   const renderAddress = (address: Address | undefined) => {
     if (!address) return <span className="text-slate-400 italic">N/A</span>;
+
     return (
       <div className="flex flex-col gap-0.5">
-        <span className="text-xs text-slate-600 font-medium">{address.streetNumber} {address.streetName}</span>
-        <span className="text-xs text-slate-400 block leading-tight">{address.city}, {address.state} {address.zip}</span>
-        <span className="text-xs text-slate-400 block leading-tight">{address.country}</span>
+        <span className="text-xs text-slate-600 font-medium">
+          {address.streetNumber} {address.streetName}
+        </span>
+        <span className="text-xs text-slate-400 block leading-tight">
+          {address.city}, {address.state} {address.zip}
+        </span>
+        <span className="text-xs text-slate-400 block leading-tight">
+          {address.country}
+        </span>
       </div>
     );
   };
@@ -204,7 +293,10 @@ export default function ClientPage() {
             <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Client Management</h1>
             <p className="text-slate-500 text-sm mt-1">Manage your customer database and contact details.</p>
           </div>
-          <button className="flex items-center gap-2 bg-indigo-600 text-white px-5 py-2 rounded-xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 font-semibold" onClick={() => setIsAddOpen(true)}>
+          <button
+            className="flex items-center gap-2 bg-indigo-600 text-white px-5 py-2 rounded-xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 font-semibold"
+            onClick={() => setIsAddOpen(true)}
+          >
             <UserPlus size={20} /> Add Client
           </button>
         </div>
@@ -214,40 +306,55 @@ export default function ClientPage() {
             <table className="w-full text-left border-collapse table-auto">
               <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-20">
                 <tr className="whitespace-nowrap">
-                  <SortableHeader label="First Name" keyField="firstName" onSort={handleSort} sortConfig={sortConfig} />
-                  <SortableHeader label="Last Name" keyField="lastName" onSort={handleSort} sortConfig={sortConfig} />
-                  <SortableHeader label="Email" keyField="email" onSort={handleSort} sortConfig={sortConfig} />
-                  <SortableHeader label="Phone" keyField="phone" onSort={handleSort} sortConfig={sortConfig} />
-                  <SortableHeader label="Address" keyField="addresses" onSort={handleSort} sortConfig={sortConfig} />
+                  <SortableHeader label="First Name" keyField="firstName" onSort={(key) => handleSort(key as keyof Client)} sortConfig={sortConfig} />
+                  <SortableHeader label="Last Name" keyField="lastName" onSort={(key) => handleSort(key as keyof Client)} sortConfig={sortConfig} />
+                  <SortableHeader label="Email" keyField="email" onSort={(key) => handleSort(key as keyof Client)} sortConfig={sortConfig} />
+                  <SortableHeader label="Phone" keyField="phone" onSort={(key) => handleSort(key as keyof Client)} sortConfig={sortConfig} />
+                  {/* FIXED: keyField changed from "address" to "addresses" to match the Interface */}
+                  <SortableHeader label="Address" keyField="addresses" onSort={(key) => handleSort(key as keyof Client)} sortConfig={sortConfig} />
                   <th className="px-6 py-4 text-left sticky right-0 bg-slate-50 shadow-[-10px_0_10px_-5px_rgba(0,0,0,0.05)] z-10 text-sm font-bold text-slate-500 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 <AnimatePresence mode="popLayout">
-                  {currentClients.map((client, idx) => (
-                    <motion.tr 
-                      key={client.id} 
-                      layout 
-                      initial={{ opacity: 0 }} 
-                      animate={{ opacity: 1, backgroundColor: idx % 2 ? "#ffffff" : "#fcfcfd" }} 
-                      exit={{ opacity: 0 }}
-                      whileHover={{ scale: 1.005, backgroundColor: "#f8fafc" }}
-                      className="group cursor-pointer whitespace-nowrap transition-colors"
-                    >
-                      <td className="px-6 py-2 text-slate-700 font-medium border-r border-slate-100">{client.firstName}</td>
-                      <td className="px-6 py-2 text-slate-700 font-medium border-r border-slate-100">{client.lastName}</td>
-                      <td className="px-6 py-2 text-slate-600 font-medium border-r border-slate-100">{client.email}</td>
-                      <td className="px-6 py-2 text-slate-600 font-medium border-r border-slate-100">{client.phone}</td>
-                      <td className="px-6 py-2 border-r border-slate-100 font-medium">{renderAddress(client.addresses?.[0])}</td>
-                      <td className="px-6 py-2 sticky right-0 bg-inherit shadow-[-10px_0_10px_-5px_rgba(0,0,0,0.05)] z-10">
-                        <div className="flex justify-start gap-2">
-                          <button onClick={() => { setSelectedClient(client); setIsViewOpen(true); }} className="p-2 text-[#0073d7] hover:bg-indigo-50 rounded-lg transition-all"><Eye size={18} /></button>
-                          <button className="p-2 text-[#00846e] hover:bg-[#eff3f3] rounded-lg transition-all"><Edit size={18} /></button>
-                          <button onClick={() => { setClientToDelete(client); setIsDeleteOpen(true); }} className="p-2 text-[#fa0026] hover:bg-[#fdeef0] rounded-lg transition-all"><Trash2 size={18} /></button>
-                        </div>
-                      </td>
-                    </motion.tr>
-                  ))}
+                  {currentClients.map((client, idx) => {
+                    const isLast = idx === currentClients.length - 1;
+                    return (
+                      <motion.tr
+                        key={client.id}
+                        layout
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{
+                          opacity: 1,
+                          y: 0,
+                          backgroundColor: isLast
+                            ? ["#ffffff", "#dcfce7", "#ffffff"]
+                            : (idx % 2 ? "#ffffff" : "#fcfcfd")
+                        }}
+                        exit={{ opacity: 0, y: 20 }}
+                        transition={{
+                          backgroundColor: { duration: 1.5, ease: "easeInOut" }
+                        }}
+                        whileHover={{ y: -6, scale: 1.01, zIndex: 10, boxShadow: "inset 0 0 0 2px #818cf8, 0 12px 20px -5px rgba(0,0,0,0.15)" }}
+                        className="group cursor-pointer whitespace-nowrap transition-colors"
+                      >
+                        <td className="px-6 py-2 text-slate-700 font-medium border-r border-slate-100">{client.firstName}</td>
+                        <td className="px-6 py-2 text-slate-700 font-medium border-r border-slate-100">{client.lastName}</td>
+                        <td className="px-6 py-2 text-slate-600 font-medium border-r border-slate-100">{client.email}</td>
+                        <td className="px-6 py-2 text-slate-600 font-medium border-r border-slate-100">{client.phone}</td>
+                        {/* FIXED: Added optional chaining to prevent crash */}
+                        <td className="px-6 py-2 border-r border-slate-100 font-medium">{renderAddress(client.addresses?.[0])}</td>
+                        <td className="px-6 py-2 sticky right-0 bg-inherit shadow-[-10px_0_10px_-5px_rgba(0,0,0,0.05)] z-10">
+                          <div className="flex justify-start gap-2">
+                            {/* FIXED: tex-[#0073d7] -> text-[#0073d7] */}
+                            <button onClick={() => { setSelectedClient(client); setIsViewOpen(true); }} className="p-2 text-[#0073d7] hover:bg-indigo-50 rounded-lg transition-all"><Eye size={18} /></button>
+                            <button className="p-2 text-[#00846e] hover:bg-[#eff3f3] rounded-lg transition-all"><Edit size={18} /></button>
+                            <button onClick={() => { setClientToDelete(client); setIsDeleteOpen(true); }} className="p-2 text-[#fa0026] hover:bg-[#fdeef0] rounded-lg transition-all"><Trash2 size={18} /></button>
+                          </div>
+                        </td>
+                      </motion.tr>
+                    );
+                  })}
                 </AnimatePresence>
               </tbody>
             </table>
@@ -267,10 +374,10 @@ export default function ClientPage() {
       {isViewOpen && selectedClient && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="fixed inset-0 bg-black/15 z-0" onClick={() => setIsViewOpen(false)} />
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden">
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden animate-in fade-in zoom-in duration-200">
             <div className="flex justify-between items-center p-6 border-b border-slate-100">
               <h2 className="text-xl font-bold text-slate-800">Client Details</h2>
-              <button onClick={() => setIsViewOpen(false)} className="text-slate-400 hover:text-slate-600 p-2 hover:bg-slate-100 rounded-xl"><X size={22} /></button>
+              <button onClick={() => setIsViewOpen(false)} className="text-slate-400 hover:text-slate-600 p-2 hover:bg-[#e4eff5] rounded-xl"><X size={22} /></button>
             </div>
             <div className="p-6 space-y-2">
               <DetailRow label="First Name" value={selectedClient.firstName} icon={<User size={22} />} />
@@ -283,6 +390,7 @@ export default function ClientPage() {
                   <span className="text-slate-700 font-medium shrink-0 w-32 text-left">Address</span>
                 </div>
                 <div className="flex flex-col text-slate-800 font-bold">
+                  {/* FIXED: Added optional chaining to prevent crash */}
                   <span>{selectedClient.addresses?.[0]?.streetNumber} {selectedClient.addresses?.[0]?.streetName}</span>
                   <span className="text-sm font-medium text-slate-500">{selectedClient.addresses?.[0]?.city}, {selectedClient.addresses?.[0]?.state} {selectedClient.addresses?.[0]?.zip}</span>
                   <span className="text-sm font-medium text-slate-500">{selectedClient.addresses?.[0]?.country}</span>
@@ -290,7 +398,7 @@ export default function ClientPage() {
               </div>
             </div>
             <div className="p-6 bg-slate-50 text-right">
-              <button onClick={() => setIsViewOpen(false)} className="px-4 py-2 bg-slate-200 text-slate-600 rounded-lg hover:bg-slate-300 transition font-medium">Close</button>
+              <button onClick={() => setIsViewOpen(false)} className="px-4 py-2 bg-[#e1e9ee] text-[#3d4f6c] rounded-lg hover:bg-[#c6e1ee] transition font-medium">Close</button>
             </div>
           </div>
         </div>
@@ -300,94 +408,177 @@ export default function ClientPage() {
       {isDeleteOpen && clientToDelete && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="fixed inset-0 bg-black/15 z-0" onClick={() => setIsDeleteOpen(false)} />
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 text-center">
-            <div className="bg-rose-100 text-rose-600 w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-6"><Trash2 size={28} /></div>
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 animate-in slide-in-from-bottom-4 duration-200 text-center">
+            <div className="bg-rose-100 text-rose-600 w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Trash2 size={28} />
+            </div>
             <h2 className="text-2xl font-bold text-slate-800 mb-2">Delete Client?</h2>
-            <p className="text-slate-600 font-medium mb-6">Are you sure you want to delete <span className="text-indigo-600">{clientToDelete.firstName} {clientToDelete.lastName}</span>?</p>
-            
-            {/* PUT BACK ALERT TRIANGLE */}
+            <p className="text-slate-600 font-medium mb-6">
+              Are you sure you want to delete <span className="text-indigo-600">{clientToDelete.firstName} {clientToDelete.lastName}</span>?
+            </p>
             <span className="flex items-center justify-center gap-2 text-rose-500 font-semibold text-sm mb-8 uppercase tracking-wide">
               <AlertTriangle size={18} /> This action is permanent
             </span>
-
             <div className="flex gap-3">
-              <button onClick={() => setIsDeleteOpen(false)} className="flex-1 px-4 py-3 bg-slate-100 text-slate-600 rounded-xl hover:bg-slate-200 transition font-semibold">Cancel</button>
-              <button onClick={handleDeleteConfirm} className="flex-1 px-4 py-3 bg-rose-600 text-white rounded-xl hover:bg-rose-700 transition font-semibold">Delete Now</button>
+              <button onClick={() => setIsDeleteOpen(false)} className="flex-1 px-4 py-3 bg-slate-100 text-slate-600 rounded-xl hover:bg-slate-200 transition font-semibold">
+                Cancel
+              </button>
+              <button onClick={handleDeleteConfirm} className="flex-1 px-4 py-3 bg-rose-600 text-white rounded-xl hover:bg-rose-700 transition shadow-lg shadow-rose-200 font-semibold">
+                Delete Now
+              </button>
             </div>
           </div>
         </div>
       )}
+
 
       {/* ADD MODAL */}
       {isAddOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="fixed inset-0 bg-black/15 z-0" onClick={() => setIsAddOpen(false)} />
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden">
-            <div className="relative flex justify-between items-center p-6 border-b border-slate-100">
+          <div className="fixed inset-0 bg-black/15 z-0" onClick={() => { setIsAddOpen(false); setNewClient({ firstName: "", lastName: "", email: "", phone: "", address: { streetNumber: "", streetName: "", city: "", state: "", zip: "", country: "" } }); }} />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="relative flex justify-right gap-32 items-center p-6 border-b border-slate-100">
               <h2 className="text-xl font-bold text-slate-800">Add New Client</h2>
-              <div className="flex gap-4 items-center">
-                <button 
-                  className="bg-indigo-600 text-white rounded-lg px-3 py-1 text-xs hover:bg-indigo-700 transition"
+              <div className="flex items-center mr-8">
+                <button
+                  className="bg-[#4f46e5] text-white rounded-lg px-3 h-8 flex items-center justify-center font-medium text-xs tracking-wide shadow-md hover:bg-[#3739d4] active:scale-95 transition-all cursor-pointer"
                   onClick={async () => {
-                    const res = await axios.get("https://randomuser.me/api/");
-                    const user = res.data.results[0];
+                    const result = await axios.get("https://randomuser.me/api/");
+                    const user = result.data.results[0];
                     setNewClient({
-                      firstName: user.name.first, lastName: user.name.last, email: user.email, phone: user.phone,
-                      address: { streetNumber: String(user.location.street.number), streetName: user.location.street.name, city: user.location.city, state: user.location.state, zip: user.location.postcode, country: user.location.country }
+                      firstName: user.name.first,
+                      lastName: user.name.last,
+                      email: user.email,
+                      phone: user.phone,
+                      address: {
+                        streetNumber: String(user.location.street.number),
+                        streetName: user.location.street.name,
+                        city: user.location.city,
+                        state: user.location.state,
+                        zip: user.location.postcode,
+                        country: user.location.country,
+                      }
                     });
                   }}
-                >Set Random Fields</button>
-                <button onClick={() => setIsAddOpen(false)} className="text-slate-400 hover:text-rose-500"><X size={23} /></button>
+                >
+                  Set Random Fields
+                </button>
               </div>
+              <button onClick={() => setIsAddOpen(false)} className="absolute top-3 right-3 z-20 text-slate-400 transition-colors p-1 hover:bg-[#fa5e78] hover:text-[#ffffff] rounded-lg"><X size={23} /></button>
             </div>
+
             <div className="p-6">
               <div className="flex flex-col md:flex-row gap-16">
-                <div className="flex-1 space-y-4">
-                  <div className="flex items-center gap-2 text-sm font-bold text-slate-500 uppercase"><User size={24} className="text-indigo-600" /> Client Information</div>
-                  <InputField label="First Name" value={newClient.firstName} onChange={v => setNewClient({...newClient, firstName: v})} icon={<User size={20} />} />
-                  <InputField label="Last Name" value={newClient.lastName} onChange={v => setNewClient({...newClient, lastName: v})} icon={<User size={20} />} />
-                  <InputField label="Email" value={newClient.email} onChange={v => setNewClient({...newClient, email: v})} icon={<Mail size={20} />} />
-                  <InputField label="Phone" value={newClient.phone} onChange={v => setNewClient({...newClient, phone: v})} icon={<Phone size={20} />} />
-                </div>
-                <div className="hidden md:block w-px bg-slate-200 self-stretch" />
-                <div className="flex-1 space-y-4">
-                  <div className="flex items-center gap-2 text-sm font-bold text-slate-500 uppercase"><MapPin size={24} className="text-indigo-600" /> Address Details</div>
-                  <div className="flex gap-3">
-                    <div className="w-1/3"><InputField label="No." value={newClient.address.streetNumber} onChange={v => setNewClient({...newClient, address: {...newClient.address, streetNumber: v}})} icon={<Hash size={16} />} /></div>
-                    <div className="w-2/3"><InputField label="Street Name" value={newClient.address.streetName} onChange={v => setNewClient({...newClient, address: {...newClient.address, streetName: v}})} icon={<Route size={16} />} /></div>
+                <div className="flex-1 space-y-4 mb-6">
+                  <div className="flex items-center gap-2 text-sm font-bold text-slate-500 uppercase">
+                    <User size={24} className="text-indigo-600 shrink-0" /> Client Information
                   </div>
-                  <InputField label="City" value={newClient.address.city} onChange={v => setNewClient({...newClient, address: {...newClient.address, city: v}})} icon={<Building2 size={20} />} />
-                  <InputField label="State" value={newClient.address.state} onChange={v => setNewClient({...newClient, address: {...newClient.address, state: v}})} icon={<Landmark size={20} />} />
+                  <div className="space-y-1 mt-4">
+                    <label className="text-sm font-bold text-slate-500 uppercase ml-1">First Name</label>
+                    <div className="relative group">
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 group-hover:text-indigo-800 transition-all" size={20} />
+                      <input className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-md hover:shadow-indigo-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent" value={newClient.firstName} placeholder="Jane" onChange={(e) => setNewClient({ ...newClient, firstName: e.target.value })} />
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-sm font-bold text-slate-500 uppercase ml-1">Last Name</label>
+                    <div className="relative group">
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 group-hover:text-indigo-800 transition-all" size={20} />
+                      <input className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-md hover:shadow-indigo-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent" value={newClient.lastName} placeholder="Doe" onChange={(e) => setNewClient({ ...newClient, lastName: e.target.value })} />
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-sm font-bold text-slate-500 uppercase ml-1">Email</label>
+                    <div className="relative group">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 group-hover:text-indigo-800 transition-all" size={20} />
+                      <input className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-md hover:shadow-indigo-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent" value={newClient.email} placeholder="jane@example.com" onChange={(e) => setNewClient({ ...newClient, email: e.target.value })} />
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-sm font-bold text-slate-500 uppercase ml-1">Phone</label>
+                    <div className="relative group">
+                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 group-hover:text-indigo-800 transition-all" size={20} />
+                      <input className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-md hover:shadow-indigo-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent" value={newClient.phone} placeholder="+1 234 567 890" onChange={(e) => setNewClient({ ...newClient, phone: e.target.value })} />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="hidden md:flex justify-center w-4 self-stretch group">
+                  <div className="w-px h-full transition-all duration-300 bg-slate-300 shadow-[0_0_8px_rgba(0,0,0,0.2)] group-hover:bg-indigo-500 group-hover:shadow-[0_0_12px_rgba(99,102,241,0.8)] group-hover:scale-y-105"></div>
+                </div>
+
+                <div className="flex-1 space-y-4">
+                  <div className="flex items-center gap-2 text-sm font-bold text-slate-500 uppercase">
+                    <MapPin size={24} className="text-indigo-600 shrink-0" /> Address Details
+                  </div>
                   <div className="flex gap-3">
-                    <div className="flex-1"><InputField label="Zip" value={newClient.address.zip} onChange={v => setNewClient({...newClient, address: {...newClient.address, zip: v}})} icon={<MapPin size={20} />} /></div>
-                    <div className="flex-1"><InputField label="Country" value={newClient.address.country} onChange={v => setNewClient({...newClient, address: {...newClient.address, country: v}})} icon={<Globe size={20} />} /></div>
+                    <div className="space-y-1 w-1/3">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">No.</label>
+                      <div className="relative group">
+                        <Hash className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 group-hover:text-indigo-800 transition-all" size={16} />
+                        <input className="w-full pl-9 p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-md hover:shadow-indigo-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent" value={newClient.address.streetNumber} placeholder="123" onChange={(e) => setNewClient({ ...newClient, address: { ...newClient.address, streetNumber: e.target.value } })} />
+                      </div>
+                    </div>
+                    <div className="space-y-1 w-2/3">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Street Name</label>
+                      <div className="relative group">
+                        <Route className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 group-hover:text-indigo-800 transition-all" size={16} />
+                        <input className="w-full pl-9 p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-md hover:shadow-indigo-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent" value={newClient.address.streetName} placeholder="Main St" onChange={(e) => setNewClient({ ...newClient, address: { ...newClient.address, streetName: e.target.value } })} />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-sm font-bold text-slate-500 uppercase ml-1">City</label>
+                    <div className="relative group">
+                      <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 group-hover:text-indigo-800 transition-all" size={20} />
+                      <input className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-md hover:shadow-indigo-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent" value={newClient.address.city} placeholder="New York" onChange={(e) => setNewClient({ ...newClient, address: { ...newClient.address, city: e.target.value } })} />
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-sm font-bold text-slate-500 uppercase ml-1">State</label>
+                    <div className="relative group">
+                      <Landmark className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 group-hover:text-indigo-800 transition-all" size={20} />
+                      <input className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-md hover:shadow-indigo-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent" value={newClient.address.state} placeholder="NY" onChange={(e) => setNewClient({ ...newClient, address: { ...newClient.address, state: e.target.value } })} />
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <div className="space-y-1 flex-1">
+                      <label className="text-sm font-bold text-slate-500 uppercase ml-1">Zip Code</label>
+                      <div className="relative group">
+                        <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 group-hover:text-indigo-800 transition-all" size={20} />
+                        <input className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-md hover:shadow-indigo-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent" value={newClient.address.zip} placeholder="10001" onChange={(e) => setNewClient({ ...newClient, address: { ...newClient.address, zip: e.target.value } })} />
+                      </div>
+                    </div>
+                    <div className="space-y-1 flex-1">
+                      <label className="text-sm font-bold text-slate-500 uppercase ml-1">Country</label>
+                      <div className="relative group">
+                        <Globe className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 group-hover:text-indigo-800 transition-all" size={20} />
+                        <input className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-md hover:shadow-indigo-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent" value={newClient.address.country} placeholder="USA" onChange={(e) => setNewClient({ ...newClient, address: { ...newClient.address, country: e.target.value } })} />
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-            <div className="p-6 bg-slate-50 flex justify-end gap-3">
-              <button onClick={() => setIsAddOpen(false)} className="px-4 py-2 bg-slate-200 text-slate-600 rounded-xl hover:bg-slate-300 transition font-medium">Cancel</button>
-              <button onClick={handleSaveNewClient} disabled={!isFormValid} className={`px-6 py-2 rounded-xl font-semibold transition ${isFormValid ? "bg-indigo-600 text-white hover:bg-indigo-700" : "bg-slate-400 text-white cursor-not-allowed"}`}>Save Client</button>
+
+            <div className="p-6 bg-slate-50 flex justify-end gap-3 items-stretch">
+              <button
+                onClick={() => { setIsAddOpen(false); setNewClient({ firstName: "", lastName: "", email: "", phone: "", address: { streetNumber: "", streetName: "", city: "", state: "", zip: "", country: "" } }); }}
+                className="h-10 px-4 bg-[#8480d2] text-[#ffffff] rounded-xl hover:bg-slate-800 transition font-medium shadow-sm flex items-center justify-center"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveNewClient}
+                disabled={!isFormValid}
+                className={`h-10 px-6 rounded-xl transition shadow-md font-semibold flex items-center justify-center ${isFormValid ? "bg-indigo-600 text-white hover:bg-indigo-700" : "bg-slate-400 text-white"}`}
+              >
+                Save Client
+              </button>
             </div>
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-function InputField({ label, value, onChange, icon }: { label: string, value: string, onChange: (v: string) => void, icon: React.ReactNode }) {
-  return (
-    <div className="space-y-1">
-      <label className="text-sm font-bold text-slate-500 uppercase ml-1">{label}</label>
-      <div className="relative group">
-        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 group-hover:text-indigo-800 transition-all">{icon}</div>
-        <input 
-          className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all" 
-          value={value} 
-          onChange={e => onChange(e.target.value)} 
-        />
-      </div>
     </div>
   );
 }
