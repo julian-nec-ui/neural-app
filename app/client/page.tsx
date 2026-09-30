@@ -637,9 +637,9 @@ export default function ClientPage() {
             <div className="p-6">
               <div className="flex flex-col md:flex-row gap-8">
                 {/* COLUMN 1: Client Info */}
-                <div className="flex-1 space-y-4">
+                <div className="flex-1 space-y-4 mt-4">
                   <div className="flex items-center gap-2 text-sm font-bold text-slate-500 uppercase mb-2">
-                    <User size={16} /> Client Information
+                    <User size={20} /> Client Information
                   </div>
 
                   <div className="space-y-1">
@@ -717,8 +717,8 @@ export default function ClientPage() {
 
                 {/* COLUMN 2: Address Details */}
                 <div className="flex-1 space-y-4">
-                  <div className="flex items-center gap-2 text-sm font-bold text-slate-500 uppercase mb-2">
-                    <MapPin size={16} /> Address Details
+                  <div className="flex items-center gap-2 text-sm font-bold text-slate-500 uppercase mt-4 mb-2">
+                    <MapPin size={20} /> Address Details
                   </div>
 
                   {/* Street Number & Name Row */}
