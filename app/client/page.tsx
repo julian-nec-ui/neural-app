@@ -115,7 +115,6 @@ export default function ClientPage() {
           zip: "",
           country: "",
         }
-
       });
 
       setIsAddOpen(false);
