@@ -349,28 +349,12 @@ export default function ClientPage() {
                 <button 
                   className="bg-indigo-600 text-white rounded-lg px-3 py-1 text-xs hover:bg-indigo-700 transition"
                   onClick={async () => {
-                    try {
-                      // Add timeout to prevent rapid clicks
-                      const res = await axios.get("https://randomuser.me/api/");
-                      const user = res.data.results[0];
-                      setNewClient({
-                        firstName: user.name.first, 
-                        lastName: user.name.last, 
-                        email: user.email, 
-                        phone: user.phone,
-                        address: { 
-                          streetNumber: String(user.location.street.number), 
-                          streetName: user.location.street.name, 
-                          city: user.location.city, 
-                          state: user.location.state, 
-                          zip: user.location.postcode, 
-                          country: user.location.country 
-                        }
-                      });
-                    } catch (error) {
-                      console.error("Error fetching random user:", error);
-                      // Optionally show an error message to user
-                    }
+                    const res = await axios.get("https://randomuser.me/api/");
+                    const user = res.data.results[0];
+                    setNewClient({
+                      firstName: user.name.first, lastName: user.name.last, email: user.email, phone: user.phone,
+                      address: { streetNumber: String(user.location.street.number), streetName: user.location.street.name, city: user.location.city, state: user.location.state, zip: user.location.postcode, country: user.location.country }
+                    });
                   }}
                 >Set Random Fields</button>
                 <button onClick={() => setIsAddOpen(false)} className="text-slate-400 hover:text-rose-500"><X size={23} /></button>
