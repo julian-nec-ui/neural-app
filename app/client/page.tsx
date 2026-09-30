@@ -62,7 +62,7 @@ export default function ClientPage() {
     try {
       // Combine address fields into a single string for the API
       const addressString = `${newClient.streetNumber} ${newClient.streetName} | ${newClient.city} | ${newClient.state} | ${newClient.country} | ${newClient.zip}`;
-      
+
       const payload = {
         firstName: newClient.firstName,
         lastName: newClient.lastName,
@@ -179,9 +179,9 @@ export default function ClientPage() {
   }, []);
 
   const isFormValid = useMemo(() => {
-  // String(value) ensures that numbers (like streetNumber) are converted to strings before trimming
-  return Object.values(newClient).every((value) => String(value).trim() !== "");
-}, [newClient]);
+    // String(value) ensures that numbers (like streetNumber) are converted to strings before trimming
+    return Object.values(newClient).every((value) => String(value).trim() !== "");
+  }, [newClient]);
 
 
   const [sortConfig, setSortConfig] = useState<{
@@ -572,139 +572,144 @@ export default function ClientPage() {
             }}
           />
           <div
-            className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md 
-              overflow-hidden animate-in fade-in  zoom-in duration-200"
+            className="relative bg-white rounded-2xl shadow-2xl w-full max-w-4xl 
+              overflow-hidden animate-in fade-in zoom-in duration-200"
           >
             <div className="flex justify-between items-center p-6 border-b border-slate-100">
               <h2 className="text-xl font-bold text-slate-800">
                 Add New Client
               </h2>
-              <button
-                className="
-                bg-[#4f46e5] text-white rounded-lg 
-                  px-2 py-1 font-medium text-xs tracking-wide
-                  shadow-md shadow-slate-300 
-                hover:bg-[#3739d4] active:scale-96 
-                  transition-all duration-200 cursor-pointer"
-                onClick={async () => {
-                  const result = await axios.get("https://randomuser.me/api/");
-                  const user = result.data.results[0];
-                  setNewClient({
-                    firstName: user.name.first,
-                    lastName: user.name.last,
-                    email: user.email,
-                    phone: user.phone,
-                    streetNumber: String(user.location.street.number),
-                    streetName: user.location.street.name,
-                    city: user.location.city,
-                    state: user.location.state,
-                    zip: user.location.postcode,
-                    country: user.location.country,
-                  });
-                }}
-              >
-                Set Random Fields
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  className="bg-[#4f46e5] text-white rounded-lg 
+                    px-3 py-1.5 font-medium text-xs tracking-wide
+                    shadow-md shadow-slate-300 
+                  hover:bg-[#3739d4] active:scale-95 
+                    transition-all duration-200 cursor-pointer"
+                  onClick={async () => {
+                    const result = await axios.get("https://randomuser.me/api/");
+                    const user = result.data.results[0];
+                    setNewClient({
+                      firstName: user.name.first,
+                      lastName: user.name.last,
+                      email: user.email,
+                      phone: user.phone,
+                      streetNumber: String(user.location.street.number),
+                      streetName: user.location.street.name,
+                      city: user.location.city,
+                      state: user.location.state,
+                      zip: user.location.postcode,
+                      country: user.location.country,
+                    });
+                  }}
+                >
+                  Set Random Fields
+                </button>
 
-              <button
-                onClick={() => {
-                  setIsAddOpen(false);
-                  setNewClient({
-                    firstName: "",
-                    lastName: "",
-                    email: "",
-                    phone: "",
-                    streetNumber: "",
-                    streetName: "",
-                    city: "",
-                    state: "",
-                    zip: "",
-                    country: "",
-                  });
-                }}
-                className="text-slate-400 relative -top-4 -right-4 hover:text-slate-600 transition-colors p-2 hover:bg-[#e4eff5] rounded-xl"
-              >
-                <X size={22} />
-              </button>
+                <button
+                  onClick={() => {
+                    setIsAddOpen(false);
+                    setNewClient({
+                      firstName: "",
+                      lastName: "",
+                      email: "",
+                      phone: "",
+                      streetNumber: "",
+                      streetName: "",
+                      city: "",
+                      state: "",
+                      zip: "",
+                      country: "",
+                    });
+                  }}
+                  className="text-slate-400 hover:text-slate-600 transition-colors p-2 hover:bg-[#e4eff5] rounded-xl"
+                >
+                  <X size={22} />
+                </button>
+              </div>
             </div>
-            <div className="p-6 space-y-4">
-              <div className="space-y-1">
-                <label className="text-sm font-bold text-slate-500 uppercase ml-1">
-                  First Name
-                </label>
-                <div className="relative group">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 group-hover:text-indigo-800 group-hover:drop-shadow-md transition-all" size={20} />
-                  <input
-                    className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-md hover:shadow-indigo-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                    value={newClient.firstName}
-                    placeholder="Jane"
-                    onChange={(e) =>
-                      setNewClient({ ...newClient, firstName: e.target.value })
-                    }
-                  />
-                </div>
-              </div>
 
-              <div className="space-y-1">
-                <label className="text-sm font-bold text-slate-500 uppercase ml-1">
-                  Last Name
-                </label>
-                <div className="relative group">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 group-hover:text-indigo-800 group-hover:drop-shadow-md transition-all" size={20} />
-                  <input
-                    className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-md hover:shadow-indigo-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                    value={newClient.lastName}
-                    placeholder="Doe"
-                    onChange={(e) =>
-                      setNewClient({ ...newClient, lastName: e.target.value })
-                    }
-                  />
-                </div>
-              </div>
+            <div className="p-6">
+              <div className="flex flex-col md:flex-row gap-8">
+                {/* COLUMN 1: Client Info */}
+                <div className="flex-1 space-y-4">
+                  <div className="flex items-center gap-2 text-sm font-bold text-slate-500 uppercase mb-2">
+                    <User size={16} /> Client Information
+                  </div>
 
-              <div className="space-y-1">
-                <label className="text-sm font-bold text-slate-500 uppercase ml-1">
-                  Email
-                </label>
-                <div className="relative group">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 group-hover:text-indigo-800 group-hover:drop-shadow-md transition-all" size={20} />
-                  <input
-                    className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-md hover:shadow-indigo-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                    value={newClient.email}
-                    placeholder="jane@example.com"
-                    onChange={(e) =>
-                      setNewClient({ ...newClient, email: e.target.value })
-                    }
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-sm font-bold text-slate-500 uppercase ml-1">
-                  Phone
-                </label>
-                <div className="relative group">
-                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 group-hover:text-indigo-800 group-hover:drop-shadow-md transition-all" size={20} />
-                  <input
-                    className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-md hover:shadow-indigo-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                    value={newClient.phone}
-                    placeholder="+1 234 567 890"
-                    onChange={(e) =>
-                      setNewClient({ ...newClient, phone: e.target.value })
-                    }
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 text-sm font-bold text-slate-500 uppercase ml-1">
-                   <MapPin size={16} /> Address Details
-                </div>
-                
-                <div className="flex gap-3">
-                  <div className="space-y-1 w-1/4">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Street No</label>
+                  <div className="space-y-1">
+                    <label className="text-sm font-bold text-slate-500 uppercase ml-1">
+                      First Name
+                    </label>
                     <div className="relative group">
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 group-hover:text-indigo-800 transition-all" size={20} />
+                      <input
+                        className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-md hover:shadow-indigo-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                        value={newClient.firstName}
+                        placeholder="Jane"
+                        onChange={(e) => setNewClient({ ...newClient, firstName: e.target.value })}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-sm font-bold text-slate-500 uppercase ml-1">
+                      Last Name
+                    </label>
+                    <div className="relative group">
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 group-hover:text-indigo-800 transition-all" size={20} />
+                      <input
+                        className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-md hover:shadow-indigo-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                        value={newClient.lastName}
+                        placeholder="Doe"
+                        onChange={(e) => setNewClient({ ...newClient, lastName: e.target.value })}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-sm font-bold text-slate-500 uppercase ml-1">
+                      Email
+                    </label>
+                    <div className="relative group">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 group-hover:text-indigo-800 transition-all" size={20} />
+                      <input
+                        className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-md hover:shadow-indigo-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                        value={newClient.email}
+                        placeholder="jane@example.com"
+                        onChange={(e) => setNewClient({ ...newClient, email: e.target.value })}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-sm font-bold text-slate-500 uppercase ml-1">
+                      Phone
+                    </label>
+                    <div className="relative group">
+                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 group-hover:text-indigo-800 transition-all" size={20} />
+                      <input
+                        className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-md hover:shadow-indigo-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                        value={newClient.phone}
+                        placeholder="+1 234 567 890"
+                        onChange={(e) => setNewClient({ ...newClient, phone: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* VERTICAL DIVIDER */}
+                <div className="hidden md:block w-px bg-slate-200 self-stretch"></div>
+
+                {/* COLUMN 2: Address Details */}
+                <div className="flex-1 space-y-4">
+                  <div className="flex items-center gap-2 text-sm font-bold text-slate-500 uppercase mb-2">
+                    <MapPin size={16} /> Address Details
+                  </div>
+
+                  <div className="flex gap-3">
+                    <div className="space-y-1 w-1/3">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">No.</label>
                       <input
                         className="w-full p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-md hover:shadow-indigo-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                         value={newClient.streetNumber}
@@ -712,10 +717,8 @@ export default function ClientPage() {
                         onChange={(e) => setNewClient({ ...newClient, streetNumber: e.target.value })}
                       />
                     </div>
-                  </div>
-                  <div className="space-y-1 w-3/4">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Street Name</label>
-                    <div className="relative group">
+                    <div className="space-y-1 w-2/3">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Street Name</label>
                       <input
                         className="w-full p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-md hover:shadow-indigo-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                         value={newClient.streetName}
@@ -724,61 +727,63 @@ export default function ClientPage() {
                       />
                     </div>
                   </div>
-                </div>
 
-                <div className="space-y-1">
-                  <label className="text-sm font-bold text-slate-500 uppercase ml-1">City</label>
-                  <div className="relative group">
-                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 group-hover:text-indigo-800 transition-all" size={20} />
-                    <input
-                      className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-md hover:shadow-indigo-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                      value={newClient.city}
-                      placeholder="New York"
-                      onChange={(e) => setNewClient({ ...newClient, city: e.target.value })}
-                    />
+                  <div className="space-y-1">
+                    <label className="text-sm font-bold text-slate-500 uppercase ml-1">City</label>
+                    <div className="relative group">
+                      <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 group-hover:text-indigo-800 transition-all" size={20} />
+                      <input
+                        className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-md hover:shadow-indigo-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                        value={newClient.city}
+                        placeholder="New York"
+                        onChange={(e) => setNewClient({ ...newClient, city: e.target.value })}
+                      />
+                    </div>
                   </div>
-                </div>
 
-                <div className="space-y-1">
-                  <label className="text-sm font-bold text-slate-500 uppercase ml-1">State</label>
-                  <div className="relative group">
-                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 group-hover:text-indigo-800 transition-all" size={20} />
-                    <input
-                      className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-md hover:shadow-indigo-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                      value={newClient.state}
-                      placeholder="NY"
-                      onChange={(e) => setNewClient({ ...newClient, state: e.target.value })}
-                    />
+                  <div className="space-y-1">
+                    <label className="text-sm font-bold text-slate-500 uppercase ml-1">State</label>
+                    <div className="relative group">
+                      <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 group-hover:text-indigo-800 transition-all" size={20} />
+                      <input
+                        className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-md hover:shadow-indigo-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                        value={newClient.state}
+                        placeholder="NY"
+                        onChange={(e) => setNewClient({ ...newClient, state: e.target.value })}
+                      />
+                    </div>
                   </div>
-                </div>
 
-                <div className="space-y-1">
-                  <label className="text-sm font-bold text-slate-500 uppercase ml-1">Zip Code</label>
-                  <div className="relative group">
-                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 group-hover:text-indigo-800 transition-all" size={20} />
-                    <input
-                      className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-md hover:shadow-indigo-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                      value={newClient.zip}
-                      placeholder="10001"
-                      onChange={(e) => setNewClient({ ...newClient, zip: e.target.value })}
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-sm font-bold text-slate-500 uppercase ml-1">Country</label>
-                  <div className="relative group">
-                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 group-hover:text-indigo-800 transition-all" size={20} />
-                    <input
-                      className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-md hover:shadow-indigo-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                      value={newClient.country}
-                      placeholder="USA"
-                      onChange={(e) => setNewClient({ ...newClient, country: e.target.value })}
-                    />
+                  <div className="flex gap-3">
+                    <div className="space-y-1 flex-1">
+                      <label className="text-sm font-bold text-slate-500 uppercase ml-1">Zip Code</label>
+                      <div className="relative group">
+                        <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 group-hover:text-indigo-800 transition-all" size={20} />
+                        <input
+                          className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-md hover:shadow-indigo-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                          value={newClient.zip}
+                          placeholder="10001"
+                          onChange={(e) => setNewClient({ ...newClient, zip: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-1 flex-1">
+                      <label className="text-sm font-bold text-slate-500 uppercase ml-1">Country</label>
+                      <div className="relative group">
+                        <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 group-hover:text-indigo-800 transition-all" size={20} />
+                        <input
+                          className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-md hover:shadow-indigo-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                          value={newClient.country}
+                          placeholder="USA"
+                          onChange={(e) => setNewClient({ ...newClient, country: e.target.value })}
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
+
             <div className="p-6 bg-slate-50 flex justify-end gap-3">
               <button
                 onClick={() => {
@@ -803,9 +808,9 @@ export default function ClientPage() {
               <button
                 onClick={handleSaveNewClient}
                 disabled={!isFormValid}
-                className={`px-4 py-2 rounded-xl transition shadow-md font-semibold ${isFormValid
-                    ? "bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer"
-                    : "bg-slate-300 text-white cursor-pointer"
+                className={`px-6 py-2 rounded-xl transition shadow-md font-semibold ${isFormValid
+                  ? "bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer"
+                  : "bg-slate-300 text-white cursor-not-allowed"
                   }`}
               >
                 Save Client
@@ -814,7 +819,6 @@ export default function ClientPage() {
           </div>
         </div>
       )}
-
 
     </div>
   );
