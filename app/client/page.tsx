@@ -553,7 +553,7 @@ export default function ClientPage() {
                       country: "",
                     });
                   }}
-                  className="h-10 px-4 bg-slate-700 text-white rounded-xl hover:bg-slate-800 transition font-medium shadow-sm"
+                  className="h-10 px-4 bg-[#97ebf2] text-white rounded-xl hover:bg-slate-800 transition font-medium shadow-sm"
                 >
                   Cancel
                 </button>
