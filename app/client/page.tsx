@@ -538,8 +538,22 @@ export default function ClientPage() {
               </span>
               <div className="flex gap-3">
                 <button
-                  onClick={() => setIsDeleteOpen(false)}
-                  className="flex-1 px-4 py-3 bg-slate-100 text-slate-600 rounded-xl hover:bg-slate-200 transition font-semibold"
+                  onClick={() => {
+                    setIsAddOpen(false);
+                    setNewClient({
+                      firstName: "",
+                      lastName: "",
+                      email: "",
+                      phone: "",
+                      streetNumber: "",
+                      streetName: "",
+                      city: "",
+                      state: "",
+                      zip: "",
+                      country: "",
+                    });
+                  }}
+                  className="h-10 px-4 bg-slate-700 text-white rounded-xl hover:bg-slate-800 transition font-medium shadow-sm"
                 >
                   Cancel
                 </button>
