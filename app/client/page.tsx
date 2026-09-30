@@ -285,8 +285,8 @@ export default function ClientPage() {
                           <button onClick={() => { setSelectedClient(client); setIsViewOpen(true); }} className="p-2 text-[#0073d7] hover:bg-indigo-50 rounded-lg transition-all"><Eye size={18} /></button>
                           <button className="p-2 text-[#00846e] hover:bg-[#eff3f3] rounded-lg transition-all"><Edit size={18} /></button>
                           <button onClick={() => { setClientToDelete(client); setIsDeleteOpen(true); }} className="p-2 text-[#fa0026] hover:bg-[#fdeef0] rounded-lg transition-all"><Trash2 size={18} /></button>
-                        </div>
-                      </td>
+                        </div >
+                      </td >
                     </motion.tr>
                   ))}
                 </AnimatePresence>
@@ -312,7 +312,7 @@ export default function ClientPage() {
             <div className="flex justify-between items-center p-6 border-b border-slate-100">
               <h2 className="text-xl font-bold text-slate-800">Client Details</h2>
               <button onClick={() => setIsViewOpen(false)} className="text-slate-400 hover:text-slate-600 p-2 hover:bg-slate-100 rounded-xl"><X size={22} /></button>
-            </div>
+            </div >
             <div className="p-6 space-y-2">
               <DetailRow label="First Name" value={selectedClient.firstName} icon={<User size={22} />} />
               <DetailRow label="Last Name" value={selectedClient.lastName} icon={<User size={22} />} />
@@ -322,19 +322,19 @@ export default function ClientPage() {
                 <div className="flex items-center gap-2 text-slate-800 font-bold shrink-0">
                   <span className="text-[#0060d6]"><MapPin size={22} /></span>
                   <span className="text-slate-700 font-medium shrink-0 w-32 text-left">Address</span>
-                </div>
+                </div >
                 <div className="flex flex-col text-slate-800 font-bold">
                   <span>{selectedClient.addresses?.[0]?.streetNumber} {selectedClient.addresses?.[0]?.streetName}</span>
                   <span className="text-sm font-medium text-slate-500">{selectedClient.addresses?.[0]?.city}, {selectedClient.addresses?.[0]?.state} {selectedClient.addresses?.[0]?.zip}</span>
                   <span className="text-sm font-medium text-slate-500">{selectedClient.addresses?.[0]?.country}</span>
-                </div>
-              </div>
-            </div>
+                </div >
+              </div >
+            </div >
             <div className="p-6 bg-slate-50 text-right">
               <button onClick={() => setIsViewOpen(false)} className="px-4 py-2 bg-slate-200 text-slate-600 rounded-lg hover:bg-slate-300 transition font-medium">Close</button>
-            </div>
-          </div>
-        </div>
+            </div >
+          </div >
+        </div >
       )}
 
       {/* DELETE DIALOG */}
@@ -351,9 +351,9 @@ export default function ClientPage() {
             <div className="flex gap-3">
               <button onClick={() => setIsDeleteOpen(false)} className="flex-1 px-4 py-3 bg-slate-100 text-slate-600 rounded-xl hover:bg-slate-200 transition font-semibold">Cancel</button>
               <button onClick={handleDeleteConfirm} className="flex-1 px-4 py-3 bg-rose-600 text-white rounded-xl hover:bg-rose-700 transition font-semibold">Delete Now</button>
-            </div>
-          </div>
-        </div>
+            </div >
+          </div >
+        </div >
       )}
 
       {/* ADD MODAL */}
@@ -393,41 +393,41 @@ export default function ClientPage() {
                   }}
                 >Set Random Fields</button>
                 <button onClick={() => setIsAddOpen(false)} className="text-slate-400 hover:text-rose-500"><X size={23} /></button>
-              </div>
-            </div>
+              </div >
+            </div >
             <div className="p-6">
               <div className="flex flex-col md:flex-row gap-16">
                 <div className="flex-1 space-y-4">
-                  <div className="flex items-center gap-2 text-sm font-bold text-slate-500 uppercase"><User size={24} className="text-indigo-600" /> Client Information</div>
+                  <div className="flex items-center gap-2 text-sm font-bold text-slate-500 uppercase"><User size={24} className="text-indigo-600" /> Client Information</div >
                   <InputField label="First Name" value={newClient.firstName} onChange={v => setNewClient({...newClient, firstName: v})} icon={<User size={20} />} />
                   <InputField label="Last Name" value={newClient.lastName} onChange={v => setNewClient({...newClient, lastName: v})} icon={<User size={20} />} />
                   <InputField label="Email" value={newClient.email} onChange={v => setNewClient({...newClient, email: v})} icon={<Mail size={20} />} />
                   <InputField label="Phone" value={newClient.phone} onChange={v => setNewClient({...newClient, phone: v})} icon={<Phone size={20} />} />
-                </div>
+                </div >
                 <div className="hidden md:block w-px bg-slate-200 self-stretch" />
                 <div className="flex-1 space-y-4">
-                  <div className="flex items-center gap-2 text-sm font-bold text-slate-500 uppercase"><MapPin size={24} className="text-indigo-600" /> Address Details</div>
+                  <div className="flex items-center gap-2 text-sm font-bold text-slate-500 uppercase"><MapPin size={24} className="text-indigo-600" /> Address Details</div >
                   <div className="flex gap-3">
-                    <div className="w-1/3"><InputField label="No." value={newClient.address.streetNumber} onChange={v => setNewClient({...newClient, address: {...newClient.address, streetNumber: v}})} icon={<Hash size={16} />} /></div>
-                    <div className="w-2/3"><InputField label="Street Name" value={newClient.address.streetName} onChange={v => setNewClient({...newClient, address: {...newClient.address, streetName: v}})} icon={<Route size={16} />} /></div>
-                  </div>
+                    <div className="w-1/3"><InputField label="No." value={newClient.address.streetNumber} onChange={v => setNewClient({...newClient, address: {...newClient.address, streetNumber: v}})} icon={<Hash size={16} />} /></div >
+                    <div className="w-2/3"><InputField label="Street Name" value={newClient.address.streetName} onChange={v => setNewClient({...newClient, address: {...newClient.address, streetName: v}})} icon={<Route size={16} />} /></div >
+                  </div >
                   <InputField label="City" value={newClient.address.city} onChange={v => setNewClient({...newClient, address: {...newClient.address, city: v}})} icon={<Building2 size={20} />} />
                   <InputField label="State" value={newClient.address.state} onChange={v => setNewClient({...newClient, address: {...newClient.address, state: v}})} icon={<Landmark size={20} />} />
                   <div className="flex gap-3">
-                    <div className="flex-1"><InputField label="Zip" value={newClient.address.zip} onChange={v => setNewClient({...newClient, address: {...newClient.address, zip: v}})} icon={<MapPin size={20} />} /></div>
-                    <div className="flex-1"><InputField label="Country" value={newClient.address.country} onChange={v => setNewClient({...newClient, address: {...newClient.address, country: v}})} icon={<Globe size={20} />} /></div>
-                  </div>
-                </div>
-              </div>
-            </div>
+                    <div className="flex-1"><InputField label="Zip" value={newClient.address.zip} onChange={v => setNewClient({...newClient, address: {...newClient.address, zip: v}})} icon={<MapPin size={20} />} /></div >
+                    <div className="flex-1"><InputField label="Country" value={newClient.address.country} onChange={v => setNewClient({...newClient, address: {...newClient.address, country: v}})} icon={<Globe size={20} />} /></div >
+                  </div >
+                </div >
+              </div >
+            </div >
             <div className="p-6 bg-slate-50 flex justify-end gap-3">
               <button onClick={() => setIsAddOpen(false)} className="px-4 py-2 bg-slate-200 text-slate-600 rounded-xl hover:bg-slate-300 transition font-medium">Cancel</button>
               <button onClick={handleSaveNewClient} disabled={!isFormValid} className={`px-6 py-2 rounded-xl font-semibold transition ${isFormValid ? "bg-indigo-600 text-white hover:bg-indigo-700" : "bg-slate-400 text-white cursor-not-allowed"}`}>Save Client</button>
-            </div>
-          </div>
-        </div>
+            </div >
+          </div >
+        </div >
       )}
-    </div>
+    </div >
   );
 }
 
@@ -436,14 +436,14 @@ function InputField({ label, value, onChange, icon }: { label: string, value: st
     <div className="space-y-1">
       <label className="text-sm font-bold text-slate-500 uppercase ml-1">{label}</label>
       <div className="relative group">
-        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 group-hover:text-indigo-800 transition-all">{icon}</div>
+        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 group-hover:text-indigo-800 transition-all">{icon}</div >
         <input 
           className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all" 
           value={value} 
           onChange={e => onChange(e.target.value)} 
         />
-      </div>
-    </div>
+      </div >
+    </div >
   );
 }
 
@@ -457,12 +457,12 @@ function DetailRow({ label, value, icon }: DetailRowProps) {
   return (
     <div className="flex justify-start py-3 border-b border-slate-50 last:border-0 gap-6 whitespace-nowrap">
       <div className="flex items-center gap-2 text-slate-800 font-bold shrink-0">
-        <span className="text-[#0060d6]">{icon}</span>
-        <span className="text-slate-700 font-medium shrink-0 w-32 text-left">{label}</span>
-      </div>
+        <span className="text-[#0060d6]">{icon}</span >
+        <span className="text-slate-700 font-medium shrink-0 w-32 text-left">{label}</span >
+      </div >
       <div className="flex items-center gap-2 text-slate-800 font-bold shrink-0">
-        <span>{value ?? "N/A"}</span>
-      </div>
-    </div>
+        <span>{value ?? "N/A"}</span >
+      </div >
+    </div >
   );
 }
