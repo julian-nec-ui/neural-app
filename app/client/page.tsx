@@ -586,7 +586,7 @@ export default function ClientPage() {
               </h2>
 
               {/* Put back on the right, but nudged 7px to the left */}
-              <div className="flex items-center mr-6.75">
+              <div className="flex items-center mr-8.75">
                 <button
                   className="bg-[#4f46e5] text-white rounded-lg px-3 py-1.5 font-medium text-xs tracking-wide shadow-md hover:bg-[#3739d4] active:scale-95 transition-all cursor-pointer"
                   onClick={async () => {
@@ -626,7 +626,7 @@ export default function ClientPage() {
                     country: "",
                   });
                 }}
-                className="absolute top-0 right-0 z-20 text-slate-400 hover:text-slate-600 transition-colors p-1.5 hover:bg-[#e4eff5] rounded-lg"
+                className="absolute top-2 right-2 z-20 text-slate-400 hover:text-slate-600 transition-colors p-1.5 hover:bg-[#e4eff5] rounded-lg"
               >
                 <X size={23} />
               </button>
