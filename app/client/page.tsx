@@ -80,16 +80,15 @@ export default function ClientPage() {
         lastName: newClient.lastName,
         email: newClient.email,
         phone: newClient.phone,
-        address: [
+        address: 
           {
           streetNumber: newClient.streetNumber,
           streetName: newClient.streetName,
           city: newClient.city,
           state: newClient.state,
           zip: newClient.zip,
-          country: newClient.country,
+          country: newClient.country
           }
-        ]
       };
 
       const response = await clientService.createClient(payload);
