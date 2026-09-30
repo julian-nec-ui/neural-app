@@ -50,13 +50,29 @@ export default function ClientPage() {
     lastName: "",
     email: "",
     phone: "",
-    address: "",
+    streetNumber: "",
+    streetName: "",
+    city: "",
+    state: "",
+    zip: "",
+    country: "",
   });
 
   const handleSaveNewClient = async () => {
     try {
-      const response = await clientService.createClient(newClient);
-      const createdClient = { ...newClient, id: response.data.id };
+      // Combine address fields into a single string for the API
+      const addressString = `${newClient.streetNumber} ${newClient.streetName} | ${newClient.city} | ${newClient.state} | ${newClient.country} | ${newClient.zip}`;
+      
+      const payload = {
+        firstName: newClient.firstName,
+        lastName: newClient.lastName,
+        email: newClient.email,
+        phone: newClient.phone,
+        address: addressString,
+      };
+
+      const response = await clientService.createClient(payload);
+      const createdClient = { ...payload, id: response.data.id };
 
       setClients((prev) => {
         if (prev.some((client) => client.id === createdClient.id)) {
@@ -71,7 +87,12 @@ export default function ClientPage() {
         lastName: "",
         email: "",
         phone: "",
-        address: "",
+        streetNumber: "",
+        streetName: "",
+        city: "",
+        state: "",
+        zip: "",
+        country: "",
       });
 
       setIsAddOpen(false);
@@ -89,7 +110,12 @@ export default function ClientPage() {
         lastName: "",
         email: "",
         phone: "",
-        address: "",
+        streetNumber: "",
+        streetName: "",
+        city: "",
+        state: "",
+        zip: "",
+        country: "",
       });
     }
   };
@@ -534,7 +560,12 @@ export default function ClientPage() {
                 lastName: "",
                 email: "",
                 phone: "",
-                address: "",
+                streetNumber: "",
+                streetName: "",
+                city: "",
+                state: "",
+                zip: "",
+                country: "",
               });
             }}
           />
@@ -561,18 +592,12 @@ export default function ClientPage() {
                     lastName: user.name.last,
                     email: user.email,
                     phone: user.phone,
-                    address:
-                      user.location.street.number +
-                      " " +
-                      user.location.street.name +
-                      " | " +
-                      user.location.city +
-                      " | " +
-                      user.location.state +
-                      " | " +
-                      user.location.country +
-                      " | " +
-                      user.location.postcode,
+                    streetNumber: user.location.street.number,
+                    streetName: user.location.street.name,
+                    city: user.location.city,
+                    state: user.location.state,
+                    zip: user.location.postcode,
+                    country: user.location.country,
                   });
                 }}
               >
@@ -587,7 +612,12 @@ export default function ClientPage() {
                     lastName: "",
                     email: "",
                     phone: "",
-                    address: "",
+                    streetNumber: "",
+                    streetName: "",
+                    city: "",
+                    state: "",
+                    zip: "",
+                    country: "",
                   });
                 }}
                 className="text-slate-400 relative -top-4 -right-4 hover:text-slate-600 transition-colors p-2 hover:bg-[#e4eff5] rounded-xl"
@@ -664,20 +694,86 @@ export default function ClientPage() {
                 </div>
               </div>
 
-              <div className="space-y-1">
-                <label className="text-sm font-bold text-slate-500 uppercase ml-1">
-                  Address
-                </label>
-                <div className="relative group">
-                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 group-hover:text-indigo-800 group-hover:drop-shadow-md transition-all" size={20} />
-                  <input
-                    className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-md hover:shadow-indigo-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                    value={newClient.address}
-                    placeholder="123 Main St | New York | NY"
-                    onChange={(e) =>
-                      setNewClient({ ...newClient, address: e.target.value })
-                    }
-                  />
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 text-sm font-bold text-slate-500 uppercase ml-1">
+                   <MapPin size={16} /> Address Details
+                </div>
+                
+                <div className="flex gap-3">
+                  <div className="space-y-1 w-1/4">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">No.</label>
+                    <div className="relative group">
+                      <input
+                        className="w-full p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-md hover:shadow-indigo-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                        value={newClient.streetNumber}
+                        placeholder="123"
+                        onChange={(e) => setNewClient({ ...newClient, streetNumber: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-1 w-3/4">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Street Name</label>
+                    <div className="relative group">
+                      <input
+                        className="w-full p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-md hover:shadow-indigo-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                        value={newClient.streetName}
+                        placeholder="Main St"
+                        onChange={(e) => setNewClient({ ...newClient, streetName: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-sm font-bold text-slate-500 uppercase ml-1">City</label>
+                  <div className="relative group">
+                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 group-hover:text-indigo-800 transition-all" size={20} />
+                    <input
+                      className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-md hover:shadow-indigo-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      value={newClient.city}
+                      placeholder="New York"
+                      onChange={(e) => setNewClient({ ...newClient, city: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-sm font-bold text-slate-500 uppercase ml-1">State</label>
+                  <div className="relative group">
+                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 group-hover:text-indigo-800 transition-all" size={20} />
+                    <input
+                      className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-md hover:shadow-indigo-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      value={newClient.state}
+                      placeholder="NY"
+                      onChange={(e) => setNewClient({ ...newClient, state: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-sm font-bold text-slate-500 uppercase ml-1">Zip Code</label>
+                  <div className="relative group">
+                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 group-hover:text-indigo-800 transition-all" size={20} />
+                    <input
+                      className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-md hover:shadow-indigo-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      value={newClient.zip}
+                      placeholder="10001"
+                      onChange={(e) => setNewClient({ ...newClient, zip: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-sm font-bold text-slate-500 uppercase ml-1">Country</label>
+                  <div className="relative group">
+                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 group-hover:text-indigo-800 transition-all" size={20} />
+                    <input
+                      className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-md hover:shadow-indigo-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      value={newClient.country}
+                      placeholder="USA"
+                      onChange={(e) => setNewClient({ ...newClient, country: e.target.value })}
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -690,7 +786,12 @@ export default function ClientPage() {
                     lastName: "",
                     email: "",
                     phone: "",
-                    address: "",
+                    streetNumber: "",
+                    streetName: "",
+                    city: "",
+                    state: "",
+                    zip: "",
+                    country: "",
                   });
                 }}
                 className="px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-100 transition font-medium"
