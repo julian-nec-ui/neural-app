@@ -1,13 +1,23 @@
 import axios, { AxiosResponse } from 'axios';
 
-// 1. Define the Client interface to match your backend and frontend
+// 1 Define Address interface to match your backend and frontend
+export interface Address {
+  streetNumber: string;
+  streetName: string;
+  city: string;
+  state: string;
+  zip: string;
+  country: string;
+}
+
+// 2. Define the Client interface to match your backend and frontend
 export interface Client {
     id: number;
     firstName: string;
     lastName: string;
     email: string;
     phone: string;
-    address: string;
+    address: Address;
 }
 
 const CLIENT_API = axios.create({
