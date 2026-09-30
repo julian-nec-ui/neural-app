@@ -30,7 +30,6 @@ import { AnimatePresence, motion } from "framer-motion";
 
 // 1. Define Address as its own interface
 interface Address {
-  id?: number;
   streetNumber: string;
   streetName: string;
   city: string;
@@ -82,6 +81,7 @@ export default function ClientPage() {
       state: "",
       zip: "",
       country: "",
+      clientId: -1
     }
   });
 
@@ -99,6 +99,7 @@ export default function ClientPage() {
           state: newClient.address.state,
           zip: newClient.address.zip,
           country: newClient.address.country,
+          clientId: -1
         }
       };
 
@@ -133,6 +134,7 @@ export default function ClientPage() {
           state: "",
           zip: "",
           country: "",
+          clientId: -1
         }
       });
 
@@ -457,6 +459,7 @@ export default function ClientPage() {
                         state: user.location.state,
                         zip: user.location.postcode,
                         country: user.location.country,
+                        clientId: -1
                       }
                     });
                   }}
