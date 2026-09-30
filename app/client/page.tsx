@@ -425,6 +425,7 @@ export default function ClientPage() {
   );
 }
 
+// Only the InputField component is changed
 function InputField({ label, value, onChange, icon }: { label: string, value: string, onChange: (v: string) => void, icon: React.ReactNode }) {
   return (
     <div className="space-y-1">
@@ -432,7 +433,7 @@ function InputField({ label, value, onChange, icon }: { label: string, value: st
       <div className="relative group">
         <div className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 group-hover:text-indigo-800 transition-all">{icon}</div >
         <input 
-          className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all" 
+          className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all text-slate-900 font-medium" 
           value={value} 
           onChange={e => onChange(e.target.value)} 
         />
@@ -440,6 +441,7 @@ function InputField({ label, value, onChange, icon }: { label: string, value: st
     </div >
   );
 }
+
 
 interface DetailRowProps {
   label: string;
