@@ -639,7 +639,7 @@ export default function ClientPage() {
                 {/* COLUMN 1: Client Info */}
                 <div className="flex-1 space-y-4 mb-6">
                   <div className="flex items-center gap-2 text-sm font-bold text-slate-500 uppercase">
-                    <User size={30} /> Client Information
+                    <User size={24} /> Client Information
                   </div>
 
                   <div className="space-y-1 mt-4">
