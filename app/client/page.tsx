@@ -642,7 +642,7 @@ export default function ClientPage() {
                     <User size={30} /> Client Information
                   </div>
 
-                  <div className="space-y-1">
+                  <div className="space-y-1 mt-4">
                     <label className="text-sm font-bold text-slate-500 uppercase ml-1">
                       First Name
                     </label>
