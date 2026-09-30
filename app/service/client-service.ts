@@ -2,8 +2,6 @@ import axios, { AxiosResponse } from 'axios';
 
 // The structure of the address
 export interface Address {
-    // id is optional because it's not needed for creation, 
-    // but will be returned by the DB after saving
     id?: number; 
     streetNumber: string;
     streetName: string;
@@ -15,7 +13,7 @@ export interface Address {
 
 // The structure of the full Client
 export interface Client {
-    id: number; // Required when receiving from DB
+    id: number; 
     firstName: string;
     lastName: string;
     email: string;
@@ -32,9 +30,12 @@ export const clientService = {
     getAllClients: (): Promise<AxiosResponse<Client[]>> => 
         CLIENT_API.get('/clients'),
 
-    // Use Omit<Client, 'id'> to tell TypeScript: 
-    // "Accept all Client fields EXCEPT the id"
-    createClient: (clientData: Omit<Client, 'id'>): Promise<AxiosResponse<Client>> => 
+    /**
+     * Fixed: Changed from Omit<Client, 'id'> to a type that allows 
+     * an optional id. This is necessary because we are sending 'id: 0' 
+     * from the frontend to prevent the Java NullPointerException.
+     */
+    createClient: (clientData: Partial<Client> & { firstName: string; lastName: string; email: string; phone: string; address: Address }): Promise<AxiosResponse<Client>> => 
         CLIENT_API.post('/clients', clientData),
 
     updateClient: (id: number, clientData: Partial<Client>): Promise<AxiosResponse<Client>> => 
