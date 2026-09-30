@@ -64,30 +64,32 @@ export default function ClientPage() {
     lastName: "",
     email: "",
     phone: "",
-    streetNumber: "",
-    streetName: "",
-    city: "",
-    state: "",
-    zip: "",
-    country: "",
+    address: {
+      streetNumber: "",
+      streetName: "",
+      city: "",
+      state: "",
+      zip: "",
+      country: "",
+    }
   });
 
   const handleSaveNewClient = async () => {
     try {
       const payload = {
+        id: 0,
         firstName: newClient.firstName,
         lastName: newClient.lastName,
         email: newClient.email,
         phone: newClient.phone,
-        address: 
-          {
-          streetNumber: newClient.streetNumber,
-          streetName: newClient.streetName,
-          city: newClient.city,
-          state: newClient.state,
-          zip: newClient.zip,
-          country: newClient.country
-          }
+        address: {
+          streetNumber: newClient.address.streetNumber,
+          streetName: newClient.address.streetName,
+          city: newClient.address.city,
+          state: newClient.address.state,
+          zip: newClient.address.zip,
+          country: newClient.address.country
+        }
       };
 
       const response = await clientService.createClient(payload);
@@ -105,12 +107,15 @@ export default function ClientPage() {
         lastName: "",
         email: "",
         phone: "",
-        streetNumber: "",
-        streetName: "",
-        city: "",
-        state: "",
-        zip: "",
-        country: "",
+        address: {
+          streetNumber: "",
+          streetName: "",
+          city: "",
+          state: "",
+          zip: "",
+          country: "",
+        }
+
       });
 
       setIsAddOpen(false);
@@ -147,7 +152,7 @@ export default function ClientPage() {
       });
     };
     stompClient.activate();
-    
+
     return () => {
       stompClient.deactivate();
     };
@@ -167,7 +172,14 @@ export default function ClientPage() {
   }, []);
 
   const isFormValid = useMemo(() => {
-    return Object.values(newClient).every((value) => String(value).trim() !== "");
+    const flatValues = [
+      newClient.firstName, 
+      newClient.lastName, 
+      newClient.email, 
+      newClient.phone,
+      ...Object.values(newClient.address)
+    ];
+    return flatValues.every((value) => String(value).trim() !== "");
   }, [newClient]);
 
   const [sortConfig, setSortConfig] = useState<{
@@ -190,7 +202,7 @@ export default function ClientPage() {
 
     return [...pageItems].sort((a, b) => {
       const key = sortConfig.key;
-      
+
       const valA = key === 'address' ? a.address.city : a[key as keyof Client];
       const valB = key === 'address' ? b.address.city : b[key as keyof Client];
 
@@ -252,11 +264,11 @@ export default function ClientPage() {
             <table className="w-full text-left border-collapse table-auto">
               <thead className="bg-slate-50 border-b border-slate-200">
                 <tr className="whitespace-nowrap">
-                  <SortableHeader label="First Name" keyField="firstName" onSort={handleSort} sortConfig={sortConfig} />
-                  <SortableHeader label="Last Name" keyField="lastName" onSort={handleSort} sortConfig={sortConfig} />
-                  <SortableHeader label="Email" keyField="email" onSort={handleSort} sortConfig={sortConfig} />
-                  <SortableHeader label="Phone" keyField="phone" onSort={handleSort} sortConfig={sortConfig} />
-                  <SortableHeader label="Address" keyField="address" onSort={handleSort} sortConfig={sortConfig} />
+                  <SortableHeader label="First Name" keyField="firstName" onSort={handleSort as any} sortConfig={sortConfig} />
+                  <SortableHeader label="Last Name" keyField="lastName" onSort={handleSort as any} sortConfig={sortConfig} />
+                  <SortableHeader label="Email" keyField="email" onSort={handleSort as any} sortConfig={sortConfig} />
+                  <SortableHeader label="Phone" keyField="phone" onSort={handleSort as any} sortConfig={sortConfig} />
+                  <SortableHeader label="Address" keyField="address" onSort={handleSort as any} sortConfig={sortConfig} />
                   <th className="px-6 py-4 text-left sticky right-0 bg-slate-50 shadow-[-10px_0_10px_-5px_rgba(0,0,0,0.05)] z-10 text-sm font-bold text-slate-500 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
@@ -367,7 +379,7 @@ export default function ClientPage() {
       {/* ADD MODAL */}
       {isAddOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="fixed inset-0 bg-black/15 z-0" onClick={() => { setIsAddOpen(false); setNewClient({ firstName: "", lastName: "", email: "", phone: "", streetNumber: "", streetName: "", city: "", state: "", zip: "", country: "" }); }} />
+          <div className="fixed inset-0 bg-black/15 z-0" onClick={() => { setIsAddOpen(false); setNewClient({ firstName: "", lastName: "", email: "", phone: "", address: { streetNumber: "", streetName: "", city: "", state: "", zip: "", country: "" } }); }} />
           <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden animate-in fade-in zoom-in duration-200">
             <div className="relative flex justify-right gap-32 items-center p-6 border-b border-slate-100">
               <h2 className="text-xl font-bold text-slate-800">Add New Client</h2>
@@ -377,17 +389,20 @@ export default function ClientPage() {
                   onClick={async () => {
                     const result = await axios.get("https://randomuser.me/api/");
                     const user = result.data.results[0];
+                    
                     setNewClient({
                       firstName: user.name.first,
                       lastName: user.name.last,
                       email: user.email,
                       phone: user.phone,
-                      streetNumber: String(user.location.street.number),
-                      streetName: user.location.street.name,
-                      city: user.location.city,
-                      state: user.location.state,
-                      zip: user.location.postcode,
-                      country: user.location.country,
+                      address: {
+                        streetNumber: String(user.location.street.number),
+                        streetName: user.location.street.name,
+                        city: user.location.city,
+                        state: user.location.state,
+                        zip: user.location.postcode,
+                        country: user.location.country,
+                      }
                     });
                   }}
                 >
@@ -446,14 +461,14 @@ export default function ClientPage() {
                       <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">No.</label>
                       <div className="relative group">
                         <Hash className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 group-hover:text-indigo-800 transition-all" size={16} />
-                        <input className="w-full pl-9 p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-md hover:shadow-indigo-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent" value={newClient.streetNumber} placeholder="123" onChange={(e) => setNewClient({ ...newClient, streetNumber: e.target.value })} />
+                        <input className="w-full pl-9 p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-md hover:shadow-indigo-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent" value={newClient.address.streetNumber} placeholder="123" onChange={(e) => setNewClient({ ...newClient, address: { ...newClient.address, streetNumber: e.target.value } })} />
                       </div>
                     </div>
                     <div className="space-y-1 w-2/3">
                       <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Street Name</label>
                       <div className="relative group">
                         <Route className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 group-hover:text-indigo-800 transition-all" size={16} />
-                        <input className="w-full pl-9 p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-md hover:shadow-indigo-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent" value={newClient.streetName} placeholder="Main St" onChange={(e) => setNewClient({ ...newClient, streetName: e.target.value })} />
+                        <input className="w-full pl-9 p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-md hover:shadow-indigo-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent" value={newClient.address.streetName} placeholder="Main St" onChange={(e) => setNewClient({ ...newClient, address: { ...newClient.address, streetName: e.target.value } })} />
                       </div>
                     </div>
                   </div>
@@ -461,14 +476,14 @@ export default function ClientPage() {
                     <label className="text-sm font-bold text-slate-500 uppercase ml-1">City</label>
                     <div className="relative group">
                       <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 group-hover:text-indigo-800 transition-all" size={20} />
-                      <input className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-md hover:shadow-indigo-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent" value={newClient.city} placeholder="New York" onChange={(e) => setNewClient({ ...newClient, city: e.target.value })} />
+                      <input className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-md hover:shadow-indigo-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent" value={newClient.address.city} placeholder="New York" onChange={(e) => setNewClient({ ...newClient, address: { ...newClient.address, city: e.target.value } })} />
                     </div>
                   </div>
                   <div className="space-y-1">
                     <label className="text-sm font-bold text-slate-500 uppercase ml-1">State</label>
                     <div className="relative group">
                       <Landmark className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 group-hover:text-indigo-800 transition-all" size={20} />
-                      <input className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-md hover:shadow-indigo-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent" value={newClient.state} placeholder="NY" onChange={(e) => setNewClient({ ...newClient, state: e.target.value })} />
+                      <input className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-md hover:shadow-indigo-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent" value={newClient.address.state} placeholder="NY" onChange={(e) => setNewClient({ ...newClient, address: { ...newClient.address, state: e.target.value } })} />
                     </div>
                   </div>
                   <div className="flex gap-3">
@@ -476,14 +491,14 @@ export default function ClientPage() {
                       <label className="text-sm font-bold text-slate-500 uppercase ml-1">Zip Code</label>
                       <div className="relative group">
                         <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 group-hover:text-indigo-800 transition-all" size={20} />
-                        <input className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-md hover:shadow-indigo-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent" value={newClient.zip} placeholder="10001" onChange={(e) => setNewClient({ ...newClient, zip: e.target.value })} />
+                        <input className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-md hover:shadow-indigo-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent" value={newClient.address.zip} placeholder="10001" onChange={(e) => setNewClient({ ...newClient, address: { ...newClient.address, zip: e.target.value } })} />
                       </div>
                     </div>
                     <div className="space-y-1 flex-1">
                       <label className="text-sm font-bold text-slate-500 uppercase ml-1">Country</label>
                       <div className="relative group">
                         <Globe className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 group-hover:text-indigo-800 transition-all" size={20} />
-                        <input className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-md hover:shadow-indigo-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent" value={newClient.country} placeholder="USA" onChange={(e) => setNewClient({ ...newClient, country: e.target.value })} />
+                        <input className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-md hover:shadow-indigo-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent" value={newClient.address.country} placeholder="USA" onChange={(e) => setNewClient({ ...newClient, address: { ...newClient.address, country: e.target.value } })} />
                       </div>
                     </div>
                   </div>
@@ -493,7 +508,7 @@ export default function ClientPage() {
 
             <div className="p-6 bg-slate-50 flex justify-end gap-3 items-stretch">
               <button
-                onClick={() => { setIsAddOpen(false); setNewClient({ firstName: "", lastName: "", email: "", phone: "", streetNumber: "", streetName: "", city: "", state: "", zip: "", country: "" }); }}
+                onClick={() => { setIsAddOpen(false); setNewClient({ firstName: "", lastName: "", email: "", phone: "", address: { streetNumber: "", streetName: "", city: "", state: "", zip: "", country: "" } }); }}
                 className="h-10 px-4 bg-[#8480d2] text-[#ffffff] rounded-xl hover:bg-slate-800 transition font-medium shadow-sm flex items-center justify-center"
               >
                 Cancel
