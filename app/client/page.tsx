@@ -179,8 +179,10 @@ export default function ClientPage() {
   }, []);
 
   const isFormValid = useMemo(() => {
-    return Object.values(newClient).every((value) => value.trim() !== "");
-  }, [newClient]);
+  // String(value) ensures that numbers (like streetNumber) are converted to strings before trimming
+  return Object.values(newClient).every((value) => String(value).trim() !== "");
+}, [newClient]);
+
 
   const [sortConfig, setSortConfig] = useState<{
     key: keyof Client | "";
@@ -592,7 +594,7 @@ export default function ClientPage() {
                     lastName: user.name.last,
                     email: user.email,
                     phone: user.phone,
-                    streetNumber: user.location.street.number,
+                    streetNumber: String(user.location.street.number),
                     streetName: user.location.street.name,
                     city: user.location.city,
                     state: user.location.state,
