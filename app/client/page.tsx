@@ -699,7 +699,7 @@ export default function ClientPage() {
                 </div>
 
                 {/* VERTICAL DIVIDER */}
-                <div className="hidden md:block w-px bg-slate-200 self-stretch hover:bg-green-400 hover:shadow-lg"></div>
+                <div className="hidden md:block w-px bg-slate-600 self-stretch"></div>
 
                 {/* COLUMN 2: Address Details */}
                 <div className="flex-1 space-y-4">
