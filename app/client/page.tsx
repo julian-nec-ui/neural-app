@@ -16,6 +16,11 @@ import {
   Mail,
   MapPin,
   Phone,
+  Hash,
+  Route,
+  Building2,
+  Landmark,
+  Globe
 } from "lucide-react";
 
 import axios from "axios";
@@ -701,7 +706,7 @@ export default function ClientPage() {
                 {/* VERTICAL DIVIDER */}
                 <div className="hidden md:flex justify-center w-4 self-stretch group">
                   <div className="w-px h-full transition-all duration-300 
-                  bg-slate-200 
+                  bg-slate-300 
                   shadow-[0_0_8px_rgba(0,0,0,0.2)] 
                   group-hover:bg-indigo-500 
                   group-hover:shadow-[0_0_12px_rgba(99,102,241,0.8)] 
@@ -716,31 +721,39 @@ export default function ClientPage() {
                     <MapPin size={16} /> Address Details
                   </div>
 
+                  {/* Street Number & Name Row */}
                   <div className="flex gap-3">
                     <div className="space-y-1 w-1/3">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Street No.</label>
-                      <input
-                        className="w-full p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-md hover:shadow-indigo-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                        value={newClient.streetNumber}
-                        placeholder="123"
-                        onChange={(e) => setNewClient({ ...newClient, streetNumber: e.target.value })}
-                      />
+                      <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">No.</label>
+                      <div className="relative group">
+                        <Hash className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 group-hover:text-indigo-800 transition-all" size={16} />
+                        <input
+                          className="w-full pl-9 p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-md hover:shadow-indigo-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                          value={newClient.streetNumber}
+                          placeholder="123"
+                          onChange={(e) => setNewClient({ ...newClient, streetNumber: e.target.value })}
+                        />
+                      </div>
                     </div>
                     <div className="space-y-1 w-2/3">
                       <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Street Name</label>
-                      <input
-                        className="w-full p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-md hover:shadow-indigo-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                        value={newClient.streetName}
-                        placeholder="Main St"
-                        onChange={(e) => setNewClient({ ...newClient, streetName: e.target.value })}
-                      />
+                      <div className="relative group">
+                        <Route className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 group-hover:text-indigo-800 transition-all" size={16} />
+                        <input
+                          className="w-full pl-9 p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-md hover:shadow-indigo-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                          value={newClient.streetName}
+                          placeholder="Main St"
+                          onChange={(e) => setNewClient({ ...newClient, streetName: e.target.value })}
+                        />
+                      </div>
                     </div>
                   </div>
 
+                  {/* City */}
                   <div className="space-y-1">
                     <label className="text-sm font-bold text-slate-500 uppercase ml-1">City</label>
                     <div className="relative group">
-                      <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 group-hover:text-indigo-800 transition-all" size={20} />
+                      <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 group-hover:text-indigo-800 transition-all" size={20} />
                       <input
                         className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-md hover:shadow-indigo-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                         value={newClient.city}
@@ -750,10 +763,11 @@ export default function ClientPage() {
                     </div>
                   </div>
 
+                  {/* State */}
                   <div className="space-y-1">
                     <label className="text-sm font-bold text-slate-500 uppercase ml-1">State</label>
                     <div className="relative group">
-                      <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 group-hover:text-indigo-800 transition-all" size={20} />
+                      <Landmark className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 group-hover:text-indigo-800 transition-all" size={20} />
                       <input
                         className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-md hover:shadow-indigo-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                         value={newClient.state}
@@ -763,6 +777,7 @@ export default function ClientPage() {
                     </div>
                   </div>
 
+                  {/* Zip & Country Row */}
                   <div className="flex gap-3">
                     <div className="space-y-1 flex-1">
                       <label className="text-sm font-bold text-slate-500 uppercase ml-1">Zip Code</label>
@@ -779,7 +794,7 @@ export default function ClientPage() {
                     <div className="space-y-1 flex-1">
                       <label className="text-sm font-bold text-slate-500 uppercase ml-1">Country</label>
                       <div className="relative group">
-                        <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 group-hover:text-indigo-800 transition-all" size={20} />
+                        <Globe className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 group-hover:text-indigo-800 transition-all" size={20} />
                         <input
                           className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-md hover:shadow-indigo-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                           value={newClient.country}
@@ -790,6 +805,7 @@ export default function ClientPage() {
                     </div>
                   </div>
                 </div>
+
               </div>
             </div>
 
