@@ -580,7 +580,7 @@ export default function ClientPage() {
             className="relative bg-white rounded-2xl shadow-2xl w-full max-w-4xl 
               overflow-hidden animate-in fade-in zoom-in duration-200"
           >
-            <div className="relative flex justify-right gap-30 items-center p-6 border-b border-slate-100">
+            <div className="relative flex justify-right gap-32 items-center p-6 border-b border-slate-100">
               <h2 className="text-xl font-bold text-slate-800">
                 Add New Client
               </h2>
