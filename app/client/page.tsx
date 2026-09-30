@@ -125,7 +125,7 @@ export default function ClientPage() {
     }
   };
 
-  const setWebSocket = () => {
+  useEffect(() => {
     const stompClient: StompClient = new StompClient({
       brokerURL: "ws://localhost:8081/api/ws",
       reconnectDelay: 5000,
@@ -148,12 +148,10 @@ export default function ClientPage() {
       });
     };
     stompClient.activate();
-    return () => stompClient.deactivate();
-  };
-
-  useEffect(() => {
-    const cleanup = setWebSocket();
-    return () => { if (typeof cleanup === "function") cleanup(); };
+    
+    return () => {
+      stompClient.deactivate();
+    };
   }, []);
 
   const isFormValid = useMemo(() => {
@@ -192,10 +190,10 @@ export default function ClientPage() {
     if (!sortConfig.key || !sortConfig.direction) return pageItems;
 
     return [...pageItems].sort((a, b) => {
-      const key = sortConfig.key as keyof Client;
-      // Handling sorting for the address object specifically
-      const valA = key === 'address' ? (a.address as any).city : (a as any)[key];
-      const valB = key === 'address' ? (b.address as any).city : (b as any)[key];
+      const key = sortConfig.key;
+      
+      const valA = key === 'address' ? a.address.city : a[key as keyof Client];
+      const valB = key === 'address' ? b.address.city : b[key as keyof Client];
 
       if (valA < valB) return sortConfig.direction === "asc" ? -1 : 1;
       if (valA > valB) return sortConfig.direction === "asc" ? 1 : -1;
@@ -216,7 +214,6 @@ export default function ClientPage() {
     }
   };
 
-  // CHANGE: Updated to handle the address object instead of a delimited string
   const renderAddress = (address: Address) => {
     if (!address) return <span className="text-slate-400 italic">N/A</span>;
 
@@ -339,7 +336,6 @@ export default function ClientPage() {
       )}
 
       {/* DELETE DIALOG */}
-      {/* DELETE DIALOG */}
       {isDeleteOpen && clientToDelete && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="fixed inset-0 bg-black/15 z-0" onClick={() => setIsDeleteOpen(false)} />
@@ -352,7 +348,6 @@ export default function ClientPage() {
               Are you sure you want to delete <span className="text-indigo-600">{clientToDelete.firstName} {clientToDelete.lastName}</span>?
             </p>
 
-            {/* ADDED BACK: Warning line using AlertTriangle */}
             <span className="flex items-center justify-center gap-2 text-rose-500 font-semibold text-sm mb-8 uppercase tracking-wide">
               <AlertTriangle size={18} /> This action is permanent
             </span>
