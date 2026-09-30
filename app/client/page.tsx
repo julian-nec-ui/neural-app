@@ -699,8 +699,13 @@ export default function ClientPage() {
                 </div>
 
                 {/* VERTICAL DIVIDER */}
-                {/* VERTICAL DIVIDER */}
-                <div className="hidden md:block w-px bg-slate-200 self-stretch transition-all duration-300 hover:bg-indigo-400 hover:shadow-[0_0_10px_rgba(129,140,248,0.8)] cursor-pointer"></div>
+                <div className="hidden md:flex justify-center w-4 self-stretch group cursor-pointer">
+                  <div className="w-px bg-slate-200 h-full transition-all duration-300 
+                  group-hover:bg-indigo-500 
+                  group-hover:shadow-[0_0_12px_rgba(99,102,241,0.8)] 
+                  group-hover:scale-y-105">
+                  </div>
+                </div>
 
                 {/* COLUMN 2: Address Details */}
                 <div className="flex-1 space-y-4">
