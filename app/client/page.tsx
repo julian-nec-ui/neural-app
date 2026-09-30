@@ -48,6 +48,15 @@ interface Client {
   address: Address;
 }
 
+// 3. Define ClientRequest to match the Java Backend (ClientRequest.java)
+interface ClientRequest {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  addresses: Address; // Java uses 'addresses' plural for the object
+}
+
 export default function ClientPage() {
   const [clients, setClients] = useState<Client[]>([]);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
@@ -76,16 +85,35 @@ export default function ClientPage() {
 
   const handleSaveNewClient = async () => {
     try {
-      // FIX: Ensure payload is constructed exactly as the backend expects
-      const payload = {
-        ...newClient,
-        id: 0,
+      const payload: ClientRequest = {
+        firstName: newClient.firstName,
+        lastName: newClient.lastName,
+        email: newClient.email,
+        phone: newClient.phone,
+        addresses: { 
+          streetNumber: newClient.address.streetNumber,
+          streetName: newClient.address.streetName,
+          city: newClient.address.city,
+          state: newClient.address.state,
+          zip: newClient.address.zip,
+          country: newClient.address.country,
+        }
       };
 
-      console.log("==== Payload being sent: ", payload, " =====");
+      console.log("Sending payload to server:", payload);
 
-      const response = await clientService.createClient(payload);
-      const createdClient = { ...payload, id: response.data.id };
+      // FIX: Replaced 'as any' with 'as unknown as Client' to satisfy ESLint
+      const response = await clientService.createClient(payload as unknown as Client);
+
+      // Map the response back to the UI's 'Client' interface (plural 'addresses' -> singular 'address')
+      const createdClient: Client = {
+        id: response.data.id,
+        firstName: payload.firstName,
+        lastName: payload.lastName,
+        email: payload.email,
+        phone: payload.phone,
+        address: payload.addresses 
+      };
 
       setClients((prev) => {
         if (prev.some((client) => client.id === createdClient.id)) {
@@ -255,11 +283,11 @@ export default function ClientPage() {
             <table className="w-full text-left border-collapse table-auto">
               <thead className="bg-slate-50 border-b border-slate-200">
                 <tr className="whitespace-nowrap">
-                  <SortableHeader label="First Name" keyField="firstName" onSort={handleSort} sortConfig={sortConfig} />
-                  <SortableHeader label="Last Name" keyField="lastName" onSort={handleSort} sortConfig={sortConfig} />
-                  <SortableHeader label="Email" keyField="email" onSort={handleSort} sortConfig={sortConfig} />
-                  <SortableHeader label="Phone" keyField="phone" onSort={handleSort} sortConfig={sortConfig} />
-                  <SortableHeader label="Address" keyField="address" onSort={handleSort} sortConfig={sortConfig} />
+                  <SortableHeader label="First Name" keyField="firstName" onSort={(key) => handleSort(key as keyof Client)} sortConfig={sortConfig} />
+                  <SortableHeader label="Last Name" keyField="lastName" onSort={(key) => handleSort(key as keyof Client)} sortConfig={sortConfig} />
+                  <SortableHeader label="Email" keyField="email" onSort={(key) => handleSort(key as keyof Client)} sortConfig={sortConfig} />
+                  <SortableHeader label="Phone" keyField="phone" onSort={(key) => handleSort(key as keyof Client)} sortConfig={sortConfig} />
+                  <SortableHeader label="Address" keyField="address" onSort={(key) => handleSort(key as keyof Client)} sortConfig={sortConfig} />
                   <th className="px-6 py-4 text-left sticky right-0 bg-slate-50 shadow-[-10px_0_10px_-5px_rgba(0,0,0,0.05)] z-10 text-sm font-bold text-slate-500 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
