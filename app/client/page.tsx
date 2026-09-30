@@ -703,7 +703,7 @@ export default function ClientPage() {
                 
                 <div className="flex gap-3">
                   <div className="space-y-1 w-1/4">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">No.</label>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Street No</label>
                     <div className="relative group">
                       <input
                         className="w-full p-2.5 border border-slate-200 rounded-xl outline-none transition-all duration-300 text-slate-900 bg-white hover:border-indigo-400 hover:shadow-md hover:shadow-indigo-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
