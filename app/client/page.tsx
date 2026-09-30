@@ -635,7 +635,7 @@ export default function ClientPage() {
             </div>
 
             <div className="p-6">
-              <div className="flex flex-col md:flex-row gap-8">
+              <div className="flex flex-col md:flex-row gap-16">
                 {/* COLUMN 1: Client Info */}
                 <div className="flex-1 space-y-4">
                   <div className="flex items-center gap-2 text-sm font-bold text-slate-500 uppercase mb-2">
