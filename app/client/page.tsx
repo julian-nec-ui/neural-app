@@ -838,7 +838,7 @@ export default function ClientPage() {
                     country: "",
                   });
                 }}
-                className="h-10 px-4 bg-[#93a4c6] text-[#333333] rounded-xl hover:bg-[#fa5e78] hover:text-[#eeffee] transition font-medium shadow-sm flex items-center justify-center"
+                className="h-10 px-4 bg-[#93a4c6] text-[#eeeeff] rounded-xl hover:bg-[#fa5e78] hover:text-[#eeffee] transition font-medium shadow-sm flex items-center justify-center"
               >
                 Cancel
               </button>
