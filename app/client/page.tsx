@@ -838,7 +838,7 @@ export default function ClientPage() {
                     country: "",
                   });
                 }}
-                className="h-10 px-4 bg-[#e1eafc] text-slate-500 rounded-xl hover:bg-[#f963a6] hover:text-[#eeffee] transition font-medium shadow-sm flex items-center justify-center"
+                className="h-10 px-4 bg-[#e1eafc] text-slate-500 rounded-xl hover:bg-[#fe86b4] hover:text-[#eeffee] transition font-medium shadow-sm flex items-center justify-center"
               >
                 Cancel
               </button>
@@ -847,7 +847,7 @@ export default function ClientPage() {
                 disabled={!isFormValid}
                 className={`h-10 px-6 rounded-xl transition shadow-md font-semibold flex items-center justify-center ${isFormValid
                     ? "bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer"
-                    : "bg-slate-300 text-white cursor-not-allowed"
+                    : "bg-slate-300 text-white"
                   }`}
               >
                 Save Client
