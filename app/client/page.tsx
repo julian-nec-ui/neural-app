@@ -23,7 +23,6 @@ import { Client as StompClient } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 import { AnimatePresence, motion } from "framer-motion";
 
-// New Interface for Address
 interface Address {
   id?: number;
   streetNumber: string;
@@ -33,14 +32,13 @@ interface Address {
   zip: string;
 }
 
-// Updated Client interface
 interface Client {
   id: number;
   firstName: string;
   lastName: string;
   email: string;
   phone: string;
-  addresses: Address[]; // Changed from string to array
+  addresses: Address[];
 }
 
 export default function ClientPage() {
@@ -54,7 +52,6 @@ export default function ClientPage() {
 
   const [isAddOpen, setIsAddOpen] = useState(false);
 
-  // Modified state to include structured address
   const [newClient, setNewClient] = useState({
     firstName: "",
     lastName: "",
@@ -71,19 +68,15 @@ export default function ClientPage() {
 
   const handleSaveNewClient = async () => {
     try {
-      // Transform to match Backend DTO: Client with a list of addresses
       const payload = {
         ...newClient,
         addresses: [newClient.address], 
       };
-      
       const response = await clientService.createClient(payload);
       const createdClient = { ...payload, id: response.data.id };
 
       setClients((prev) => {
-        if (prev.some((client) => client.id === createdClient.id)) {
-          return prev;
-        }
+        if (prev.some((client) => client.id === createdClient.id)) return prev;
         return [...prev, createdClient];
       });
 
@@ -94,18 +87,9 @@ export default function ClientPage() {
         phone: "",
         address: { streetNumber: "", streetName: "", city: "", state: "", zip: "" },
       });
-
       setIsAddOpen(false);
     } catch (err) {
       console.error("Error saving client:", err);
-      // Reset form on error as per original logic
-      setNewClient({
-        firstName: "",
-        lastName: "",
-        email: "",
-        phone: "",
-        address: { streetNumber: "", streetName: "", city: "", state: "", zip: "" },
-      });
     }
   };
 
@@ -117,39 +101,30 @@ export default function ClientPage() {
       heartbeatOutgoing: 4000,
     });
 
-    stompClient.webSocketFactory = () =>
-      new SockJS("http://localhost:8081/api/ws");
+    stompClient.webSocketFactory = () => new SockJS("http://localhost:8081/api/ws");
     stompClient.onConnect = () => {
       stompClient.subscribe("/topic/clientsCreate", (message) => {
         const newClientData = JSON.parse(message.body) as Client;
         setClients((prevClients) => {
-          if (prevClients.some((client) => client.id === newClientData.id)) {
-            return prevClients;
-          }
+          if (prevClients.some((client) => client.id === newClientData.id)) return prevClients;
           return [...prevClients, newClientData];
         });
       });
 
       stompClient.subscribe("/topic/clientsDelete", (message) => {
         const deletedClient = JSON.parse(message.body) as { id: number };
-        setClients((prevClients) => {
-          return prevClients.filter((client) => client.id !== deletedClient.id);
-        });
+        setClients((prevClients) => prevClients.filter((client) => client.id !== deletedClient.id));
       });
     };
-
     stompClient.activate();
     return () => stompClient.deactivate();
   };
 
   useEffect(() => {
     const cleanup = setWebSocket();
-    return () => {
-      if (typeof cleanup === "function") cleanup();
-    };
+    return () => { if (typeof cleanup === "function") cleanup(); };
   }, []);
 
-  // Refactored validation logic to check both Client and nested Address fields
   const isFormValid = useMemo(() => {
     const basicFields = [newClient.firstName, newClient.lastName, newClient.email, newClient.phone];
     const addressFields = Object.values(newClient.address);
@@ -161,10 +136,7 @@ export default function ClientPage() {
   const [sortConfig, setSortConfig] = useState<{
     key: keyof Client | "";
     direction: "asc" | "desc" | null;
-  }>({
-    key: "",
-    direction: null,
-  });
+  }>({ key: "", direction: null });
 
   const fetchClients = useCallback(async () => {
     try {
@@ -176,16 +148,12 @@ export default function ClientPage() {
   }, []);
 
   useEffect(() => {
-    (async () => {
-      await fetchClients()
-    })();
+    (async () => { await fetchClients() })();
   }, [fetchClients]);
 
   const handleSort = (key: keyof Client) => {
     let direction: "asc" | "desc" = "asc";
-    if (sortConfig.key === key && sortConfig.direction === "asc") {
-      direction = "desc";
-    }
+    if (sortConfig.key === key && sortConfig.direction === "asc") direction = "desc";
     setSortConfig({ key, direction });
   };
 
@@ -200,7 +168,6 @@ export default function ClientPage() {
       const key = sortConfig.key as keyof Client;
       const valA = a[key];
       const valB = b[key];
-      
       if (valA < valB) return sortConfig.direction === "asc" ? -1 : 1;
       if (valA > valB) return sortConfig.direction === "asc" ? 1 : -1;
       return 0;
@@ -230,21 +197,14 @@ export default function ClientPage() {
     setCurrentPage(1);
   };
 
-  // Refactored to pull from the addresses array but keep the same visual format
   const renderAddress = (addresses: Address[]) => {
     if (!addresses || addresses.length === 0) return <span className="text-slate-400 italic">N/A</span>;
-    
-    // We take the first address for the table view to keep the layout clean
     const addr = addresses[0];
     const formatted = `${addr.streetNumber} ${addr.streetName} | ${addr.city} | ${addr.state} | ${addr.zip}`;
-    const delimiter = "|";
-    
     return (
       <div className="flex flex-col gap-0.5">
-        {formatted.split(delimiter).map((part, i) => (
-          <span key={i} className="text-xs text-slate-400 block leading-tight">
-            {part.trim()}
-          </span>
+        {formatted.split("|").map((part, i) => (
+          <span key={i} className="text-xs text-slate-400 block leading-tight">{part.trim()}</span>
         ))}
       </div>
     );
@@ -276,9 +236,7 @@ export default function ClientPage() {
                   <SortableHeader label="Email" keyField="email" onSort={handleSort} sortConfig={sortConfig} />
                   <SortableHeader label="Phone" keyField="phone" onSort={handleSort} sortConfig={sortConfig} />
                   <SortableHeader label="Address" keyField="addresses" onSort={handleSort} sortConfig={sortConfig} />
-                  <th className="px-6 py-4 text-left sticky right-0 bg-slate-50 shadow-[-10px_0_10px_-5px_rgba(0,0,0,0.05)] z-10 text-sm font-bold text-slate-500 uppercase tracking-wider">
-                    Actions
-                  </th>
+                  <th className="px-6 py-4 text-left sticky right-0 bg-slate-50 shadow-[-10px_0_10px_-5px_rgba(0,0,0,0.05)] z-10 text-sm font-bold text-slate-500 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -286,7 +244,6 @@ export default function ClientPage() {
                   {currentClients.map((client, idx) => {
                     const isLast = idx === currentClients.length - 1;
                     const rowDefaultColor = idx % 2 ? "#ffffff" : "#fcfcfd";
-
                     return (
                       <motion.tr
                         key={`${currentPage}-${itemsPerPage}-${client.id}`}
@@ -305,9 +262,7 @@ export default function ClientPage() {
                         <td className="px-6 py-2 text-slate-700 font-medium border-r border-slate-100">{client.lastName}</td>
                         <td className="px-6 py-2 text-slate-600 font-medium border-r border-slate-100">{client.email}</td>
                         <td className="px-6 py-2 text-slate-600 font-medium border-r border-slate-100">{client.phone}</td>
-                        <td className="px-6 py-2 border-r border-slate-100 font-medium whitespace-nowrap">
-                          {renderAddress(client.addresses)}
-                        </td>
+                        <td className="px-6 py-2 border-r border-slate-100 font-medium whitespace-nowrap">{renderAddress(client.addresses)}</td>
                         <td className="px-6 py-2 sticky right-0 bg-inherit shadow-[-10px_0_10px_-5px_rgba(0,0,0,0.05)] z-10">
                           <div className="flex justify-start gap-2">
                             <button onClick={() => handleViewClient(client)} className="p-2 text-[#0073d7] hover:bg-indigo-50 rounded-lg transition-all"><Eye size={18} /></button>
@@ -323,14 +278,7 @@ export default function ClientPage() {
             </table>
           </div>
         </div>
-        <PaginationBar
-          currentPage={currentPage}
-          totalPages={totalPages}
-          itemsPerPage={itemsPerPage}
-          totalItems={clients.length}
-          onPageChange={setCurrentPage}
-          onItemsPerPageChange={handleItemsPerPageChange}
-        />
+        <PaginationBar currentPage={currentPage} totalPages={totalPages} itemsPerPage={itemsPerPage} totalItems={clients.length} onPageChange={setCurrentPage} onItemsPerPageChange={handleItemsPerPageChange} />
       </div>
 
       {/* VIEW MODAL */}
@@ -446,28 +394,58 @@ export default function ClientPage() {
                 </div>
               </div>
 
-              <div className="space-y-1">
-                <label className="text-sm font-bold text-slate-500 uppercase ml-1 flex items-center gap-2">
-                  <MapPin size={14} className="text-indigo-500" /> Address Details
+              {/* --- MODIFIED ADDRESS SECTION START --- */}
+              <div className="space-y-3 pt-2">
+                <label className="text-sm font-bold text-slate-500 uppercase ml-1 flex items-center gap-2 border-b border-slate-100 pb-1">
+                  <MapPin size={16} className="text-indigo-500" /> Address Details
                 </label>
-                <div className="grid grid-cols-12 gap-2">
-                  <div className="col-span-2">
-                    <input className="w-full p-2.5 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm" placeholder="No." value={newClient.address.streetNumber} onChange={(e) => setNewClient({ ...newClient, address: { ...newClient.address, streetNumber: e.target.value } })} />
+                
+                {/* Street Row: Number and Name */}
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="col-span-1 space-y-1">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">No.</label>
+                    <div className="relative group">
+                      <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 group-hover:text-indigo-800 transition-all" size={18} />
+                      <input className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-sm" placeholder="123" value={newClient.address.streetNumber} onChange={(e) => setNewClient({ ...newClient, address: { ...newClient.address, streetNumber: e.target.value } })} />
+                    </div>
                   </div>
-                  <div className="col-span-6">
-                    <input className="w-full p-2.5 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm" placeholder="Street Name" value={newClient.address.streetName} onChange={(e) => setNewClient({ ...newClient, address: { ...newClient.address, streetName: e.target.value } })} />
+                  <div className="col-span-2 space-y-1">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Street Name</label>
+                    <div className="relative group">
+                      <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 group-hover:text-indigo-800 transition-all" size={18} />
+                      <input className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-sm" placeholder="Main St" value={newClient.address.streetName} onChange={(e) => setNewClient({ ...newClient, address: { ...newClient.address, streetName: e.target.value } })} />
+                    </div>
                   </div>
-                  <div className="col-span-4">
-                    <input className="w-full p-2.5 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm" placeholder="City" value={newClient.address.city} onChange={(e) => setNewClient({ ...newClient, address: { ...newClient.address, city: e.target.value } })} />
+                </div>
+
+                {/* City Row */}
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">City</label>
+                  <div className="relative group">
+                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 group-hover:text-indigo-800 transition-all" size={18} />
+                    <input className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-sm" placeholder="New York" value={newClient.address.city} onChange={(e) => setNewClient({ ...newClient, address: { ...newClient.address, city: e.target.value } })} />
                   </div>
-                  <div className="col-span-6">
-                    <input className="w-full p-2.5 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm" placeholder="State" value={newClient.address.state} onChange={(e) => setNewClient({ ...newClient, address: { ...newClient.address, state: e.target.value } })} />
+                </div>
+
+                {/* State and Zip Row */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">State</label>
+                    <div className="relative group">
+                      <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 group-hover:text-indigo-800 transition-all" size={18} />
+                      <input className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-sm" placeholder="NY" value={newClient.address.state} onChange={(e) => setNewClient({ ...newClient, address: { ...newClient.address, state: e.target.value } })} />
+                    </div>
                   </div>
-                  <div className="col-span-6">
-                    <input className="w-full p-2.5 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm" placeholder="Zip Code" value={newClient.address.zip} onChange={(e) => setNewClient({ ...newClient, address: { ...newClient.address, zip: e.target.value } })} />
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Zip Code</label>
+                    <div className="relative group">
+                      <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 group-hover:text-indigo-800 transition-all" size={18} />
+                      <input className="w-full pl-10 p-2.5 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-sm" placeholder="10001" value={newClient.address.zip} onChange={(e) => setNewClient({ ...newClient, address: { ...newClient.address, zip: e.target.value } })} />
+                    </div>
                   </div>
                 </div>
               </div>
+              {/* --- MODIFIED ADDRESS SECTION END --- */}
             </div>
             <div className="p-6 bg-slate-50 flex justify-end gap-3">
               <button onClick={() => setIsAddOpen(false)} className="px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-100 transition font-medium">Cancel</button>
@@ -496,8 +474,7 @@ function DetailRow({ label, value, icon }: DetailRowProps) {
   return (
     <div className="flex justify-start py-3 border-b border-slate-50 last:border-0 gap-6 whitespace-nowrap">
       <div className="flex items-center gap-2 text-slate-800 font-bold shrink-0">
-        <span className="text-[#0060d6]">{icon}</span>{" "}
-        <span className="text-slate-700 font-medium shrink-0 w-32 text-left">{label}</span>
+        <span className="text-[#0060d6]">{icon}</span> <span className="text-slate-700 font-medium shrink-0 w-32 text-left">{label}</span>
       </div>
       <div className="flex items-center gap-2 text-slate-800 font-bold shrink-0">
         <span>{value ?? "N/A"}</span>
