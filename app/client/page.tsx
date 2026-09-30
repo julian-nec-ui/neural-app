@@ -821,7 +821,7 @@ export default function ClientPage() {
               </div>
             </div>
 
-            <div className="p-6 bg-slate-50 flex justify-end gap-3">
+            <div className="p-6 bg-slate-50 flex justify-end gap-3 items-stretch">
               <button
                 onClick={() => {
                   setIsAddOpen(false);
@@ -838,21 +838,22 @@ export default function ClientPage() {
                     country: "",
                   });
                 }}
-                className="px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-100 transition font-medium"
+                className="h-10 px-4 bg-slate-700 text-white rounded-xl hover:bg-slate-800 transition font-medium shadow-sm flex items-center justify-center"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSaveNewClient}
                 disabled={!isFormValid}
-                className={`px-6 py-2 rounded-xl transition shadow-md font-semibold ${isFormValid
-                  ? "bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer"
-                  : "bg-slate-300 text-white"
+                className={`h-10 px-6 rounded-xl transition shadow-md font-semibold flex items-center justify-center ${isFormValid
+                    ? "bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer"
+                    : "bg-slate-300 text-white cursor-not-allowed"
                   }`}
               >
                 Save Client
               </button>
             </div>
+
           </div>
         </div>
       )
