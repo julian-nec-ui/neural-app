@@ -270,7 +270,7 @@ export default function ClientPage() {
 
 
   const renderAddress = (address: Address | undefined) => {
-    if (!address) return "";
+    if (!address) return "No Address";
     return `${address.streetNumber} ${address.streetName}, ${address.city}, ${address.state} ${address.zip}, ${address.country}`;
   };
 
@@ -335,8 +335,11 @@ export default function ClientPage() {
                         <td className="px-6 py-2 border-r border-slate-100 font-medium">
                           {
                             client.addresses && client.addresses.length > 0
-                              ? client.addresses.map(addr => renderAddress(addr)).join(" | ")
-                              : <span className="text-slate-400 italic">N/A</span>
+                              ? <span className="text-slate-600">
+                                {client.addresses.map(addr => renderAddress(addr)).join(" | ")}
+
+                              </span>
+                              : <span className="text-slate-600 italic">N/A</span>
                           }
                         </td>
                         <td className="px-6 py-2 sticky right-0 bg-inherit shadow-[-10px_0_10px_-5px_rgba(0,0,0,0.05)] z-10">
