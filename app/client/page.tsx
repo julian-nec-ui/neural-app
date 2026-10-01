@@ -345,7 +345,13 @@ export default function ClientPage() {
                         <td className="px-6 py-2 text-slate-600 font-medium border-r border-slate-100">{client.email}</td>
                         <td className="px-6 py-2 text-slate-600 font-medium border-r border-slate-100">{client.phone}</td>
                         {/* FIXED: Added optional chaining to prevent crash */}
-                        <td className="px-6 py-2 border-r border-slate-100 font-medium">{renderAddress(client.addresses?.[0])}</td>
+                        <td className="px-6 py-2 border-r border-slate-100 font-medium">
+                          {
+                            client.addresses && client.addresses.length > 0
+                              ? client.addresses.map(addr => renderAddress(addr)).join(" | ")
+                              : <span className="text-slate-400 italic">N/A</span>
+                          }
+                        </td>
                         <td className="px-6 py-2 sticky right-0 bg-inherit shadow-[-10px_0_10px_-5px_rgba(0,0,0,0.05)] z-10">
                           <div className="flex justify-start gap-2">
                             {/* FIXED: tex-[#0073d7] -> text-[#0073d7] */}
