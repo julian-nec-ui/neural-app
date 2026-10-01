@@ -471,7 +471,7 @@ export default function ClientPage() {
             </div>
 
             <div className="p-6">
-              <div className="flex flex-col md:flex-row gap-16">
+              <div className="flex flex-col md:flex-row gap-8">
                 <div className="flex-1 space-y-4 mb-6">
                   <div className="flex items-center gap-2 text-sm font-bold text-slate-500 uppercase">
                     <User size={24} className="text-indigo-600 shrink-0" /> Client Information
