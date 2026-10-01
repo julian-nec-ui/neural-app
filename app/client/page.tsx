@@ -270,21 +270,8 @@ export default function ClientPage() {
 
 
   const renderAddress = (address: Address | undefined) => {
-    if (!address) return <span className="text-slate-400 italic">N/A</span>;
-
-    return (
-      <div className="flex flex-col gap-0.5">
-        <span className="text-xs text-slate-600 font-medium">
-          {address.streetNumber} {address.streetName}
-        </span>
-        <span className="text-xs text-slate-400 block leading-tight">
-          {address.city}, {address.state} {address.zip}
-        </span>
-        <span className="text-xs text-slate-400 block leading-tight">
-          {address.country}
-        </span>
-      </div>
-    );
+    if (!address) return "";
+    return `${address.streetNumber} ${address.streetName}, ${address.city}, ${address.state} ${address.zip}, ${address.country}`;
   };
 
   return (
