@@ -39,7 +39,7 @@ interface Address {
   clientId?: number;
 }
 
-// 2. Update Client interface for the UI state
+// 2. Update Client interface for the UI state ...
 interface Client {
   id?: number;
   firstName: string;
