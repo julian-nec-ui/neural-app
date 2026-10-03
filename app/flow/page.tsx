@@ -5,6 +5,7 @@ import {
   ReactFlow,
   applyNodeChanges,
   applyEdgeChanges,
+  getBezierPath,
   addEdge,
   NodeChange,
   EdgeChange,
@@ -13,6 +14,7 @@ import {
   Node,
   Handle,
   Position,
+  EdgeProps,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
@@ -27,6 +29,31 @@ const THEME = {
 interface MeallicNodeData {
   label: string;
 }
+
+const CustomEdge = ({ id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, style, markerEnd }: EdgeProps) => {
+  const [edgePath, labelX, labelY] = getBezierPath({ sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition });
+  
+  return (
+    <>
+      <path id={id} style={style} className="transition-all duration-300" d={edgePath} markerEnd={markerEnd} />
+      {/* The "Edge Handle": A clickable dot in the center of the edge */}
+      <circle
+        cx={labelX}
+        cy={labelY}
+        r="5"
+        className="fill-slate-800 stroke-slate-400 stroke-2 cursor-pointer hover:fill-indigo-500 transition-colors duration-200"
+        onClick={(e) => {
+          e.stopPropagation();
+          console.log(`Edge handle ${id} clicked`);
+        }}
+      />
+    </>
+  );
+};
+
+const edgeTypes = {
+  custom: CustomEdge,
+};
 
 // --- Custom Metallic Node ---
 const MetallicNode = ({ data }: { data: MeallicNodeData }) => {
@@ -91,12 +118,12 @@ export default function MetallicFlowPage() {
     },
   ];
 
-  // Initial Edges: n1 -> n3, n2 -> n3
-  const initialEdges: Edge[] = [
+    const initialEdges: Edge[] = [
     { 
       id: 'e1-3', 
       source: 'n1', 
       target: 'n3', 
+      type: 'custom', // <--- Changed from default to 'custom'
       animated: true, 
       style: { stroke: THEME.accent, strokeWidth: 3 } 
     },
@@ -104,6 +131,7 @@ export default function MetallicFlowPage() {
       id: 'e2-3', 
       source: 'n2', 
       target: 'n3', 
+      type: 'custom', // <--- Changed from default to 'custom'
       animated: true, 
       style: { stroke: THEME.accent, strokeWidth: 3 } 
     },
@@ -138,6 +166,7 @@ export default function MetallicFlowPage() {
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         fitView
         style={{ backgroundColor: 'transparent' }}
       />
