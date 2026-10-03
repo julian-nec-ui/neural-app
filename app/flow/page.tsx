@@ -34,7 +34,7 @@ const CustomNode = ({ data }: { data: { label: string } }) => {
 };
 
 // 2. Dual-Input Node
-const DualInputNode = ({ id, data }: { id: string, data: any }) => {
+const DualInputNode = ({ id, data }: { id: string, data: { label: string, toggleEdgeColor?: (nodeId: string, handleId: string, isActive: boolean) => void } }) => {
   const [activeA, setActiveA] = useState(false);
   const [activeB, setActiveB] = useState(false);
 
@@ -101,6 +101,7 @@ export default function FlowPage() {
     { id: 'e2-3', source: 'n2', target: 'n3', targetHandle: 'input-b', type: 'smoothstep', animated: true, style: { stroke: '#94a3b8', strokeWidth: 3 } },
     { id: 'e3-4', source: 'n3', target: 'n4', type: 'smoothstep', animated: true, style: { stroke: '#94a3b8', strokeWidth: 3 } },
   ]);
+  
   // This function is passed into the Merger Node to allow it to update edge colors
   const toggleEdgeColor = useCallback((nodeId: string, handleId: string, isActive: boolean) => {
     setEdges((eds) =>
@@ -119,7 +120,7 @@ export default function FlowPage() {
     );
   }, []);
 
-  // Initialize the state with the data immediately
+  // Initialize nodes directly in useState - no useEffect needed
   const [nodes, setNodes] = useState<Node[]>([
     { id: 'n1', type: 'custom', data: { label: 'Input A' }, position: { x: 0, y: 50 } },
     { id: 'n2', type: 'custom', data: { label: 'Input B' }, position: { x: 0, y: 200 } },
@@ -131,23 +132,6 @@ export default function FlowPage() {
     },
     { id: 'n4', type: 'custom', data: { label: 'Final Output' }, position: { x: 600, y: 130 } },
   ]);
-
-
-
-  // Initialize nodes inside useEffect or use a memo to ensure the toggleEdgeColor function is passed in data
-  useState(() => {
-    setNodes([
-      { id: 'n1', type: 'custom', data: { label: 'Input A' }, position: { x: 0, y: 50 } },
-      { id: 'n2', type: 'custom', data: { label: 'Input B' }, position: { x: 0, y: 200 } },
-      {
-        id: 'n3',
-        type: 'dualInput',
-        data: { label: 'Merge Processor', toggleEdgeColor },
-        position: { x: 300, y: 100 }
-      },
-      { id: 'n4', type: 'custom', data: { label: 'Final Output' }, position: { x: 600, y: 130 } },
-    ]);
-  }, []);
 
   const onNodesChange = useCallback((changes: NodeChange[]) => setNodes((nds) => applyNodeChanges(changes, nds)), []);
   const onEdgesChange = useCallback((changes: EdgeChange[]) => setEdges((eds) => applyEdgeChanges(changes, eds)), []);
