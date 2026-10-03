@@ -1,124 +1,170 @@
 "use client";
 
-import { useCallback, useState } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import {
   ReactFlow,
-  applyNodeChanges,
-  applyEdgeChanges,
-  addEdge,
   NodeChange,
-  EdgeChange,
-  Connection,
   Edge,
   Node,
   Handle,
-  Position
+  Position,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
-// --- Visual Constants ---
-const THEME = {
-  bg: 'bg-[#0f172a]', // Deep slate midnight
-  metallic: 'bg-gradient-to-br from-slate-400 via-slate-500 to-slate-600',
-  accent: '#6366f1', // Indigo 500
-  glow: 'shadow-[0_0_20px_rgba(99,102,241,0.3)]',
-};
+// --- 1. Types (The Golden Standard: Manual Prop Typing) ---
 
-interface MeallicNodeData {
+interface NodeData {
   label: string;
+  isActive: boolean;
+  toggle: () => void;
 }
 
-// --- Custom Metallic Node ---
-const MetallicNode = ({ data }: { data: MeallicNodeData }) => {
+const THEME = {
+  bg: 'bg-[#0f172a]',
+  metallic: 'bg-gradient-to-br from-slate-400 via-slate-500 to-slate-600',
+  accent: '#6366f1', // Indigo 500
+  inactive: '#475569', // Slate 600
+  active: '#facc15',    // Yellow 400
+};
+
+// --- 2. Custom Components ---
+
+// Generic Metallic Node that can handle one or multiple target handles
+const MetallicNode = ({ data, type }: { data: NodeData; type: 'input' | 'target' }) => {
   return (
     <div className={`
       relative px-5 py-3 rounded-xl border-t border-l border-white/30 
       ${THEME.metallic} 
       shadow-[5px_5px_15px_rgba(0,0,0,0.4),-2px_-2px_10px_rgba(255,255,255,0.1)] 
-      transition-all duration-300 hover:scale-105 group
-    `}>
-      {/* Inner Glow Effect */}
+      transition-all duration-300 hover:scale-105 group cursor-pointer
+    `}
+    onClick={data.toggle}
+    >
       <div className="absolute inset-0 rounded-xl bg-linear-to-tr from-transparent via-white/10 to-transparent pointer-events-none" />
       
       <div className="flex flex-col items-center gap-1 relative z-10">
         <span className="text-[9px] font-black text-slate-700 uppercase tracking-tighter opacity-70">
-          Module
+          {type === 'input' ? 'Source' : 'Receiver'}
         </span>
-        <span className="text-sm font-bold text-slate-900 tracking-tight">
+        <span className={`text-sm font-bold transition-colors duration-300 ${data.isActive ? 'text-yellow-600' : 'text-slate-900'}`}>
           {data.label}
         </span>
       </div>
 
-      {/* Handles with a "socket" look */}
-      <Handle 
-        type="target" 
-        position={Position.Left} 
-        className="w-3 h-3 bg-slate-800 border-2 border-slate-400 shadow-inner" 
-      />
-      <Handle 
-        type="source" 
-        position={Position.Right} 
-        className="w-3 h-3 bg-slate-800 border-2 border-slate-400 shadow-inner" 
-      />
+      {/* If it's an input node, it only has a source handle */}
+      {type === 'input' && (
+        <Handle 
+          type="source" 
+          position={Position.Right} 
+          className={`w-3 h-3 bg-slate-800 border-2 transition-colors duration-300 ${data.isActive ? 'border-yellow-400' : 'border-slate-400'}`} 
+        />
+      )}
+
+      {/* If it's the target node, it has two distinct target handles */}
+      {type === 'target' && (
+        <>
+          <Handle 
+            type="target" 
+            position={Position.Left} 
+            id="h1" 
+            style={{ top: '30%' }} 
+            className={`w-3 h-3 bg-slate-800 border-2 transition-colors duration-300 ${data.isActive ? 'border-yellow-400' : 'border-slate-400'}`} 
+          />
+          <Handle 
+            type="target" 
+            position={Position.Left} 
+            id="h2" 
+            style={{ top: '70%' }} 
+            className={`w-3 h-3 bg-slate-800 border-2 transition-colors duration-300 ${data.isActive ? 'border-yellow-400' : 'border-slate-400'}`} 
+          />
+        </>
+      )}
     </div>
   );
 };
 
-const nodeTypes = {
-  metallic: MetallicNode,
+// Wrapper to satisfy React Flow's nodeTypes expectation
+const InputNodeWrapper = (props: any) => <MetallicNode {...props} type="input" />;
+const TargetNodeWrapper = (props: any) => <MetallicNode {...props} type="target" />;
+
+const nodeTypes = { 
+  metallicInput: InputNodeWrapper, 
+  metallicTarget: TargetNodeWrapper 
 };
 
 export default function MetallicFlowPage() {
-  // Initial Nodes: 2 Inputs, 1 Output
-  const initialNodes: Node[] = [
+  // --- State (The Golden Standard: Lifted State) ---
+  const [activeEdges, setActiveEdges] = useState<Record<string, boolean>>({
+    'e1-3': false,
+    'e2-3': false,
+  });
+
+  const [nodesPosition, setNodesPosition] = useState<Record<string, { x: number, y: number }>>({
+    'n1': { x: 0, y: 0 },
+    'n2': { x: 0, y: 150 },
+    'n3': { x: 300, y: 75 },
+  });
+
+  const toggleEdge = useCallback((edgeId: string) => {
+    setActiveEdges((prev) => ({ ...prev, [edgeId]: !prev[edgeId] }));
+  }, []);
+
+  // --- Derived State (The Golden Standard: No Rendering Loops) ---
+  const nodes = useMemo((): Node[] => [
     { 
       id: 'n1', 
-      type: 'metallic', 
-      position: { x: 0, y: 0 }, 
-      data: { label: 'SENS-01' } 
+      type: 'metallicInput', 
+      position: nodesPosition['n1'], 
+      data: { label: 'SENS-01', isActive: activeEdges['e1-3'], toggle: () => toggleEdge('e1-3') } 
     },
     { 
       id: 'n2', 
-      type: 'metallic', 
-      position: { x: 0, y: 150 }, 
-      data: { label: 'SENS-02' } 
+      type: 'metallicInput', 
+      position: nodesPosition['n2'], 
+      data: { label: 'SENS-02', isActive: activeEdges['e2-3'], toggle: () => toggleEdge('e2-3') } 
     },
     { 
       id: 'n3', 
-      type: 'metallic', 
-      position: { x: 300, y: 75 }, 
-      data: { label: 'CORE-UNIT' } 
+      type: 'metallicTarget', 
+      position: nodesPosition['n3'], 
+      // Node 3 is active if either input is active
+      data: { label: 'CORE-UNIT', isActive: activeEdges['e1-3'] || activeEdges['e2-3'], toggle: () => {} } 
     },
-  ];
+  ], [activeEdges, nodesPosition, toggleEdge]);
 
-  // Initial Edges: n1 -> n3, n2 -> n3
-  const initialEdges: Edge[] = [
+  const edges = useMemo((): Edge[] => [
     { 
       id: 'e1-3', 
       source: 'n1', 
       target: 'n3', 
+      targetHandle: 'h1', // <--- Connects to first handle
       animated: true, 
-      style: { stroke: THEME.accent, strokeWidth: 3 } 
+      style: { stroke: activeEdges['e1-3'] ? THEME.active : THEME.inactive, strokeWidth: 3, transition: 'stroke 0.3s' } 
     },
     { 
       id: 'e2-3', 
       source: 'n2', 
       target: 'n3', 
+      targetHandle: 'h2', // <--- Connects to second handle
       animated: true, 
-      style: { stroke: THEME.accent, strokeWidth: 3 } 
+      style: { stroke: activeEdges['e2-3'] ? THEME.active : THEME.inactive, strokeWidth: 3, transition: 'stroke 0.3s' } 
     },
-  ];
+  ], [activeEdges]);
 
-  const [nodes, setNodes] = useState<Node[]>(initialNodes);
-  const [edges, setEdges] = useState<Edge[]>(initialEdges);
-
-  const onNodesChange = useCallback((changes: NodeChange[]) => setNodes((nds) => applyNodeChanges(changes, nds)), []);
-  const onEdgesChange = useCallback((changes: EdgeChange[]) => setEdges((eds) => applyEdgeChanges(changes, eds)), []);
-  const onConnect = useCallback((params: Connection) => setEdges((eds) => addEdge(params, eds)), []);
+  const onNodesChange = useCallback((changes: NodeChange[]) => {
+    setNodesPosition((prev) => {
+      const next = { ...prev };
+      changes.forEach((change) => {
+        if (change.type === 'position') {
+          next[change.id] = { x: change.position.x, y: change.position.y };
+        }
+      });
+      return next;
+    });
+  }, []);
 
   return (
     <div className={`w-screen h-screen ${THEME.bg} overflow-hidden`}>
-      {/* Background Decorative elements */}
       <div className="absolute inset-0 opacity-20 pointer-events-none" 
            style={{ backgroundImage: 'radial-gradient(#475569 1px, transparent 1px)', backgroundSize: '30px 30px' }} />
       
@@ -135,8 +181,8 @@ export default function MetallicFlowPage() {
         nodes={nodes}
         edges={edges}
         onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onConnect={onConnect}
+        onEdgesChange={() => {}}
+        onConnect={() => {}}
         nodeTypes={nodeTypes}
         fitView
         style={{ backgroundColor: 'transparent' }}
