@@ -41,25 +41,40 @@ const CustomNode = ({ data }: { data: { label: string } }) => {
   );
 };
 
-// 2. Dual-Input Node (The new node)
+// 2. Dual-Input Node (The updated merger node)
 const DualInputNode = ({ data }: { data: { label: string } }) => {
+  // State to track if each input handle is "active"
+  const [activeA, setActiveA] = useState(false);
+  const [activeB, setActiveB] = useState(false);
+
+  // Determine background color: lighter if both are active
+  const bgColor = (activeA && activeB) ? 'bg-slate-600' : 'bg-slate-800';
+  
+  // Contrast color for the handles when active (Cyan)
+  const activeColor = "bg-cyan-400!";
+  const inactiveColor = "bg-slate-400!";
+
   return (
-    <div className="px-3 py-2 shadow-2xl rounded-lg bg-slate-800 border border-slate-600 min-w-30 transition-all hover:border-slate-400 group">
-      {/* INPUT 1: Positioned slightly higher */}
+    <div className={`px-3 py-2 shadow-2xl rounded-lg border border-slate-600 min-w-30 transition-all duration-300 hover:border-slate-400 group ${bgColor}`}>
+      
+      {/* INPUT 1: Click to toggle color */}
       <Handle 
         type="target" 
         position={Position.Left} 
         id="input-a" 
         style={{ top: '30%' }} 
-        className="w-3 h-3 bg-slate-400! border border-slate-700" 
+        onClick={() => setActiveA(!activeA)}
+        className={`w-3 h-3 cursor-pointer transition-colors duration-200 border border-slate-700 ${activeA ? activeColor : inactiveColor}`} 
       />
-      {/* INPUT 2: Positioned slightly lower */}
+      
+      {/* INPUT 2: Click to toggle color */}
       <Handle 
         type="target" 
         position={Position.Left} 
         id="input-b" 
         style={{ top: '70%' }} 
-        className="w-3 h-3 bg-slate-400! border border-slate-700" 
+        onClick={() => setActiveB(!activeB)}
+        className={`w-3 h-3 cursor-pointer transition-colors duration-200 border border-slate-700 ${activeB ? activeColor : inactiveColor}`} 
       />
       
       <div className="flex flex-col gap-1">
@@ -81,7 +96,7 @@ const DualInputNode = ({ data }: { data: { label: string } }) => {
 
 const nodeTypes = {
   custom: CustomNode,
-  dualInput: DualInputNode, // Register the new node type
+  dualInput: DualInputNode, 
 };
 
 const initialNodes: Node[] = [
@@ -99,7 +114,7 @@ const initialNodes: Node[] = [
   },
   { 
     id: 'n3', 
-    type: 'dualInput', // Using the dual input node
+    type: 'dualInput', 
     data: { label: 'Merge Processor' }, 
     position: { x: 300, y: 100 } 
   },
@@ -116,7 +131,7 @@ const initialEdges: Edge[] = [
     id: 'e1-3', 
     source: 'n1', 
     target: 'n3', 
-    targetHandle: 'input-a', // Connects to the top input
+    targetHandle: 'input-a', 
     type: 'smoothstep', 
     animated: true, 
     style: { stroke: '#94a3b8', strokeWidth: 3 } 
@@ -125,7 +140,7 @@ const initialEdges: Edge[] = [
     id: 'e2-3', 
     source: 'n2', 
     target: 'n3', 
-    targetHandle: 'input-b', // Connects to the bottom input
+    targetHandle: 'input-b', 
     type: 'smoothstep', 
     animated: true, 
     style: { stroke: '#94a3b8', strokeWidth: 3 } 
