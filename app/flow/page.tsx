@@ -16,27 +16,27 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
-// 1. Create a Custom Node Component
+// 1. Compact Dark Metallic Node
 const CustomNode = ({ data }: { data: { label: string } }) => {
   return (
-    <div className="px-4 py-3 shadow-xl rounded-xl bg-white border border-slate-200 min-w-37.5 transition-all hover:border-indigo-500 hover:shadow-indigo-100 group">
-      {/* Handle components are REQUIRED for custom nodes to allow connections */}
-      <Handle type="target" position={Position.Top} className="w-3 h-3 bg-slate-400! border-2 border-white" />
+    <div className="px-3 py-2 shadow-2xl rounded-lg bg-slate-800 border border-slate-600 min-w-30 transition-all hover:border-slate-400 group">
+      {/* Handle components */}
+      <Handle type="target" position={Position.Top} className="w-2 h-2 bg-slate-500! border border-slate-700" />
       
-      <div className="flex items-center gap-3">
-        <div className="w-2 h-8 bg-indigo-500 rounded-full group-hover:bg-indigo-600 transition-colors" />
+      <div className="flex items-center gap-2">
+        {/* Metallic Accent Bar */}
+        <div className="w-1 h-6 bg-slate-400 rounded-full group-hover:bg-slate-200 transition-colors" />
         <div className="flex flex-col">
-          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Component</span>
-          <span className="text-sm font-semibold text-slate-800">{data.label}</span>
+          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">Component</span>
+          <span className="text-xs font-medium text-slate-200">{data.label}</span>
         </div>
       </div>
 
-      <Handle type="source" position={Position.Bottom} className="w-3 h-3 bg-slate-400! border-2 border-white" />
+      <Handle type="source" position={Position.Bottom} className="w-2 h-2 bg-slate-500! border border-slate-700" />
     </div>
   );
 };
 
-// 2. Define nodeTypes OUTSIDE the component to prevent re-renders
 const nodeTypes = {
   custom: CustomNode,
 };
@@ -44,7 +44,7 @@ const nodeTypes = {
 const initialNodes: Node[] = [
   {
     id: 'n1',
-    type: 'custom', // Use the custom type here
+    type: 'custom',
     data: { label: 'Input Source' },
     position: { x: 250, y: 0 },
   },
@@ -52,19 +52,31 @@ const initialNodes: Node[] = [
     id: 'n2',
     type: 'custom',
     data: { label: 'Processing Unit' },
-    position: { x: 250, y: 150 },
+    position: { x: 250, y: 120 },
   },
   {
     id: 'n3',
     type: 'custom',
     data: { label: 'Output Display' },
-    position: { x: 250, y: 300 },
+    position: { x: 250, y: 240 },
   }
 ];
 
 const initialEdges: Edge[] = [
-  { id: 'n1-n2', source: 'n1', target: 'n2', animated: true, style: { stroke: '#6366f1', strokeWidth: 2 } },
-  { id: 'n2-n3', source: 'n2', target: 'n3', animated: true, style: { stroke: '#6366f1', strokeWidth: 2 } },
+  { 
+    id: 'n1-n2', 
+    source: 'n1', 
+    target: 'n2', 
+    animated: true, 
+    style: { stroke: '#94a3b8', strokeWidth: 2 } // Silver/Slate color
+  },
+  { 
+    id: 'n2-n3', 
+    source: 'n2', 
+    target: 'n3', 
+    animated: true, 
+    style: { stroke: '#94a3b8', strokeWidth: 2 } 
+  },
 ];
 
 export default function FlowPage() {
@@ -84,15 +96,22 @@ export default function FlowPage() {
   }, []);
 
   return (
-    <div style={{ width: '100vw', height: '100vh', backgroundColor: '#f8fafc' }}>
+    // Metallic Background: Linear gradient from deep charcoal to slightly lighter charcoal
+    <div style={{ 
+      width: '100vw', 
+      height: '100vh', 
+      background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)' 
+    }}>
       <ReactFlow
         nodes={nodes}
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
-        nodeTypes={nodeTypes} // Pass the custom node types here
+        nodeTypes={nodeTypes}
         fitView
+        // Style the grid/background dots to be subtle on dark mode
+        style={{ backgroundColor: 'transparent' }}
       />
     </div>
   );
