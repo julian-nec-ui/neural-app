@@ -21,15 +21,15 @@ const CustomNode = ({ data }: { data: { label: string } }) => {
   return (
     <div className="px-3 py-2 shadow-2xl rounded-lg bg-slate-800 border border-slate-600 min-w-30 transition-all hover:border-slate-400 group">
       
-      {/* CONNECTION POINT: Moved to the LEFT side */}
+      {/* CONNECTION POINT: LEFT side for inputs */}
       <Handle 
         type="target" 
         position={Position.Left} 
-        className="w-2 h-2 bg-slate-500! border border-slate-700" 
+        className="w-3 h-3 bg-slate-400! border border-slate-700" 
       />
       
       <div className="flex flex-col gap-1">
-        {/* Metallic Accent Bar: Moved to Top and made horizontal */}
+        {/* Metallic Accent Bar: Horizontal on top */}
         <div className="h-1 w-8 bg-slate-400 rounded-full group-hover:bg-slate-200 transition-colors" />
         
         <div className="flex flex-col">
@@ -38,56 +38,60 @@ const CustomNode = ({ data }: { data: { label: string } }) => {
         </div>
       </div>
 
-      {/* CONNECTION POINT: Moved to the RIGHT side */}
+      {/* CONNECTION POINT: RIGHT side for outputs */}
       <Handle 
         type="source" 
         position={Position.Right} 
-        className="w-2 h-2 bg-slate-500! border border-slate-700" 
+        className="w-3 h-3 bg-slate-400! border border-slate-700" 
       />
     </div>
   );
 };
 
+// Define nodeTypes outside the component to prevent unnecessary re-renders
 const nodeTypes = {
   custom: CustomNode,
 };
 
-// 2. Adjusted positions for a Horizontal Layout (X increases, Y stays same)
+// Horizontal Layout: X increases, Y stays same
 const initialNodes: Node[] = [
-  {
-    id: 'n1',
-    type: 'custom',
-    data: { label: 'Input Source' },
-    position: { x: 0, y: 100 },
+  { 
+    id: 'n1', 
+    type: 'custom', 
+    data: { label: 'Input Source' }, 
+    position: { x: 0, y: 100 } 
   },
-  {
-    id: 'n2',
-    type: 'custom',
-    data: { label: 'Processing Unit' },
-    position: { x: 250, y: 100 },
+  { 
+    id: 'n2', 
+    type: 'custom', 
+    data: { label: 'Processing Unit' }, 
+    position: { x: 300, y: 100 } 
   },
-  {
-    id: 'n3',
-    type: 'custom',
-    data: { label: 'Output Display' },
-    position: { x: 500, y: 100 },
-  }
+  { 
+    id: 'n3', 
+    type: 'custom', 
+    data: { label: 'Output Display' }, 
+    position: { x: 600, y: 100 } 
+  },
 ];
 
+// Circuit-board style: smoothstep edges, animated, and silver-colored
 const initialEdges: Edge[] = [
   { 
     id: 'n1-n2', 
     source: 'n1', 
     target: 'n2', 
+    type: 'smoothstep', 
     animated: true, 
-    style: { stroke: '#94a3b8', strokeWidth: 2 } 
+    style: { stroke: '#94a3b8', strokeWidth: 3 } 
   },
   { 
     id: 'n2-n3', 
     source: 'n2', 
     target: 'n3', 
+    type: 'smoothstep', 
     animated: true, 
-    style: { stroke: '#94a3b8', strokeWidth: 2 } 
+    style: { stroke: '#94a3b8', strokeWidth: 3 } 
   },
 ];
 
@@ -104,7 +108,18 @@ export default function FlowPage() {
   }, []);
 
   const onConnect = useCallback((params: Connection) => {
-    setEdges((eds) => addEdge(params, eds));
+    // FIXED: Directly add the edge with custom styles to avoid unused variables
+    setEdges((eds) => 
+      addEdge(
+        { 
+          ...params, 
+          type: 'smoothstep', 
+          animated: true, 
+          style: { stroke: '#94a3b8', strokeWidth: 3 } 
+        }, 
+        eds
+      )
+    );
   }, []);
 
   return (
