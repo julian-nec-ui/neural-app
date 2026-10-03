@@ -1,118 +1,136 @@
 "use client";
 
-import { useState, useCallback } from 'react';
-import { 
-  ReactFlow, 
-  applyNodeChanges, 
-  applyEdgeChanges, 
-  addEdge, 
-  NodeChange, 
-  EdgeChange, 
-  Connection, 
-  Edge, 
-  Node, 
-  Handle, 
-  Position 
+import { useCallback, useState } from 'react';
+import {
+  ReactFlow,
+  applyNodeChanges,
+  applyEdgeChanges,
+  addEdge,
+  NodeChange,
+  EdgeChange,
+  Connection,
+  Edge,
+  Node,
+  Handle,
+  Position,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
-// 1. Compact Dark Metallic Node - Optimized for Left-to-Right flow
-const CustomNode = ({ data }: { data: { label: string } }) => {
+// --- Visual Constants ---
+const THEME = {
+  bg: 'bg-[#0f172a]', // Deep slate midnight
+  metallic: 'bg-gradient-to-br from-slate-400 via-slate-500 to-slate-600',
+  accent: '#6366f1', // Indigo 500
+  glow: 'shadow-[0_0_20px_rgba(99,102,241,0.3)]',
+};
+
+interface MeallicNodeData {
+  label: string;
+}
+
+// --- Custom Metallic Node ---
+const MetallicNode = ({ data }: { data: MeallicNodeData }) => {
   return (
-    <div className="px-3 py-2 shadow-2xl rounded-lg bg-slate-800 border border-slate-600 min-w-30 transition-all hover:border-slate-400 group">
+    <div className={`
+      relative px-5 py-3 rounded-xl border-t border-l border-white/30 
+      ${THEME.metallic} 
+      shadow-[5px_5px_15px_rgba(0,0,0,0.4),-2px_-2px_10px_rgba(255,255,255,0.1)] 
+      transition-all duration-300 hover:scale-105 group
+    `}>
+      {/* Inner Glow Effect */}
+      <div className="absolute inset-0 rounded-xl bg-linear-to-tr from-transparent via-white/10 to-transparent pointer-events-none" />
       
-      {/* CONNECTION POINT: Moved to the LEFT side */}
+      <div className="flex flex-col items-center gap-1 relative z-10">
+        <span className="text-[9px] font-black text-slate-700 uppercase tracking-tighter opacity-70">
+          Module
+        </span>
+        <span className="text-sm font-bold text-slate-900 tracking-tight">
+          {data.label}
+        </span>
+      </div>
+
+      {/* Handles with a "socket" look */}
       <Handle 
         type="target" 
         position={Position.Left} 
-        className="w-2 h-2 bg-slate-500! border border-slate-700" 
+        className="w-3 h-3 bg-slate-800 border-2 border-slate-400 shadow-inner" 
       />
-      
-      <div className="flex flex-col gap-1">
-        {/* Metallic Accent Bar: Moved to Top and made horizontal */}
-        <div className="h-1 w-8 bg-slate-400 rounded-full group-hover:bg-slate-200 transition-colors" />
-        
-        <div className="flex flex-col">
-          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">Component</span>
-          <span className="text-xs font-medium text-slate-200">{data.label}</span>
-        </div>
-      </div>
-
-      {/* CONNECTION POINT: Moved to the RIGHT side */}
       <Handle 
         type="source" 
         position={Position.Right} 
-        className="w-2 h-2 bg-slate-500! border border-slate-700" 
+        className="w-3 h-3 bg-slate-800 border-2 border-slate-400 shadow-inner" 
       />
     </div>
   );
 };
 
 const nodeTypes = {
-  custom: CustomNode,
+  metallic: MetallicNode,
 };
 
-// 2. Adjusted positions for a Horizontal Layout (X increases, Y stays same)
-const initialNodes: Node[] = [
-  {
-    id: 'n1',
-    type: 'custom',
-    data: { label: 'Input Source' },
-    position: { x: 0, y: 100 },
-  },
-  {
-    id: 'n2',
-    type: 'custom',
-    data: { label: 'Processing Unit' },
-    position: { x: 250, y: 100 },
-  },
-  {
-    id: 'n3',
-    type: 'custom',
-    data: { label: 'Output Display' },
-    position: { x: 500, y: 100 },
-  }
-];
+export default function MetallicFlowPage() {
+  // Initial Nodes: 2 Inputs, 1 Output
+  const initialNodes: Node[] = [
+    { 
+      id: 'n1', 
+      type: 'metallic', 
+      position: { x: 0, y: 0 }, 
+      data: { label: 'SENS-01' } 
+    },
+    { 
+      id: 'n2', 
+      type: 'metallic', 
+      position: { x: 0, y: 150 }, 
+      data: { label: 'SENS-02' } 
+    },
+    { 
+      id: 'n3', 
+      type: 'metallic', 
+      position: { x: 300, y: 75 }, 
+      data: { label: 'CORE-UNIT' } 
+    },
+  ];
 
-const initialEdges: Edge[] = [
-  { 
-    id: 'n1-n2', 
-    source: 'n1', 
-    target: 'n2', 
-    animated: true, 
-    style: { stroke: '#94a3b8', strokeWidth: 2 } 
-  },
-  { 
-    id: 'n2-n3', 
-    source: 'n2', 
-    target: 'n3', 
-    animated: true, 
-    style: { stroke: '#94a3b8', strokeWidth: 2 } 
-  },
-];
+  // Initial Edges: n1 -> n3, n2 -> n3
+  const initialEdges: Edge[] = [
+    { 
+      id: 'e1-3', 
+      source: 'n1', 
+      target: 'n3', 
+      animated: true, 
+      style: { stroke: THEME.accent, strokeWidth: 3 } 
+    },
+    { 
+      id: 'e2-3', 
+      source: 'n2', 
+      target: 'n3', 
+      animated: true, 
+      style: { stroke: THEME.accent, strokeWidth: 3 } 
+    },
+  ];
 
-export default function FlowPage() {
   const [nodes, setNodes] = useState<Node[]>(initialNodes);
   const [edges, setEdges] = useState<Edge[]>(initialEdges);
 
-  const onNodesChange = useCallback((changes: NodeChange[]) => {
-    setNodes((nds) => applyNodeChanges(changes, nds));
-  }, []);
-
-  const onEdgesChange = useCallback((changes: EdgeChange[]) => {
-    setEdges((eds) => applyEdgeChanges(changes, eds));
-  }, []);
-
-  const onConnect = useCallback((params: Connection) => {
-    setEdges((eds) => addEdge(params, eds));
-  }, []);
+  const onNodesChange = useCallback((changes: NodeChange[]) => setNodes((nds) => applyNodeChanges(changes, nds)), []);
+  const onEdgesChange = useCallback((changes: EdgeChange[]) => setEdges((eds) => applyEdgeChanges(changes, eds)), []);
+  const onConnect = useCallback((params: Connection) => setEdges((eds) => addEdge(params, eds)), []);
 
   return (
-    <div style={{ 
-      width: '100vw', 
-      height: '100vh', 
-      background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)' 
-    }}>
+    <div className={`w-screen h-screen ${THEME.bg} overflow-hidden`}>
+      {/* Background Decorative elements */}
+      <div className="absolute inset-0 opacity-20 pointer-events-none" 
+           style={{ backgroundImage: 'radial-gradient(#475569 1px, transparent 1px)', backgroundSize: '30px 30px' }} />
+      
+      <div className="absolute top-10 left-10 z-10 select-none">
+        <h1 className="text-white text-2xl font-black tracking-tighter italic opacity-80">
+          METALLIC<span className="text-indigo-500">FLOW</span>
+        </h1>
+        <p className="text-slate-500 text-[10px] uppercase tracking-[0.2em] font-bold">
+          Industrial Interface v1.0
+        </p>
+      </div>
+
       <ReactFlow
         nodes={nodes}
         edges={edges}
