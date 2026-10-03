@@ -16,15 +16,11 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
-// 1. Standard Single-Input Node (KEPT ORIGINAL SIZE: w-3 h-3)
+// 1. Standard Single-Input Node
 const CustomNode = ({ data }: { data: { label: string } }) => {
   return (
     <div className="px-3 py-2 shadow-2xl rounded-lg bg-slate-800 border border-slate-600 min-w-30 transition-all hover:border-slate-400 group">
-      <Handle 
-        type="target" 
-        position={Position.Left} 
-        className="w-3 h-3 bg-slate-400 border border-slate-700" 
-      />
+      <Handle type="target" position={Position.Left} className="w-3 h-3 bg-slate-400 border border-slate-700" />
       <div className="flex flex-col gap-1">
         <div className="h-1 w-8 bg-slate-400 rounded-full group-hover:bg-slate-200 transition-colors" />
         <div className="flex flex-col">
@@ -32,17 +28,13 @@ const CustomNode = ({ data }: { data: { label: string } }) => {
           <span className="text-xs font-medium text-slate-200">{data.label}</span>
         </div>
       </div>
-      <Handle 
-        type="source" 
-        position={Position.Right} 
-        className="w-3 h-3 bg-slate-400 border border-slate-700" 
-      />
+      <Handle type="source" position={Position.Right} className="w-3 h-3 bg-slate-400 border border-slate-700" />
     </div>
   );
 };
 
 // 2. Dual-Input Node
-const DualInputNode = ({ data }: { data: { label: string } }) => {
+const DualInputNode = ({ id, data }: { id: string, data: any }) => {
   const [activeA, setActiveA] = useState(false);
   const [activeB, setActiveB] = useState(false);
 
@@ -50,41 +42,39 @@ const DualInputNode = ({ data }: { data: { label: string } }) => {
   const activeColor = "bg-yellow-400";
   const inactiveColor = "bg-slate-400";
 
+  // Function to handle the click: Toggles local state AND notifies parent to change edge color
+  const handleToggle = (handleId: string, currentStatus: boolean, setter: (val: boolean) => void) => {
+    setter(!currentStatus);
+    if (data.toggleEdgeColor) {
+      data.toggleEdgeColor(id, handleId, !currentStatus);
+    }
+  };
+
   return (
     <div className={`px-3 py-2 shadow-2xl rounded-lg border border-slate-600 min-w-30 transition-all duration-300 hover:border-slate-400 group ${bgColor}`}>
       
-      {/* INPUT A Wrapper - SIZE HALVED to w-2 h-2, position adjusted to -left-1 */}
+      {/* INPUT A Wrapper */}
       <div 
         className="absolute -left-1 top-[30%] z-50" 
         onClick={(e) => {
           e.stopPropagation(); 
-          setActiveA(!activeA);
+          handleToggle('input-a', activeA, setActiveA);
         }}
       >
         <div className={`w-2 h-2 rounded-full cursor-pointer transition-colors duration-200 border border-slate-700 ${activeA ? activeColor : inactiveColor}`} />
-        <Handle 
-          type="target" 
-          position={Position.Left} 
-          id="input-a" 
-          style={{ top: '30%', opacity: 0 }} 
-        />
+        <Handle type="target" position={Position.Left} id="input-a" style={{ top: '30%', opacity: 0 }} />
       </div>
       
-      {/* INPUT B Wrapper - SIZE HALVED to w-2 h-2, position adjusted to -left-1 */}
+      {/* INPUT B Wrapper */}
       <div 
         className="absolute -left-1 top-[70%] z-50" 
         onClick={(e) => {
           e.stopPropagation(); 
-          setActiveB(!activeB);
+          handleToggle('input-b', activeB, setActiveB);
         }}
       >
         <div className={`w-2 h-2 rounded-full cursor-pointer transition-colors duration-200 border border-slate-700 ${activeB ? activeColor : inactiveColor}`} />
-        <Handle 
-          type="target" 
-          position={Position.Left} 
-          id="input-b" 
-          style={{ top: '70%', opacity: 0 }} 
-        />
+        <Handle type="target" position={Position.Left} id="input-b" style={{ top: '70%', opacity: 0 }} />
       </div>
       
       <div className="flex flex-col gap-1">
@@ -95,12 +85,7 @@ const DualInputNode = ({ data }: { data: { label: string } }) => {
         </div>
       </div>
 
-      {/* Output handle kept at original size w-3 h-3 */}
-      <Handle 
-        type="source" 
-        position={Position.Right} 
-        className="w-3 h-3 bg-slate-400 border border-slate-700" 
-      />
+      <Handle type="source" position={Position.Right} className="w-3 h-3 bg-slate-400 border border-slate-700" />
     </div>
   );
 };
@@ -110,22 +95,46 @@ const nodeTypes = {
   dualInput: DualInputNode, 
 };
 
-const initialNodes: Node[] = [
-  { id: 'n1', type: 'custom', data: { label: 'Input A' }, position: { x: 0, y: 50 } },
-  { id: 'n2', type: 'custom', data: { label: 'Input B' }, position: { x: 0, y: 200 } },
-  { id: 'n3', type: 'dualInput', data: { label: 'Merge Processor' }, position: { x: 300, y: 100 } },
-  { id: 'n4', type: 'custom', data: { label: 'Final Output' }, position: { x: 600, y: 130 } },
-];
-
-const initialEdges: Edge[] = [
-  { id: 'e1-3', source: 'n1', target: 'n3', targetHandle: 'input-a', type: 'smoothstep', animated: true, style: { stroke: '#94a3b8', strokeWidth: 3 } },
-  { id: 'e2-3', source: 'n2', target: 'n3', targetHandle: 'input-b', type: 'smoothstep', animated: true, style: { stroke: '#94a3b8', strokeWidth: 3 } },
-  { id: 'e3-4', source: 'n3', target: 'n4', type: 'smoothstep', animated: true, style: { stroke: '#94a3b8', strokeWidth: 3 } },
-];
-
 export default function FlowPage() {
-  const [nodes, setNodes] = useState<Node[]>(initialNodes);
-  const [edges, setEdges] = useState<Edge[]>(initialEdges);
+  const [nodes, setNodes] = useState<Node[]>([]);
+  const [edges, setEdges] = useState<Edge[]>([
+    { id: 'e1-3', source: 'n1', target: 'n3', targetHandle: 'input-a', type: 'smoothstep', animated: true, style: { stroke: '#94a3b8', strokeWidth: 3 } },
+    { id: 'e2-3', source: 'n2', target: 'n3', targetHandle: 'input-b', type: 'smoothstep', animated: true, style: { stroke: '#94a3b8', strokeWidth: 3 } },
+    { id: 'e3-4', source: 'n3', target: 'n4', type: 'smoothstep', animated: true, style: { stroke: '#94a3b8', strokeWidth: 3 } },
+  ]);
+
+  // This function is passed into the Merger Node to allow it to update edge colors
+  const toggleEdgeColor = useCallback((nodeId: string, handleId: string, isActive: boolean) => {
+    setEdges((eds) => 
+      eds.map((edge) => {
+        if (edge.target === nodeId && edge.targetHandle === handleId) {
+          return {
+            ...edge,
+            style: { 
+              ...edge.style, 
+              stroke: isActive ? '#facc15' : '#94a3b8' // Yellow-400 vs Slate-400
+            },
+          };
+        }
+        return edge;
+      })
+    );
+  }, []);
+
+  // Initialize nodes inside useEffect or use a memo to ensure the toggleEdgeColor function is passed in data
+  useState(() => {
+    setNodes([
+      { id: 'n1', type: 'custom', data: { label: 'Input A' }, position: { x: 0, y: 50 } },
+      { id: 'n2', type: 'custom', data: { label: 'Input B' }, position: { x: 0, y: 200 } },
+      { 
+        id: 'n3', 
+        type: 'dualInput', 
+        data: { label: 'Merge Processor', toggleEdgeColor }, 
+        position: { x: 300, y: 100 } 
+      },
+      { id: 'n4', type: 'custom', data: { label: 'Final Output' }, position: { x: 600, y: 130 } },
+    ]);
+  }, []);
 
   const onNodesChange = useCallback((changes: NodeChange[]) => setNodes((nds) => applyNodeChanges(changes, nds)), []);
   const onEdgesChange = useCallback((changes: EdgeChange[]) => setEdges((eds) => applyEdgeChanges(changes, eds)), []);
