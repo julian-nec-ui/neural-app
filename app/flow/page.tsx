@@ -3,7 +3,7 @@
 import {useState, useCallback} from 'react';
 import {ReactFlow, applyNodeChanges, applyEdgeChanges, addEdge, NodeChange, EdgeChange} from '@xyflow/react';
 import { Connection, Edge } from '@xyflow/react';
-import '@xyflow/react/dist/index.css';
+import '@xyflow/react/dist/style.css';
 
 const initialNodes = [
   {
