@@ -102,7 +102,6 @@ const DualInputMetallicNode = ({ data }: {data: MetallicNodeData}) => {
 }
 
 const nodeTypes = {
-  metallic: MetallicNode,
   dual: DualInputMetallicNode
 };
 
