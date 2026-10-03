@@ -16,7 +16,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
-// 1. Standard Single-Input Node
+// 1. Standard Single-Input Node (KEPT ORIGINAL SIZE: w-3 h-3)
 const CustomNode = ({ data }: { data: { label: string } }) => {
   return (
     <div className="px-3 py-2 shadow-2xl rounded-lg bg-slate-800 border border-slate-600 min-w-30 transition-all hover:border-slate-400 group">
@@ -41,52 +41,49 @@ const CustomNode = ({ data }: { data: { label: string } }) => {
   );
 };
 
-// 2. Dual-Input Node (The corrected merger node)
+// 2. Dual-Input Node
 const DualInputNode = ({ data }: { data: { label: string } }) => {
   const [activeA, setActiveA] = useState(false);
   const [activeB, setActiveB] = useState(false);
 
-  // Background logic: light grey/blue when both are active, dark slate otherwise
   const bgColor = (activeA && activeB) ? 'bg-slate-600' : 'bg-slate-800';
-  
-  // Color logic: Yellow for active (high contrast), Slate for inactive
   const activeColor = "bg-yellow-400";
   const inactiveColor = "bg-slate-400";
 
   return (
     <div className={`px-3 py-2 shadow-2xl rounded-lg border border-slate-600 min-w-30 transition-all duration-300 hover:border-slate-400 group ${bgColor}`}>
       
-      {/* INPUT A Wrapper */}
+      {/* INPUT A Wrapper - SIZE HALVED to w-2 h-2, position adjusted to -left-1 */}
       <div 
-        className="absolute -left-2 top-[30%] z-50" 
+        className="absolute -left-1 top-[30%] z-50" 
         onClick={(e) => {
-          e.stopPropagation(); // STOP React Flow from starting a connection
+          e.stopPropagation(); 
           setActiveA(!activeA);
         }}
       >
-        <div className={`w-4 h-4 rounded-full cursor-pointer transition-colors duration-200 border border-slate-700 ${activeA ? activeColor : inactiveColor}`} />
+        <div className={`w-2 h-2 rounded-full cursor-pointer transition-colors duration-200 border border-slate-700 ${activeA ? activeColor : inactiveColor}`} />
         <Handle 
           type="target" 
           position={Position.Left} 
           id="input-a" 
-          style={{ top: '30%', opacity: 0 }} // Hide the actual handle but keep it functional
+          style={{ top: '30%', opacity: 0 }} 
         />
       </div>
       
-      {/* INPUT B Wrapper */}
+      {/* INPUT B Wrapper - SIZE HALVED to w-2 h-2, position adjusted to -left-1 */}
       <div 
-        className="absolute -left-2 top-[70%] z-50" 
+        className="absolute -left-1 top-[70%] z-50" 
         onClick={(e) => {
-          e.stopPropagation(); // STOP React Flow from starting a connection
+          e.stopPropagation(); 
           setActiveB(!activeB);
         }}
       >
-        <div className={`w-4 h-4 rounded-full cursor-pointer transition-colors duration-200 border border-slate-700 ${activeB ? activeColor : inactiveColor}`} />
+        <div className={`w-2 h-2 rounded-full cursor-pointer transition-colors duration-200 border border-slate-700 ${activeB ? activeColor : inactiveColor}`} />
         <Handle 
           type="target" 
           position={Position.Left} 
           id="input-b" 
-          style={{ top: '70%', opacity: 0 }} // Hide the actual handle but keep it functional
+          style={{ top: '70%', opacity: 0 }} 
         />
       </div>
       
@@ -98,6 +95,7 @@ const DualInputNode = ({ data }: { data: { label: string } }) => {
         </div>
       </div>
 
+      {/* Output handle kept at original size w-3 h-3 */}
       <Handle 
         type="source" 
         position={Position.Right} 
