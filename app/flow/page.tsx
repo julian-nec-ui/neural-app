@@ -23,7 +23,7 @@ const CustomNode = ({ data }: { data: { label: string } }) => {
       <Handle 
         type="target" 
         position={Position.Left} 
-        className="w-3 h-3 bg-slate-400! border border-slate-700" 
+        className="w-3 h-3 bg-slate-400 border border-slate-700" 
       />
       <div className="flex flex-col gap-1">
         <div className="h-1 w-8 bg-slate-400 rounded-full group-hover:bg-slate-200 transition-colors" />
@@ -35,47 +35,60 @@ const CustomNode = ({ data }: { data: { label: string } }) => {
       <Handle 
         type="source" 
         position={Position.Right} 
-        className="w-3 h-3 bg-slate-400! border border-slate-700" 
+        className="w-3 h-3 bg-slate-400 border border-slate-700" 
       />
     </div>
   );
 };
 
-// 2. Dual-Input Node (The updated merger node)
+// 2. Dual-Input Node (The corrected merger node)
 const DualInputNode = ({ data }: { data: { label: string } }) => {
-  // State to track if each input handle is "active"
   const [activeA, setActiveA] = useState(false);
   const [activeB, setActiveB] = useState(false);
 
-  // Determine background color: lighter if both are active
+  // Background logic: light grey/blue when both are active, dark slate otherwise
   const bgColor = (activeA && activeB) ? 'bg-slate-600' : 'bg-slate-800';
   
-  // Contrast color for the handles when active (Cyan)
-  const activeColor = "bg-cyan-400!";
-  const inactiveColor = "bg-slate-400!";
+  // Color logic: Yellow for active (high contrast), Slate for inactive
+  const activeColor = "bg-yellow-400";
+  const inactiveColor = "bg-slate-400";
 
   return (
     <div className={`px-3 py-2 shadow-2xl rounded-lg border border-slate-600 min-w-30 transition-all duration-300 hover:border-slate-400 group ${bgColor}`}>
       
-      {/* INPUT 1: Click to toggle color */}
-      <Handle 
-        type="target" 
-        position={Position.Left} 
-        id="input-a" 
-        style={{ top: '30%' }} 
-        onClick={() => setActiveA(!activeA)}
-        className={`w-3 h-3 cursor-pointer transition-colors duration-200 border border-slate-700 ${activeA ? activeColor : inactiveColor}`} 
-      />
+      {/* INPUT A Wrapper */}
+      <div 
+        className="absolute -left-2 top-[30%] z-50" 
+        onClick={(e) => {
+          e.stopPropagation(); // STOP React Flow from starting a connection
+          setActiveA(!activeA);
+        }}
+      >
+        <div className={`w-4 h-4 rounded-full cursor-pointer transition-colors duration-200 border border-slate-700 ${activeA ? activeColor : inactiveColor}`} />
+        <Handle 
+          type="target" 
+          position={Position.Left} 
+          id="input-a" 
+          style={{ top: '30%', opacity: 0 }} // Hide the actual handle but keep it functional
+        />
+      </div>
       
-      {/* INPUT 2: Click to toggle color */}
-      <Handle 
-        type="target" 
-        position={Position.Left} 
-        id="input-b" 
-        style={{ top: '70%' }} 
-        onClick={() => setActiveB(!activeB)}
-        className={`w-3 h-3 cursor-pointer transition-colors duration-200 border border-slate-700 ${activeB ? activeColor : inactiveColor}`} 
-      />
+      {/* INPUT B Wrapper */}
+      <div 
+        className="absolute -left-2 top-[70%] z-50" 
+        onClick={(e) => {
+          e.stopPropagation(); // STOP React Flow from starting a connection
+          setActiveB(!activeB);
+        }}
+      >
+        <div className={`w-4 h-4 rounded-full cursor-pointer transition-colors duration-200 border border-slate-700 ${activeB ? activeColor : inactiveColor}`} />
+        <Handle 
+          type="target" 
+          position={Position.Left} 
+          id="input-b" 
+          style={{ top: '70%', opacity: 0 }} // Hide the actual handle but keep it functional
+        />
+      </div>
       
       <div className="flex flex-col gap-1">
         <div className="h-1 w-8 bg-indigo-500 rounded-full group-hover:bg-indigo-300 transition-colors" />
@@ -88,7 +101,7 @@ const DualInputNode = ({ data }: { data: { label: string } }) => {
       <Handle 
         type="source" 
         position={Position.Right} 
-        className="w-3 h-3 bg-slate-400! border border-slate-700" 
+        className="w-3 h-3 bg-slate-400 border border-slate-700" 
       />
     </div>
   );
@@ -100,93 +113,28 @@ const nodeTypes = {
 };
 
 const initialNodes: Node[] = [
-  { 
-    id: 'n1', 
-    type: 'custom', 
-    data: { label: 'Input A' }, 
-    position: { x: 0, y: 50 } 
-  },
-  { 
-    id: 'n2', 
-    type: 'custom', 
-    data: { label: 'Input B' }, 
-    position: { x: 0, y: 200 } 
-  },
-  { 
-    id: 'n3', 
-    type: 'dualInput', 
-    data: { label: 'Merge Processor' }, 
-    position: { x: 300, y: 100 } 
-  },
-  { 
-    id: 'n4', 
-    type: 'custom', 
-    data: { label: 'Final Output' }, 
-    position: { x: 600, y: 130 } 
-  },
+  { id: 'n1', type: 'custom', data: { label: 'Input A' }, position: { x: 0, y: 50 } },
+  { id: 'n2', type: 'custom', data: { label: 'Input B' }, position: { x: 0, y: 200 } },
+  { id: 'n3', type: 'dualInput', data: { label: 'Merge Processor' }, position: { x: 300, y: 100 } },
+  { id: 'n4', type: 'custom', data: { label: 'Final Output' }, position: { x: 600, y: 130 } },
 ];
 
 const initialEdges: Edge[] = [
-  { 
-    id: 'e1-3', 
-    source: 'n1', 
-    target: 'n3', 
-    targetHandle: 'input-a', 
-    type: 'smoothstep', 
-    animated: true, 
-    style: { stroke: '#94a3b8', strokeWidth: 3 } 
-  },
-  { 
-    id: 'e2-3', 
-    source: 'n2', 
-    target: 'n3', 
-    targetHandle: 'input-b', 
-    type: 'smoothstep', 
-    animated: true, 
-    style: { stroke: '#94a3b8', strokeWidth: 3 } 
-  },
-  { 
-    id: 'e3-4', 
-    source: 'n3', 
-    target: 'n4', 
-    type: 'smoothstep', 
-    animated: true, 
-    style: { stroke: '#94a3b8', strokeWidth: 3 } 
-  },
+  { id: 'e1-3', source: 'n1', target: 'n3', targetHandle: 'input-a', type: 'smoothstep', animated: true, style: { stroke: '#94a3b8', strokeWidth: 3 } },
+  { id: 'e2-3', source: 'n2', target: 'n3', targetHandle: 'input-b', type: 'smoothstep', animated: true, style: { stroke: '#94a3b8', strokeWidth: 3 } },
+  { id: 'e3-4', source: 'n3', target: 'n4', type: 'smoothstep', animated: true, style: { stroke: '#94a3b8', strokeWidth: 3 } },
 ];
 
 export default function FlowPage() {
   const [nodes, setNodes] = useState<Node[]>(initialNodes);
   const [edges, setEdges] = useState<Edge[]>(initialEdges);
 
-  const onNodesChange = useCallback((changes: NodeChange[]) => {
-    setNodes((nds) => applyNodeChanges(changes, nds));
-  }, []);
-
-  const onEdgesChange = useCallback((changes: EdgeChange[]) => {
-    setEdges((eds) => applyEdgeChanges(changes, eds));
-  }, []);
-
-  const onConnect = useCallback((params: Connection) => {
-    setEdges((eds) => 
-      addEdge(
-        { 
-          ...params, 
-          type: 'smoothstep', 
-          animated: true, 
-          style: { stroke: '#94a3b8', strokeWidth: 3 } 
-        }, 
-        eds
-      )
-    );
-  }, []);
+  const onNodesChange = useCallback((changes: NodeChange[]) => setNodes((nds) => applyNodeChanges(changes, nds)), []);
+  const onEdgesChange = useCallback((changes: EdgeChange[]) => setEdges((eds) => applyEdgeChanges(changes, eds)), []);
+  const onConnect = useCallback((params: Connection) => setEdges((eds) => addEdge({ ...params, type: 'smoothstep', animated: true, style: { stroke: '#94a3b8', strokeWidth: 3 } }, eds)), []);
 
   return (
-    <div style={{ 
-      width: '100vw', 
-      height: '100vh', 
-      background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)' 
-    }}>
+    <div style={{ width: '100vw', height: '100vh', background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)' }}>
       <ReactFlow
         nodes={nodes}
         edges={edges}
