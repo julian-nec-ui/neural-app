@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback } from 'react';
 import { 
   ReactFlow, 
   applyNodeChanges, 
@@ -12,15 +12,12 @@ import {
   Edge, 
   Node, 
   Handle, 
-  Position 
+  Position, 
+  useEdges, 
+  ReactFlowProvider 
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
-// --- CONSTANTS FOR COLORS ---
-const COLOR_INACTIVE = '#94a3b8'; // slate-400
-const COLOR_ACTIVE = '#facc15';   // yellow-400
-
-// 1. Standard Single-Input Node
 const CustomNode = ({ data }: { data: { label: string } }) => {
   return (
     <div className="px-3 py-2 shadow-2xl rounded-lg bg-slate-800 border border-slate-600 min-w-30 transition-all hover:border-slate-400 group">
@@ -37,51 +34,70 @@ const CustomNode = ({ data }: { data: { label: string } }) => {
   );
 };
 
-// 2. Dual-Input Node (Merger)
-const DualInputNode = ({ id, data }: { id: string, data: any }) => {
-  const [activeA, setActiveA] = useState(false);
-  const [activeB, setActiveB] = useState(false);
+const DualInputNode = ({ id, data }: { id: string, data: { label: string } }) => {
+  const edges = useEdges();
+  
+  // Manual toggle states
+  const [manualA, setManualA] = useState(false);
+  const [manualB, setManualB] = useState(false);
 
+  // Reactive states: Active if connected OR manually toggled
+  const isConnectedA = edges.some(edge => edge.target === id && edge.targetHandle === 'input-a');
+  const isConnectedB = edges.some(edge => edge.target === id && edge.targetHandle === 'input-b');
+  
+  const activeA = isConnectedA || manualA;
+  const activeB = isConnectedB || manualB;
+
+  // Colors
+  const edgeColor = "#94a3b8";    // Matches the stroke of the edges
+  const inactiveColor = "#475569"; // Slate-600
   const bgColor = (activeA && activeB) ? 'bg-slate-600' : 'bg-slate-800';
-  const activeColor = "bg-yellow-400";
-  const inactiveColor = "bg-slate-400";
-
-  // This function handles the synchronized toggle
-  const handleToggle = (handleId: string, currentStatus: boolean, setter: (val: boolean) => void) => {
-    const nextStatus = !currentStatus;
-    setter(nextStatus);
-    
-    // Call the function provided by the parent to update the edge color
-    if (data.toggleEdgeColor) {
-      data.toggleEdgeColor(id, handleId, nextStatus);
-    }
-  };
 
   return (
     <div className={`px-3 py-2 shadow-2xl rounded-lg border border-slate-600 min-w-30 transition-all duration-300 hover:border-slate-400 group ${bgColor}`}>
       
-      {/* INPUT A */}
+      {/* INPUT A INTERACTION ZONE */}
       <div 
-        className="absolute -left-1 top-[30%] z-50" 
+        className="absolute -left-1.5 top-[30%] z-50" 
         onClick={(e) => {
-          e.stopPropagation(); 
-          handleToggle('input-a', activeA, setActiveA);
+          e.stopPropagation(); // Prevents the node from being selected/dragged when clicking handle
+          setManualA(!manualA);
         }}
       >
-        <div className={`w-2 h-2 rounded-full cursor-pointer transition-colors duration-200 border border-slate-700 ${activeA ? activeColor : inactiveColor}`} />
-        <Handle type="target" position={Position.Left} id="input-a" style={{ top: '30%', opacity: 0 }} />
+        {/* Visual Circle: Original size (w-3 h-3) */}
+        <div 
+          className="w-3 h-3 rounded-full cursor-pointer transition-colors duration-200 border border-slate-700" 
+          style={{ backgroundColor: activeA ? edgeColor : inactiveColor }}
+        />
+        {/* Actual Connection Handle: Invisible */}
+        <Handle 
+          type="target" 
+          position={Position.Left} 
+          id="input-a" 
+          style={{ top: '30%', opacity: 0 }} 
+        />
       </div>
       
-      {/* INPUT B */}
+      {/* INPUT B INTERACTION ZONE */}
       <div 
-        className="absolute -left-1 top-[70%] z-50" 
+        className="absolute -left-1.5 top-[70%] z-50" 
         onClick={(e) => {
           e.stopPropagation(); 
-          handleToggle('input-b', activeB, setActiveB);
+          setManualB(!manualB);
         }}
       >
-        <div className={`w-2 h-2 rounded-full cursor-pointer transition-colors duration-200 border border-slate-700 ${activeB ? activeColor : inactiveColor}`} />
-        <Handle type="target" position={Position.Left} id="input-b" style={{ top: '70%', opacity: 0 }} />
+        {/* Visual Circle: Original size (w-3 h-3) */}
+        <div 
+          className="w-3 h-3 rounded-full cursor-pointer transition-colors duration-200 border border-slate-700" 
+          style={{ backgroundColor: activeB ? edgeColor : inactiveColor }}
+        />
+        {/* Actual Connection Handle: Invisible */}
+        <Handle 
+          type="target" 
+          position={Position.Left} 
+          id="input-b" 
+          style={{ top: '70%', opacity: 0 }} 
+        />
       </div>
       
       <div className="flex flex-col gap-1">
@@ -97,53 +113,28 @@ const DualInputNode = ({ id, data }: { id: string, data: any }) => {
   );
 };
 
-const nodeTypes = {
-  custom: CustomNode,
-  dualInput: DualInputNode, 
-};
+const nodeTypes = { custom: CustomNode, dualInput: DualInputNode };
 
-export default function FlowPage() {
-  // Define the logic to change edge colors
-  const toggleEdgeColor = useCallback((nodeId: string, handleId: string, isActive: boolean) => {
-    setEdges((eds) => 
-      eds.map((edge) => {
-        if (edge.target === nodeId && edge.targetHandle === handleId) {
-          return {
-            ...edge,
-            style: { 
-              ...edge.style, 
-              stroke: isActive ? COLOR_ACTIVE : COLOR_INACTIVE 
-            },
-          };
-        }
-        return edge;
-      })
-    );
-  }, []);
+const initialNodes: Node[] = [
+  { id: 'n1', type: 'custom', data: { label: 'Input A' }, position: { x: 0, y: 50 } },
+  { id: 'n2', type: 'custom', data: { label: 'Input B' }, position: { x: 0, y: 200 } },
+  { id: 'n3', type: 'dualInput', data: { label: 'Merge Processor' }, position: { x: 300, y: 100 } },
+  { id: 'n4', type: 'custom', data: { label: 'Final Output' }, position: { x: 600, y: 130 } },
+];
 
-  // Initialize nodes using useMemo so the function reference is passed into the data object correctly
-  const initialNodes: Node[] = useMemo(() => [
-    { id: 'n1', type: 'custom', data: { label: 'Input A' }, position: { x: 0, y: 50 } },
-    { id: 'n2', type: 'custom', data: { label: 'Input B' }, position: { x: 0, y: 200 } },
-    { 
-      id: 'n3', 
-      type: 'dualInput', 
-      data: { label: 'Merge Processor', toggleEdgeColor }, 
-      position: { x: 300, y: 100 } 
-    },
-    { id: 'n4', type: 'custom', data: { label: 'Final Output' }, position: { x: 600, y: 130 } },
-  ], [toggleEdgeColor]);
+const initialEdges: Edge[] = [
+  { id: 'e1-3', source: 'n1', target: 'n3', targetHandle: 'input-a', type: 'smoothstep', animated: true, style: { stroke: '#94a3b8', strokeWidth: 3 } },
+  { id: 'e2-3', source: 'n2', target: 'n3', targetHandle: 'input-b', type: 'smoothstep', animated: true, style: { stroke: '#94a3b8', strokeWidth: 3 } },
+  { id: 'e3-4', source: 'n3', target: 'n4', type: 'smoothstep', animated: true, style: { stroke: '#94a3b8', strokeWidth: 3 } },
+];
 
+function FlowInner() {
   const [nodes, setNodes] = useState<Node[]>(initialNodes);
-  const [edges, setEdges] = useState<Edge[]>([
-    { id: 'e1-3', source: 'n1', target: 'n3', targetHandle: 'input-a', type: 'smoothstep', animated: true, style: { stroke: COLOR_INACTIVE, strokeWidth: 3 } },
-    { id: 'e2-3', source: 'n2', target: 'n3', targetHandle: 'input-b', type: 'smoothstep', animated: true, style: { stroke: COLOR_INACTIVE, strokeWidth: 3 } },
-    { id: 'e3-4', source: 'n3', target: 'n4', type: 'smoothstep', animated: true, style: { stroke: COLOR_INACTIVE, strokeWidth: 3 } },
-  ]);
+  const [edges, setEdges] = useState<Edge[]>(initialEdges);
 
   const onNodesChange = useCallback((changes: NodeChange[]) => setNodes((nds) => applyNodeChanges(changes, nds)), []);
   const onEdgesChange = useCallback((changes: EdgeChange[]) => setEdges((eds) => applyEdgeChanges(changes, eds)), []);
-  const onConnect = useCallback((params: Connection) => setEdges((eds) => addEdge({ ...params, type: 'smoothstep', animated: true, style: { stroke: COLOR_INACTIVE, strokeWidth: 3 } }, eds)), []);
+  const onConnect = useCallback((params: Connection) => setEdges((eds) => addEdge({ ...params, type: 'smoothstep', animated: true, style: { stroke: '#94a3b8', strokeWidth: 3 } }, eds)), []);
 
   return (
     <div style={{ width: '100vw', height: '100vh', background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)' }}>
@@ -158,5 +149,13 @@ export default function FlowPage() {
         style={{ backgroundColor: 'transparent' }}
       />
     </div>
+  );
+}
+
+export default function FlowPage() {
+  return (
+    <ReactFlowProvider>
+      <FlowInner />
+    </ReactFlowProvider>
   );
 }
