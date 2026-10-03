@@ -30,8 +30,8 @@ const CustomNode = ({ data }: { data: { label: string } }) => {
         <div className="flex flex-col">
           <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">Component</span>
           <span className="text-xs font-medium text-slate-200">{data.label}</span>
-        </div}
-      </div}
+        </div>
+      </div>
       <Handle type="source" position={Position.Right} className="w-3 h-3 bg-slate-400 border border-slate-700" />
     </div>
   );
