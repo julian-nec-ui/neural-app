@@ -104,8 +104,8 @@ export default function FlowPage() {
   
   // This function is passed into the Merger Node to allow it to update edge colors
   const toggleEdgeColor = useCallback((nodeId: string, handleId: string, isActive: boolean) => {
-    setEdges((eds) => {
-      return eds.map((edge) => {
+    setEdges((eds) =>
+      eds.map((edge) => {
         if (edge.target === nodeId && edge.targetHandle === handleId) {
           return {
             ...edge,
@@ -116,8 +116,8 @@ export default function FlowPage() {
           };
         }
         return edge;
-      });
-    });
+      })
+    );
   }, []);
 
   // Initialize nodes directly in useState - no useEffect needed
