@@ -25,6 +25,7 @@ interface MergerNodeData {
   label: string;
   activeA: boolean;
   activeB: boolean;
+  activeC: boolean;
   toggleHandle: (handleId: string) => void;
 }
 
@@ -45,45 +46,48 @@ const CustomNode = ({ data }: { data: { label: string } }) => {
   );
 };
 
-// 2. Dual-Input Node
-const DualInputNode = ({ data }: { data: MergerNodeData }) => {
-  const { activeA, activeB, toggleHandle } = data;
+// 2. Triple-Input Node (3-Input AND Gate)
+const TripleInputNode = ({ data }: { data: MergerNodeData }) => {
+  const { activeA, activeB, activeC, toggleHandle } = data;
 
-  const bgColor = (activeA && activeB) ? 'bg-slate-600' : 'bg-slate-800';
+  // AND Gate logic: Background changes only if ALL THREE are active
+  const bgColor = (activeA && activeB && activeC) ? 'bg-slate-600' : 'bg-slate-800';
   const activeColor = "bg-yellow-400";
   const inactiveColor = "bg-slate-400";
+
+  const inputs = [
+    { id: 'input-a', active: activeA, top: '30%' },
+    { id: 'input-b', active: activeB, top: '50%' },
+    { id: 'input-c', active: activeC, top: '70%' },
+  ];
 
   return (
     <div className={`px-3 py-2 shadow-2xl rounded-lg border border-slate-600 min-w-30 transition-all duration-300 hover:border-slate-400 group ${bgColor}`}>
       
-      {/* INPUT A */}
-      <div 
-        className="absolute -left-1 top-[30%] z-50" 
-        onClick={(e) => {
-          e.stopPropagation(); 
-          toggleHandle('input-a');
-        }}
-      >
-        <div className={`w-2 h-2 rounded-full cursor-pointer transition-colors duration-200 border border-slate-700 ${activeA ? activeColor : inactiveColor}`} />
-        <Handle type="target" position={Position.Left} id="input-a" style={{ top: '30%', opacity: 0 }} />
-      </div>
-      
-      {/* INPUT B */}
-      <div 
-        className="absolute -left-1 top-[70%] z-50" 
-        onClick={(e) => {
-          e.stopPropagation(); 
-          toggleHandle('input-b');
-        }}
-      >
-        <div className={`w-2 h-2 rounded-full cursor-pointer transition-colors duration-200 border border-slate-700 ${activeB ? activeColor : inactiveColor}`} />
-        <Handle type="target" position={Position.Left} id="input-b" style={{ top: '70%', opacity: 0 }} />
-      </div>
+      {inputs.map((input) => (
+        <div 
+          key={input.id}
+          className="absolute -left-1 z-50" 
+          style={{ top: input.top }}
+          onClick={(e) => {
+            e.stopPropagation(); 
+            toggleHandle(input.id);
+          }}
+        >
+          <div className={`w-2 h-2 rounded-full cursor-pointer transition-colors duration-200 border border-slate-700 ${input.active ? activeColor : inactiveColor}`} />
+          <Handle 
+            type="target" 
+            position={Position.Left} 
+            id={input.id} 
+            style={{ top: input.top, opacity: 0 }} 
+          />
+        </div>
+      ))}
       
       <div className="flex flex-col gap-1">
         <div className="h-1 w-8 bg-indigo-500 rounded-full group-hover:bg-indigo-300 transition-colors" />
         <div className="flex flex-col">
-          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">Merge Unit</span>
+          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">AND Gate (3)</span>
           <span className="text-xs font-medium text-slate-200">{data.label}</span>
         </div>
       </div>
@@ -93,43 +97,46 @@ const DualInputNode = ({ data }: { data: MergerNodeData }) => {
   );
 };
 
-const nodeTypes = { custom: CustomNode, dualInput: DualInputNode };
+const nodeTypes = { custom: CustomNode, dualInput: TripleInputNode };
 
 export default function FlowPage() {
   const [activeA, setActiveA] = useState(false);
   const [activeB, setActiveB] = useState(false);
+  const [activeC, setActiveC] = useState(false);
 
   const [nodes, setNodes] = useState<Node[]>([
-    { id: 'n1', type: 'custom', data: { label: 'Input A' }, position: { x: 0, y: 50 } },
-    { id: 'n2', type: 'custom', data: { label: 'Input B' }, position: { x: 0, y: 200 } },
+    { id: 'n1', type: 'custom', data: { label: 'Input A' }, position: { x: 0, y: 0 } },
+    { id: 'n2', type: 'custom', data: { label: 'Input B' }, position: { x: 0, y: 100 } },
+    { id: 'n3', type: 'custom', data: { label: 'Input C' }, position: { x: 0, y: 200 } },
     { 
-      id: 'n3', 
+      id: 'n4', 
       type: 'dualInput', 
-      data: { label: 'Merge Processor', activeA: false, activeB: false, toggleHandle: () => {} }, 
+      data: { label: 'Logic Gate', activeA: false, activeB: false, activeC: false, toggleHandle: () => {} }, 
       position: { x: 300, y: 100 } 
     },
-    { id: 'n4', type: 'custom', data: { label: 'Final Output' }, position: { x: 600, y: 130 } },
+    { id: 'n5', type: 'custom', data: { label: 'Final Output' }, position: { x: 600, y: 100 } },
   ]);
 
   const [edges, setEdges] = useState<Edge[]>([
-    { id: 'e1-3', source: 'n1', target: 'n3', targetHandle: 'input-a', type: 'smoothstep', animated: true, style: { stroke: COLOR_INACTIVE, strokeWidth: 3 } },
-    { id: 'e2-3', source: 'n2', target: 'n3', targetHandle: 'input-b', type: 'smoothstep', animated: true, style: { stroke: COLOR_INACTIVE, strokeWidth: 3 } },
-    { id: 'e3-4', source: 'n3', target: 'n4', type: 'smoothstep', animated: true, style: { stroke: COLOR_INACTIVE, strokeWidth: 3 } },
+    { id: 'e1-4', source: 'n1', target: 'n4', targetHandle: 'input-a', type: 'smoothstep', animated: true, style: { stroke: COLOR_INACTIVE, strokeWidth: 3 } },
+    { id: 'e2-4', source: 'n2', target: 'n4', targetHandle: 'input-b', type: 'smoothstep', animated: true, style: { stroke: COLOR_INACTIVE, strokeWidth: 3 } },
+    { id: 'e3-4', source: 'n3', target: 'n4', targetHandle: 'input-c', type: 'smoothstep', animated: true, style: { stroke: COLOR_INACTIVE, strokeWidth: 3 } },
+    { id: 'e4-5', source: 'n4', target: 'n5', type: 'smoothstep', animated: true, style: { stroke: COLOR_INACTIVE, strokeWidth: 3 } },
   ]);
 
   const handleToggle = useCallback((handleId: string) => {
-    // 1. Update Boolean State
     const newA = handleId === 'input-a' ? !activeA : activeA;
     const newB = handleId === 'input-b' ? !activeB : activeB;
+    const newC = handleId === 'input-c' ? !activeC : activeC;
     
     setActiveA(newA);
     setActiveB(newB);
+    setActiveC(newC);
 
-    // 2. Update Edge Colors
     setEdges((eds) => 
       eds.map((edge) => {
-        if (edge.target === 'n3' && edge.targetHandle === handleId) {
-          const isActive = (handleId === 'input-a' ? newA : newB);
+        if (edge.target === 'n4' && edge.targetHandle === handleId) {
+          const isActive = (handleId === 'input-a' ? newA : handleId === 'input-b' ? newB : newC);
           return {
             ...edge,
             style: { ...edge.style, stroke: isActive ? COLOR_ACTIVE : COLOR_INACTIVE },
@@ -139,16 +146,16 @@ export default function FlowPage() {
       })
     );
 
-    // 3. Update Node Data (to trigger re-render of background and circles)
     setNodes((nds) => 
       nds.map((node) => {
-        if (node.id === 'n3') {
+        if (node.id === 'n4') {
           return {
             ...node,
             data: { 
               ...node.data, 
               activeA: newA, 
               activeB: newB, 
+              activeC: newC, 
               toggleHandle: (hId: string) => handleToggle(hId) 
             },
           };
@@ -156,15 +163,14 @@ export default function FlowPage() {
         return node;
       })
     );
-  }, [activeA, activeB]);
+  }, [activeA, activeB, activeC]);
 
-  // Initial setup to ensure the node has the correct function reference
   useState(() => {
-    setNodes((nds) => nds.map(n => n.id === 'n3' ? { ...n, data: { ...n.data, toggleHandle: (hId: string) => handleToggle(hId) } } : n));
+    setNodes((nds) => nds.map(n => n.id === 'n4' ? { ...n, data: { ...n.data, toggleHandle: (hId: string) => handleToggle(hId) } } : n));
   }, []);
 
   const onEdgeClick = useCallback((_event: React.MouseEvent, edge: Edge) => {
-    if (edge.target === 'n3' && (edge.targetHandle === 'input-a' || edge.targetHandle === 'input-b')) {
+    if (edge.target === 'n4' && (edge.targetHandle === 'input-a' || edge.targetHandle === 'input-b' || edge.targetHandle === 'input-c')) {
       handleToggle(edge.targetHandle as string);
     }
   }, [handleToggle]);
