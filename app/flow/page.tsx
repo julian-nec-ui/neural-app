@@ -37,7 +37,6 @@ const MetallicNode = ({ data }: {data: MetallicNodeData}) => {
       shadow-[5px_5px_15px_rgba(0,0,0,0.4),-2px_-2px_10px_rgba(255,255,255,0.1)] 
       transition-all duration-300 hover:scale-105 group
     `}>
-      {/* Inner Glow Effect */}
       <div className="absolute inset-0 rounded-xl bg-linear-to-tr from-transparent via-white/10 to-transparent pointer-events-none" />
       
       <div className="flex flex-col items-center gap-1 relative z-10">
@@ -49,7 +48,6 @@ const MetallicNode = ({ data }: {data: MetallicNodeData}) => {
         </span>
       </div>
 
-      {/* Handles with a "socket" look */}
       <Handle 
         type="target" 
         position={Position.Left} 
@@ -69,6 +67,9 @@ const nodeTypes = {
 };
 
 export default function MetallicFlowPage() {
+  // State for Animation toggle
+  const [isAnimating, setIsAnimating] = useState(true);
+
   // Initial Nodes: 2 Inputs, 1 Output
   const initialNodes: Node[] = [
     { 
@@ -112,23 +113,46 @@ export default function MetallicFlowPage() {
   const [nodes, setNodes] = useState<Node[]>(initialNodes);
   const [edges, setEdges] = useState<Edge[]>(initialEdges);
 
+  // Function to toggle the animation state of all edges
+  const toggleAnimation = () => {
+    const newState = !isAnimating;
+    setIsAnimating(newState);
+    setEdges((eds) => eds.map((edge) => ({ ...edge, animated: newState })));
+  };
+
   const onNodesChange = useCallback((changes: NodeChange[]) => setNodes((nds) => applyNodeChanges(changes, nds)), []);
   const onEdgesChange = useCallback((changes: EdgeChange[]) => setEdges((eds) => applyEdgeChanges(changes, eds)), []);
   const onConnect = useCallback((params: Connection) => setEdges((eds) => addEdge(params, eds)), []);
 
   return (
     <div className={`w-screen h-screen ${THEME.bg} overflow-hidden`}>
-      {/* Background Decorative elements */}
       <div className="absolute inset-0 opacity-20 pointer-events-none" 
            style={{ backgroundImage: 'radial-gradient(#475569 1px, transparent 1px)', backgroundSize: '30px 30px' }} />
       
-      <div className="absolute top-10 left-10 z-10 select-none">
-        <h1 className="text-white text-2xl font-black tracking-tighter italic opacity-80">
-          METALLIC<span className="text-indigo-500">FLOW</span>
-        </h1>
-        <p className="text-slate-500 text-[10px] uppercase tracking-[0.2em] font-bold">
-          Industrial Interface v1.0
-        </p>
+      <div className="absolute top-10 left-10 z-10 select-none flex flex-col gap-4">
+        <div>
+          <h1 className="text-white text-2xl font-black tracking-tighter italic opacity-80">
+            METALLIC<span className="text-indigo-500">FLOW</span>
+          </h1>
+          <p className="text-slate-500 text-[10px] uppercase tracking-[0.2em] font-bold">
+            Industrial Interface v1.0
+          </p>
+        </div>
+
+        {/* METALLIC ANIMATION BUTTON */}
+        <button 
+          onClick={toggleAnimation}
+          className={`
+            px-4 py-2 rounded-md border-t border-l border-white/30 
+            transition-all duration-300 font-black text-[10px] uppercase tracking-widest
+            ${isAnimating 
+              ? 'bg-linear-to-br from-indigo-500 to-indigo-700 text-white shadow-[0_0_15px_rgba(99,102,241,0.4)] active:scale-95' 
+              : 'bg-linear-to-br from-slate-500 to-slate-700 text-slate-300 active:scale-95'}
+            shadow-[3px_3px_10px_rgba(0,0,0,0.6)]
+          `}
+        >
+          {isAnimating ? 'Stop Edge Animation' : 'Start Edge Animation'}
+        </button>
       </div>
 
       <ReactFlow
