@@ -102,7 +102,7 @@ const DualInputMetallicNode = ({ data }: {data: MetallicNodeData}) => {
 }
 
 const nodeTypes = {
-  dual: DualInputMetallicNode
+  metallic: DualInputMetallicNode
 };
 
 export default function MetallicFlowPage() {
