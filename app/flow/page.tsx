@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback } from 'react';
 import { 
   ReactFlow, 
   applyNodeChanges, 
@@ -20,6 +20,14 @@ import '@xyflow/react/dist/style.css';
 const COLOR_INACTIVE = '#94a3b8'; // slate-400
 const COLOR_ACTIVE = '#facc15';   // yellow-400
 
+// --- TYPES ---
+interface MergerNodeData {
+  label: string;
+  activeA: boolean;
+  activeB: boolean;
+  toggleHandle: (handleId: string) => void;
+}
+
 // 1. Standard Single-Input Node
 const CustomNode = ({ data }: { data: { label: string } }) => {
   return (
@@ -37,9 +45,8 @@ const CustomNode = ({ data }: { data: { label: string } }) => {
   );
 };
 
-// 2. Dual-Input Node (Now a "Controlled" component)
-const DualInputNode = ({ id, data }: { id: string, data: any }) => {
-  // State is now passed in via data from the parent
+// 2. Dual-Input Node
+const DualInputNode = ({ data }: { data: MergerNodeData }) => {
   const { activeA, activeB, toggleHandle } = data;
 
   const bgColor = (activeA && activeB) ? 'bg-slate-600' : 'bg-slate-800';
@@ -89,63 +96,74 @@ const DualInputNode = ({ id, data }: { id: string, data: any }) => {
 const nodeTypes = { custom: CustomNode, dualInput: DualInputNode };
 
 export default function FlowPage() {
-  // LIFTED STATE: The parent now tracks if the merger inputs are active
   const [activeA, setActiveA] = useState(false);
   const [activeB, setActiveB] = useState(false);
 
-  const [nodes, setNodes] = useState<Node[]>([]);
+  const [nodes, setNodes] = useState<Node[]>([
+    { id: 'n1', type: 'custom', data: { label: 'Input A' }, position: { x: 0, y: 50 } },
+    { id: 'n2', type: 'custom', data: { label: 'Input B' }, position: { x: 0, y: 200 } },
+    { 
+      id: 'n3', 
+      type: 'dualInput', 
+      data: { label: 'Merge Processor', activeA: false, activeB: false, toggleHandle: () => {} }, 
+      position: { x: 300, y: 100 } 
+    },
+    { id: 'n4', type: 'custom', data: { label: 'Final Output' }, position: { x: 600, y: 130 } },
+  ]);
+
   const [edges, setEdges] = useState<Edge[]>([
     { id: 'e1-3', source: 'n1', target: 'n3', targetHandle: 'input-a', type: 'smoothstep', animated: true, style: { stroke: COLOR_INACTIVE, strokeWidth: 3 } },
     { id: 'e2-3', source: 'n2', target: 'n3', targetHandle: 'input-b', type: 'smoothstep', animated: true, style: { stroke: COLOR_INACTIVE, strokeWidth: 3 } },
     { id: 'e3-4', source: 'n3', target: 'n4', type: 'smoothstep', animated: true, style: { stroke: COLOR_INACTIVE, strokeWidth: 3 } },
   ]);
 
-  // Function to synchronize Node state and Edge colors
   const handleToggle = useCallback((handleId: string) => {
+    // 1. Update Boolean State
+    const newA = handleId === 'input-a' ? !activeA : activeA;
+    const newB = handleId === 'input-b' ? !activeB : activeB;
+    
+    setActiveA(newA);
+    setActiveB(newB);
+
+    // 2. Update Edge Colors
     setEdges((eds) => 
       eds.map((edge) => {
         if (edge.target === 'n3' && edge.targetHandle === handleId) {
-          // Determine new state based on current handle state
-          const isCurrentlyActive = handleId === 'input-a' ? activeA : activeB;
-          const nextState = !isCurrentlyActive;
-
+          const isActive = (handleId === 'input-a' ? newA : newB);
           return {
             ...edge,
-            style: { ...edge.style, stroke: nextState ? COLOR_ACTIVE : COLOR_INACTIVE },
+            style: { ...edge.style, stroke: isActive ? COLOR_ACTIVE : COLOR_INACTIVE },
           };
         }
         return edge;
       })
     );
 
-    // Update the boolean states
-    if (handleId === 'input-a') setActiveA(!activeA);
-    if (handleId === 'input-b') setActiveB(!activeB);
+    // 3. Update Node Data (to trigger re-render of background and circles)
+    setNodes((nds) => 
+      nds.map((node) => {
+        if (node.id === 'n3') {
+          return {
+            ...node,
+            data: { 
+              ...node.data, 
+              activeA: newA, 
+              activeB: newB, 
+              toggleHandle: (hId: string) => handleToggle(hId) 
+            },
+          };
+        }
+        return node;
+      })
+    );
   }, [activeA, activeB]);
 
-  // Update the nodes array whenever the active states change so the DualInputNode re-renders
-  useMemo(() => {
-    setNodes([
-      { id: 'n1', type: 'custom', data: { label: 'Input A' }, position: { x: 0, y: 50 } },
-      { id: 'n2', type: 'custom', data: { label: 'Input B' }, position: { x: 0, y: 200 } },
-      { 
-        id: 'n3', 
-        type: 'dualInput', 
-        data: { 
-          label: 'Merge Processor', 
-          activeA, 
-          activeB, 
-          toggleHandle: handleToggle 
-        }, 
-        position: { x: 300, y: 100 } 
-      },
-      { id: 'n4', type: 'custom', data: { label: 'Final Output' }, position: { x: 600, y: 130 } },
-    ]);
-  }, [activeA, activeB, handleToggle]);
+  // Initial setup to ensure the node has the correct function reference
+  useState(() => {
+    setNodes((nds) => nds.map(n => n.id === 'n3' ? { ...n, data: { ...n.data, toggleHandle: (hId: string) => handleToggle(hId) } } : n));
+  }, []);
 
-  // TRIGGER: When an edge is clicked
-  const onEdgeClick = useCallback((event: React.MouseEvent, edge: Edge) => {
-    // Only trigger if the edge connects to the merger node (n3)
+  const onEdgeClick = useCallback((_event: React.MouseEvent, edge: Edge) => {
     if (edge.target === 'n3' && (edge.targetHandle === 'input-a' || edge.targetHandle === 'input-b')) {
       handleToggle(edge.targetHandle as string);
     }
@@ -163,7 +181,7 @@ export default function FlowPage() {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
-        onEdgeClick={onEdgeClick} // Added edge click listener
+        onEdgeClick={onEdgeClick}
         nodeTypes={nodeTypes}
         fitView
         style={{ backgroundColor: 'transparent' }}
