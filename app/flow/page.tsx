@@ -51,7 +51,7 @@ const InputToggle: React.FC<InputToggleProps> = ({
                 id={handleId} 
                 style={{ top: position === 'left' ? '30%' : '70%' }}
             />
-        </div
+        </div>
     );
 };
 
