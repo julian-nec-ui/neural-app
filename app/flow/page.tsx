@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from 'react';
+import { useState, useCallback } from 'react';
 import { 
   ReactFlow, 
   applyNodeChanges, 
@@ -13,20 +13,15 @@ import {
   Node, 
   Handle, 
   Position, 
-  useEdges, // Import useEdges to detect connections
+  useEdges, 
   ReactFlowProvider 
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
-// 1. Standard Single-Input Node
 const CustomNode = ({ data }: { data: { label: string } }) => {
   return (
     <div className="px-3 py-2 shadow-2xl rounded-lg bg-slate-800 border border-slate-600 min-w-30 transition-all hover:border-slate-400 group">
-      <Handle 
-        type="target" 
-        position={Position.Left} 
-        className="w-3 h-3 bg-slate-400 border border-slate-700" 
-      />
+      <Handle type="target" position={Position.Left} className="w-3 h-3 bg-slate-400 border border-slate-700" />
       <div className="flex flex-col gap-1">
         <div className="h-1 w-8 bg-slate-400 rounded-full group-hover:bg-slate-200 transition-colors" />
         <div className="flex flex-col">
@@ -34,59 +29,76 @@ const CustomNode = ({ data }: { data: { label: string } }) => {
           <span className="text-xs font-medium text-slate-200">{data.label}</span>
         </div>
       </div>
-      <Handle 
-        type="source" 
-        position={Position.Right} 
-        className="w-3 h-3 bg-slate-400 border border-slate-700" 
-      />
+      <Handle type="source" position={Position.Right} className="w-3 h-3 bg-slate-400 border border-slate-700" />
     </div>
   );
 };
 
-// 2. Dual-Input Node (Now reacts to edges)
 const DualInputNode = ({ id, data }: { id: string, data: { label: string } }) => {
-  // Access all edges in the flow to check for connections to this specific node
   const edges = useEdges();
+  
+  // Manual toggle states
+  const [manualA, setManualA] = useState(false);
+  const [manualB, setManualB] = useState(false);
 
-  // Check if any edge is connected to the specific handles of THIS node
+  // Reactive states: Active if connected OR manually toggled
   const isConnectedA = edges.some(edge => edge.target === id && edge.targetHandle === 'input-a');
   const isConnectedB = edges.some(edge => edge.target === id && edge.targetHandle === 'input-b');
+  
+  const activeA = isConnectedA || manualA;
+  const activeB = isConnectedB || manualB;
 
-  // The contrast color matches the edges (#94a3b8 / slate-400)
-  const edgeColor = "#94a3b8"; 
-  const inactiveColor = "#475569"; // slate-600
-
-  // Background becomes lighter if BOTH are connected
-  const bgColor = (isConnectedA && isConnectedB) ? 'bg-slate-600' : 'bg-slate-800';
+  // Colors
+  const edgeColor = "#94a3b8";    // Matches the stroke of the edges
+  const inactiveColor = "#475569"; // Slate-600
+  const bgColor = (activeA && activeB) ? 'bg-slate-600' : 'bg-slate-800';
 
   return (
     <div className={`px-3 py-2 shadow-2xl rounded-lg border border-slate-600 min-w-30 transition-all duration-300 hover:border-slate-400 group ${bgColor}`}>
       
-      {/* INPUT A */}
-      <Handle 
-        type="target" 
-        position={Position.Left} 
-        id="input-a" 
-        style={{ 
-            top: '30%', 
-            backgroundColor: isConnectedA ? edgeColor : inactiveColor,
-            transition: 'background-color 0.2s' 
-        }} 
-        className="w-3 h-3 border border-slate-700" 
-      />
+      {/* INPUT A INTERACTION ZONE */}
+      <div 
+        className="absolute -left-1.5 top-[30%] z-50" 
+        onClick={(e) => {
+          e.stopPropagation(); // Prevents the node from being selected/dragged when clicking handle
+          setManualA(!manualA);
+        }}
+      >
+        {/* Visual Circle: Original size (w-3 h-3) */}
+        <div 
+          className="w-3 h-3 rounded-full cursor-pointer transition-colors duration-200 border border-slate-700" 
+          style={{ backgroundColor: activeA ? edgeColor : inactiveColor }}
+        />
+        {/* Actual Connection Handle: Invisible */}
+        <Handle 
+          type="target" 
+          position={Position.Left} 
+          id="input-a" 
+          style={{ top: '30%', opacity: 0 }} 
+        />
+      </div>
       
-      {/* INPUT B */}
-      <Handle 
-        type="target" 
-        position={Position.Left} 
-        id="input-b" 
-        style={{ 
-            top: '70%', 
-            backgroundColor: isConnectedB ? edgeColor : inactiveColor,
-            transition: 'background-color 0.2s' 
-        }} 
-        className="w-3 h-3 border border-slate-700" 
-      />
+      {/* INPUT B INTERACTION ZONE */}
+      <div 
+        className="absolute -left-1.5 top-[70%] z-50" 
+        onClick={(e) => {
+          e.stopPropagation(); 
+          setManualB(!manualB);
+        }}
+      >
+        {/* Visual Circle: Original size (w-3 h-3) */}
+        <div 
+          className="w-3 h-3 rounded-full cursor-pointer transition-colors duration-200 border border-slate-700" 
+          style={{ backgroundColor: activeB ? edgeColor : inactiveColor }}
+        />
+        {/* Actual Connection Handle: Invisible */}
+        <Handle 
+          type="target" 
+          position={Position.Left} 
+          id="input-b" 
+          style={{ top: '70%', opacity: 0 }} 
+        />
+      </div>
       
       <div className="flex flex-col gap-1">
         <div className="h-1 w-8 bg-indigo-500 rounded-full group-hover:bg-indigo-300 transition-colors" />
@@ -96,19 +108,12 @@ const DualInputNode = ({ id, data }: { id: string, data: { label: string } }) =>
         </div>
       </div>
 
-      <Handle 
-        type="source" 
-        position={Position.Right} 
-        className="w-3 h-3 bg-slate-400 border border-slate-700" 
-      />
+      <Handle type="source" position={Position.Right} className="w-3 h-3 bg-slate-400 border border-slate-700" />
     </div>
   );
 };
 
-const nodeTypes = {
-  custom: CustomNode,
-  dualInput: DualInputNode, 
-};
+const nodeTypes = { custom: CustomNode, dualInput: DualInputNode };
 
 const initialNodes: Node[] = [
   { id: 'n1', type: 'custom', data: { label: 'Input A' }, position: { x: 0, y: 50 } },
@@ -147,7 +152,6 @@ function FlowInner() {
   );
 }
 
-// Wrapper required to provide the Edge context to Custom Nodes
 export default function FlowPage() {
   return (
     <ReactFlowProvider>
