@@ -46,6 +46,7 @@ export default function FlowPage() {
 
   return (
     <div style={{ width: '100%', height: '100%' }}>
+      baba
       <ReactFlow
         nodes={nodes}
         edges={edges}
