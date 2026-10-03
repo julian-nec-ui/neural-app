@@ -3,7 +3,7 @@
 import {useState, useCallback} from 'react';
 import {ReactFlow, applyNodeChanges, applyEdgeChanges, addEdge, NodeChange, EdgeChange} from '@xyflow/react';
 import { Connection, Edge } from '@xyflow/react';
-//import '@xyflow/react/dist/style.css';
+import '@xyflow/react/dist/style.css';
 
 const initialNodes = [
   {
@@ -45,8 +45,7 @@ export default function FlowPage() {
   }, []);
 
   return (
-    <div style={{ width: '100%', height: '100%' }}>
-      baba
+    <div style={{ width: '100vw', height: '100vw' }}>
       <ReactFlow
         nodes={nodes}
         edges={edges}
