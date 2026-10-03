@@ -562,7 +562,7 @@ export default function ClientPage() {
 
             <div className="p-6 bg-slate-50 flex justify-end gap-3 items-stretch">
               <button
-                onClick={() => { setIsAddOpen(false); setNewClient({ firstName: "", lastName: "", email: "", phone: "", address: { streetNumber: "", streetName: "", city: "", state: "", zip: "", country: "" } }); }}
+                onClick={() => { setIsAddOpen(false); setNewClient({ firstName: "", lastName: "", email: "", phone: "", address: {clientId: -1, streetNumber: "", streetName: "", city: "", state: "", zip: "", country: "" } }); }}
                 className="h-10 px-4 bg-[#8480d2] text-[#ffffff] rounded-xl hover:bg-slate-800 transition font-medium shadow-sm flex items-center justify-center"
               >
                 Cancel
