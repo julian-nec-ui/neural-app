@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { 
   ReactFlow, 
   applyNodeChanges, 
@@ -12,7 +12,9 @@ import {
   Edge, 
   Node, 
   Handle, 
-  Position 
+  Position, 
+  useEdges, // Import useEdges to detect connections
+  ReactFlowProvider 
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
@@ -41,54 +43,50 @@ const CustomNode = ({ data }: { data: { label: string } }) => {
   );
 };
 
-// 2. Dual-Input Node (The corrected merger node)
-const DualInputNode = ({ data }: { data: { label: string } }) => {
-  const [activeA, setActiveA] = useState(false);
-  const [activeB, setActiveB] = useState(false);
+// 2. Dual-Input Node (Now reacts to edges)
+const DualInputNode = ({ id, data }: { id: string, data: { label: string } }) => {
+  // Access all edges in the flow to check for connections to this specific node
+  const edges = useEdges();
 
-  // Background logic: light grey/blue when both are active, dark slate otherwise
-  const bgColor = (activeA && activeB) ? 'bg-slate-600' : 'bg-slate-800';
-  
-  // Color logic: Yellow for active (high contrast), Slate for inactive
-  const activeColor = "bg-yellow-400";
-  const inactiveColor = "bg-slate-400";
+  // Check if any edge is connected to the specific handles of THIS node
+  const isConnectedA = edges.some(edge => edge.target === id && edge.targetHandle === 'input-a');
+  const isConnectedB = edges.some(edge => edge.target === id && edge.targetHandle === 'input-b');
+
+  // The contrast color matches the edges (#94a3b8 / slate-400)
+  const edgeColor = "#94a3b8"; 
+  const inactiveColor = "#475569"; // slate-600
+
+  // Background becomes lighter if BOTH are connected
+  const bgColor = (isConnectedA && isConnectedB) ? 'bg-slate-600' : 'bg-slate-800';
 
   return (
     <div className={`px-3 py-2 shadow-2xl rounded-lg border border-slate-600 min-w-30 transition-all duration-300 hover:border-slate-400 group ${bgColor}`}>
       
-      {/* INPUT A Wrapper */}
-      <div 
-        className="absolute -left-2 top-[30%] z-50" 
-        onClick={(e) => {
-          e.stopPropagation(); // STOP React Flow from starting a connection
-          setActiveA(!activeA);
-        }}
-      >
-        <div className={`w-4 h-4 rounded-full cursor-pointer transition-colors duration-200 border border-slate-700 ${activeA ? activeColor : inactiveColor}`} />
-        <Handle 
-          type="target" 
-          position={Position.Left} 
-          id="input-a" 
-          style={{ top: '30%', opacity: 0 }} // Hide the actual handle but keep it functional
-        />
-      </div>
+      {/* INPUT A */}
+      <Handle 
+        type="target" 
+        position={Position.Left} 
+        id="input-a" 
+        style={{ 
+            top: '30%', 
+            backgroundColor: isConnectedA ? edgeColor : inactiveColor,
+            transition: 'background-color 0.2s' 
+        }} 
+        className="w-3 h-3 border border-slate-700" 
+      />
       
-      {/* INPUT B Wrapper */}
-      <div 
-        className="absolute -left-2 top-[70%] z-50" 
-        onClick={(e) => {
-          e.stopPropagation(); // STOP React Flow from starting a connection
-          setActiveB(!activeB);
-        }}
-      >
-        <div className={`w-4 h-4 rounded-full cursor-pointer transition-colors duration-200 border border-slate-700 ${activeB ? activeColor : inactiveColor}`} />
-        <Handle 
-          type="target" 
-          position={Position.Left} 
-          id="input-b" 
-          style={{ top: '70%', opacity: 0 }} // Hide the actual handle but keep it functional
-        />
-      </div>
+      {/* INPUT B */}
+      <Handle 
+        type="target" 
+        position={Position.Left} 
+        id="input-b" 
+        style={{ 
+            top: '70%', 
+            backgroundColor: isConnectedB ? edgeColor : inactiveColor,
+            transition: 'background-color 0.2s' 
+        }} 
+        className="w-3 h-3 border border-slate-700" 
+      />
       
       <div className="flex flex-col gap-1">
         <div className="h-1 w-8 bg-indigo-500 rounded-full group-hover:bg-indigo-300 transition-colors" />
@@ -125,7 +123,7 @@ const initialEdges: Edge[] = [
   { id: 'e3-4', source: 'n3', target: 'n4', type: 'smoothstep', animated: true, style: { stroke: '#94a3b8', strokeWidth: 3 } },
 ];
 
-export default function FlowPage() {
+function FlowInner() {
   const [nodes, setNodes] = useState<Node[]>(initialNodes);
   const [edges, setEdges] = useState<Edge[]>(initialEdges);
 
@@ -146,5 +144,14 @@ export default function FlowPage() {
         style={{ backgroundColor: 'transparent' }}
       />
     </div>
+  );
+}
+
+// Wrapper required to provide the Edge context to Custom Nodes
+export default function FlowPage() {
+  return (
+    <ReactFlowProvider>
+      <FlowInner />
+    </ReactFlowProvider>
   );
 }
