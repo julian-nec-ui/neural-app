@@ -33,7 +33,7 @@ const CustomNode = ({ data }: { data: { label: string } }) => {
   );
 };
 
-// 2. Dual-Input Node (CORRECTED)
+// 2. Dual-Input Node with enhanced edge toggling
 const DualInputNode = ({ id, data }: { id: string, data: { label: string, toggleEdgeColor?: (nodeId: string, handleId: string, isActive: boolean) => void } }) => {
   const [activeA, setActiveA] = useState(false);
   const [activeB, setActiveB] = useState(false);
@@ -50,56 +50,32 @@ const DualInputNode = ({ id, data }: { id: string, data: { label: string, toggle
     }
   };
 
-  // Helper component to manage the clickable target area
-  const InputToggle = ({ handleId, currentStatus, setter, position, colorClass }: { 
-    handleId: string, 
-    currentStatus: boolean, 
-    setter: (val: boolean) => void, 
-    position: 'left', 
-    colorClass: string 
-  }) => (
-    <div
-      className={`absolute -left-1 z-50 cursor-pointer`}
-      style={{ top: position === 'left' ? '30%' : '70%' }} // Positions the entire block
-      onClick={(e) => {
-        // Stops ReactFlow from trying to handle this click as a node operation
-        e.stopPropagation(); 
-        handleToggle(handleId, currentStatus, setter);
-      }}
-    >
-      {/* Visual indicator circle (The part the user clicks) */}
-      <div className={`w-2 h-2 rounded-full transition-colors duration-200 border border-slate-700 ${colorClass}`} />
-      
-      {/* ReactFlow Handle (The element that needs to be clickable) */}
-      <Handle 
-        type="target" 
-        position={Position.Left} 
-        id={handleId} 
-        style={{ top: position === 'left' ? '30%' : '70%' }}
-      />
-    </div>
-  );
-
   return (
     <div className={`px-3 py-2 shadow-2xl rounded-lg border border-slate-600 min-w-30 transition-all duration-300 hover:border-slate-400 group ${bgColor}`}>
 
-      {/* INPUT A Toggle */}
-      <InputToggle 
-        handleId="input-a" 
-        currentStatus={activeA} 
-        setter={setActiveA} 
-        position="left" 
-        colorClass={activeA ? activeColor : inactiveColor} 
-      />
+      {/* INPUT A Wrapper */}
+      <div
+        className="absolute -left-1 top-[30%] z-50"
+        onClick={(e) => {
+          e.stopPropagation();
+          handleToggle('input-a', activeA, setActiveA);
+        }}
+      >
+        <div className={`w-2 h-2 rounded-full cursor-pointer transition-colors duration-200 border border-slate-700 ${activeA ? activeColor : inactiveColor}`} />
+        <Handle type="target" position={Position.Left} id="input-a" style={{ top: '30%', opacity: 0 }} />
+      </div>
 
-      {/* INPUT B Toggle */}
-      <InputToggle 
-        handleId="input-b" 
-        currentStatus={activeB} 
-        setter={setActiveB} 
-        position="left" 
-        colorClass={activeB ? activeColor : inactiveColor} 
-      />
+      {/* INPUT B Wrapper */}
+      <div
+        className="absolute -left-1 top-[70%] z-50"
+        onClick={(e) => {
+          e.stopPropagation();
+          handleToggle('input-b', activeB, setActiveB);
+        }}
+      >
+        <div className={`w-2 h-2 rounded-full cursor-pointer transition-colors duration-200 border border-slate-700 ${activeB ? activeColor : inactiveColor}`} />
+        <Handle type="target" position={Position.Left} id="input-b" style={{ top: '70%', opacity: 0 }} />
+      </div>
 
       <div className="flex flex-col gap-1">
         <div className="h-1 w-8 bg-indigo-500 rounded-full group-hover:bg-indigo-300 transition-colors" />
@@ -113,7 +89,6 @@ const DualInputNode = ({ id, data }: { id: string, data: { label: string, toggle
     </div>
   );
 };
-
 
 const nodeTypes = {
   custom: CustomNode,
