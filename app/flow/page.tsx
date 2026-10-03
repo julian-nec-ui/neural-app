@@ -14,7 +14,6 @@ import {
   Handle,
   Position
 } from '@xyflow/react';
-
 import '@xyflow/react/dist/style.css';
 
 // --- EXTERNAL HELPER COMPONENT ---
@@ -52,7 +51,7 @@ const InputToggle: React.FC<InputToggleProps> = ({
                 id={handleId} 
                 style={{ top: position === 'left' ? '30%' : '70%' }}
             />
-        </div>
+        </div
     );
 };
 
