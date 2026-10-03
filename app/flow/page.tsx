@@ -33,7 +33,7 @@ const CustomNode = ({ data }: { data: { label: string } }) => {
   );
 };
 
-// 2. Dual-Input Node with enhanced edge toggling
+// 2. Dual-Input Node (FIXED FOR CLICK SYNCHRONIZATION)
 const DualInputNode = ({ id, data }: { id: string, data: { label: string, toggleEdgeColor?: (nodeId: string, handleId: string, isActive: boolean) => void } }) => {
   const [activeA, setActiveA] = useState(false);
   const [activeB, setActiveB] = useState(false);
@@ -56,13 +56,23 @@ const DualInputNode = ({ id, data }: { id: string, data: { label: string, toggle
       {/* INPUT A Wrapper */}
       <div
         className="absolute -left-1 top-[30%] z-50"
+        // This wrapper's onClick will capture clicks on the visual dot AND the handle area
         onClick={(e) => {
           e.stopPropagation();
           handleToggle('input-a', activeA, setActiveA);
         }}
       >
+        {/* Visual indicator circle (The part the user sees/clicks) */}
         <div className={`w-2 h-2 rounded-full cursor-pointer transition-colors duration-200 border border-slate-700 ${activeA ? activeColor : inactiveColor}`} />
-        <Handle type="target" position={Position.Left} id="input-a" style={{ top: '30%', opacity: 0 }} />
+        
+        {/* ReactFlow Handle. We remove opacity: 0 and rely on the parent's click handler. */}
+        <Handle 
+            type="target" 
+            position={Position.Left} 
+            id="input-a" 
+            // Use inline style to ensure vertical alignment, but remove opacity: 0
+            style={{ top: '30%' }} 
+        />
       </div>
 
       {/* INPUT B Wrapper */}
@@ -73,8 +83,17 @@ const DualInputNode = ({ id, data }: { id: string, data: { label: string, toggle
           handleToggle('input-b', activeB, setActiveB);
         }}
       >
+        {/* Visual indicator circle */}
         <div className={`w-2 h-2 rounded-full cursor-pointer transition-colors duration-200 border border-slate-700 ${activeB ? activeColor : inactiveColor}`} />
-        <Handle type="target" position={Position.Left} id="input-b" style={{ top: '70%', opacity: 0 }} />
+        
+        {/* ReactFlow Handle. We remove opacity: 0 and rely on the parent's click handler. */}
+        <Handle 
+            type="target" 
+            position={Position.Left} 
+            id="input-b" 
+            // Use inline style to ensure vertical alignment, but remove opacity: 0
+            style={{ top: '70%' }} 
+        />
       </div>
 
       <div className="flex flex-col gap-1">
@@ -89,6 +108,7 @@ const DualInputNode = ({ id, data }: { id: string, data: { label: string, toggle
     </div>
   );
 };
+
 
 const nodeTypes = {
   custom: CustomNode,
