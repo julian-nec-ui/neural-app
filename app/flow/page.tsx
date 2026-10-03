@@ -14,9 +14,49 @@ import {
   Handle,
   Position
 } from '@xyflow/react';
+
 import '@xyflow/react/dist/style.css';
 
-// 1. Standard Single-Input Node
+// --- EXTERNAL HELPER COMPONENT ---
+// 1. Define this component outside of any other functional component
+interface InputToggleProps { 
+    handleId: string; 
+    currentStatus: boolean; 
+    setter: (val: boolean) => void; 
+    position: 'left' | 'right'; 
+    colorClass: string;
+    onToggle: () => void;
+}
+
+const InputToggle: React.FC<InputToggleProps> = ({ 
+    handleId, 
+    currentStatus, 
+    setter, 
+    position, 
+    colorClass,
+    onToggle
+}) => {
+    return (
+        <div
+            className={`absolute -left-1 z-50 cursor-pointer`}
+            style={{ top: position === 'left' ? '30%' : '70%' }} // Positions the entire block
+            onClick={onToggle} // Use the passed-in toggle handler
+        >
+            {/* Visual indicator circle (The part the user clicks) */}
+            <div className={`w-2 h-2 rounded-full transition-colors duration-200 border border-slate-700 ${colorClass}`} />
+            
+            {/* ReactFlow Handle (The element that needs to be clickable) */}
+            <Handle 
+                type="target" 
+                position={Position.Left} 
+                id={handleId} 
+                style={{ top: position === 'left' ? '30%' : '70%' }}
+            />
+        </div>
+    );
+};
+
+// 2. Standard Single-Input Node
 const CustomNode = ({ data }: { data: { label: string } }) => {
   return (
     <div className="px-3 py-2 shadow-2xl rounded-lg bg-slate-800 border border-slate-600 min-w-30 transition-all hover:border-slate-400 group">
@@ -33,7 +73,7 @@ const CustomNode = ({ data }: { data: { label: string } }) => {
   );
 };
 
-// 2. Dual-Input Node
+// 3. Dual-Input Node (MODIFIED TO USE EXTERNAL COMPONENT)
 const DualInputNode = ({ id, data }: { id: string, data: { label: string, toggleEdgeColor?: (nodeId: string, handleId: string, isActive: boolean) => void } }) => {
   const [activeA, setActiveA] = useState(false);
   const [activeB, setActiveB] = useState(false);
@@ -53,29 +93,25 @@ const DualInputNode = ({ id, data }: { id: string, data: { label: string, toggle
   return (
     <div className={`px-3 py-2 shadow-2xl rounded-lg border border-slate-600 min-w-30 transition-all duration-300 hover:border-slate-400 group ${bgColor}`}>
 
-      {/* INPUT A Wrapper */}
-      <div
-        className="absolute -left-1 top-[30%] z-50"
-        onClick={(e) => {
-          e.stopPropagation();
-          handleToggle('input-a', activeA, setActiveA);
-        }}
-      >
-        <div className={`w-2 h-2 rounded-full cursor-pointer transition-colors duration-200 border border-slate-700 ${activeA ? activeColor : inactiveColor}`} />
-        <Handle type="target" position={Position.Left} id="input-a" style={{ top: '30%', opacity: 0 }} />
-      </div>
+      {/* INPUT A Toggle - Now using the external component */}
+      <InputToggle 
+        handleId="input-a" 
+        currentStatus={activeA} 
+        setter={setActiveA} 
+        position="left" 
+        colorClass={activeA ? activeColor : inactiveColor}
+        onToggle={() => handleToggle('input-a', activeA, setActiveA)}
+      />
 
-      {/* INPUT B Wrapper */}
-      <div
-        className="absolute -left-1 top-[70%] z-50"
-        onClick={(e) => {
-          e.stopPropagation();
-          handleToggle('input-b', activeB, setActiveB);
-        }}
-      >
-        <div className={`w-2 h-2 rounded-full cursor-pointer transition-colors duration-200 border border-slate-700 ${activeB ? activeColor : inactiveColor}`} />
-        <Handle type="target" position={Position.Left} id="input-b" style={{ top: '70%', opacity: 0 }} />
-      </div>
+      {/* INPUT B Toggle - Now using the external component */}
+      <InputToggle 
+        handleId="input-b" 
+        currentStatus={activeB} 
+        setter={setActiveB} 
+        position="left" 
+        colorClass={activeB ? activeColor : inactiveColor}
+        onToggle={() => handleToggle('input-b', activeB, setActiveB)}
+      />
 
       <div className="flex flex-col gap-1">
         <div className="h-1 w-8 bg-indigo-500 rounded-full group-hover:bg-indigo-300 transition-colors" />
@@ -95,6 +131,7 @@ const nodeTypes = {
   dualInput: DualInputNode,
 };
 
+// ... rest of FlowPage remains the same ...
 export default function FlowPage() {
   const [edges, setEdges] = useState<Edge[]>([
     { id: 'e1-3', source: 'n1', target: 'n3', targetHandle: 'input-a', type: 'smoothstep', animated: true, style: { stroke: '#94a3b8', strokeWidth: 3 } },
@@ -102,7 +139,6 @@ export default function FlowPage() {
     { id: 'e3-4', source: 'n3', target: 'n4', type: 'smoothstep', animated: true, style: { stroke: '#94a3b8', strokeWidth: 3 } },
   ]);
   
-  // This function is passed into the Merger Node to allow it to update edge colors
   const toggleEdgeColor = useCallback((nodeId: string, handleId: string, isActive: boolean) => {
     setEdges((eds) => {
       return eds.map((edge) => {
@@ -120,7 +156,6 @@ export default function FlowPage() {
     });
   }, []);
 
-  // Initialize nodes directly in useState - no useEffect needed
   const [nodes, setNodes] = useState<Node[]>([
     { id: 'n1', type: 'custom', data: { label: 'Input A' }, position: { x: 0, y: 50 } },
     { id: 'n2', type: 'custom', data: { label: 'Input B' }, position: { x: 0, y: 200 } },
@@ -149,6 +184,6 @@ export default function FlowPage() {
         fitView
         style={{ backgroundColor: 'transparent' }}
       />
-    </div>
+    </div >
   );
 }
