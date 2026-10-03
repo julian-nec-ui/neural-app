@@ -28,7 +28,7 @@ import { Client as StompClient } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 import { AnimatePresence, motion } from "framer-motion";
 
-// 1. Define Address as its own interface
+// 1. Define Address as its own interface ...
 interface Address {
   streetNumber: string;
   streetName: string;
