@@ -111,7 +111,7 @@ const ResetPasswordForm = () => {
               type={showPassword ? "text" : "password"} 
               name="password"
               className="w-full pl-11 pr-12 py-3.5 bg-slate-900/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 backdrop-blur-sm text-base"
-              placeholder="••••••••"
+              placeholder="•••••••••"
               value={formData.password}
               onChange={handleChange}
               required
