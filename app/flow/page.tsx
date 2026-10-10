@@ -62,48 +62,9 @@ const MetallicNode = ({ data }: {data: MetallicNodeData}) => {
   );
 };
 
-const DualInputMetallicNode = ({ data }: {data: MetallicNodeData}) => {
-  return (
-    <div className={`
-      relative px-5 py-3 rounded-xl border-t border-l border-white/30 
-      ${THEME.metallic} 
-      shadow-[5px_5px_15px_rgba(0,0,0,0.4),-2px_-2px_10px_rgba(255,255,255,0.1)] 
-      transition-all duration-300 hover:scale-105 group
-    `}>
-      <div className="absolute inset-0 rounded-xl bg-linear-to-tr from-transparent via-white/10 to-transparent pointer-events-none" />
-      
-      <div className="flex flex-col items-center gap-1 relative z-10">
-        <span className="text-[9px] font-black text-slate-700 uppercase tracking-tighter opacity-70">
-          Module
-        </span>
-        <span className="text-sm font-bold text-slate-900 tracking-tight">
-          {data.label}
-        </span>
-      </div>
-
-      <Handle 
-        type="target" 
-        position={Position.Left} 
-        className="w-3 h-3 bg-slate-800 border-2 border-slate-400 shadow-inner" 
-      />
-
-      <Handle 
-        type="target" 
-        position={Position.Left} 
-        className="w-3 h-3 bg-slate-800 border-2 border-slate-400 shadow-inner" 
-      />
-      <Handle 
-        type="source" 
-        position={Position.Right} 
-        className="w-3 h-3 bg-slate-800 border-2 border-slate-400 shadow-inner" 
-      />
-    </div>
-  );
-}
 
 const nodeTypes = {
   metallic: MetallicNode,
-  dualInputMetallic: DualInputMetallicNode
 };
 
 export default function MetallicFlowPage() {
@@ -126,7 +87,7 @@ export default function MetallicFlowPage() {
     },
     { 
       id: 'n3', 
-      type: 'dualInputMetallic', 
+      type: 'metallic', 
       position: { x: 300, y: 75 }, 
       data: { label: 'CORE-UNIT' } 
     },

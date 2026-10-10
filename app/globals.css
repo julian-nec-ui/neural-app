@@ -224,3 +224,22 @@ code {
   background: #2563eb;
   transform: scale(1.1);
 }
+
+@layer base {
+  /* Target all inputs that are being autofilled by the browser */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover, 
+  input:-webkit-autofill:focus, 
+  input:-webkit-autofill:active {
+    /* This creates an internal shadow that covers the browser's white background */
+    /* #0f172a is your background color */
+    -webkit-box-shadow: 0 0 0 1000px #364256 inset !important;
+    
+    /* Ensures the text remains white */
+    -webkit-text-fill-color: white !important;
+    
+    /* Transitions the background color over a massive amount of time to prevent it from flickering */
+    transition: background-color 5000s ease-in-out 0s;
+  }
+}
+
