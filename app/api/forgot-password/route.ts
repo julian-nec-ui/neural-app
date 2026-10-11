@@ -5,7 +5,7 @@ export async function POST(request: Request) {
   try {
 
     const resend = new Resend(process.env.RESEND_API_KEY);
-
+    console.log("RESEND API KEY:", process.env.RESEND_API_KEY);
     const { email } = await request.json();
 
     if (!email) {
