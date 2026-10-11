@@ -32,7 +32,7 @@ export default function CreateAccountPage() {
   const [notification, setNotification] = useState<{
     show: boolean;
     message: string;
-    type: 'success' | 'error'; // Added type to distinguish between success and error
+    type: 'success' | 'error'; // Added type for styling
   }>({
     show: false,
     message: '',
@@ -76,7 +76,7 @@ export default function CreateAccountPage() {
         return;
       }
 
-      setIsLoading(true);
+      setIsLoading(true); // Start loading
 
       const payload: NexusUserRequest = {
         firstName: formData.firstName,
@@ -106,8 +106,8 @@ export default function CreateAccountPage() {
       });
 
     } catch (error) {
+      // --- Extract specific error message ---
       let errorMessage = "An unexpected error occurred";
-      
       if (axios.isAxiosError(error)) {
         errorMessage = error.response?.data?.message || "An API error occurred";
       }
@@ -121,17 +121,17 @@ export default function CreateAccountPage() {
       
       console.error("Error: " + errorMessage);
     } finally {
-      setIsLoading(false);
+      setIsLoading(false); // Stop loading
     }
   };
 
   return (
     <div className="min-h-screen w-full flex flex-col items-center justify-center bg-[#0f172a] relative overflow-x-hidden font-sans p-4">
 
-      {/* --- CUSTOM POPUP --- */}
+      {/* --- CUSTOM POPUP (Success & Error) --- */}
       <div className={`fixed top-6 right-6 z-100 transition-all duration-500 transform ${notification.show ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'}`}>
         <div className="backdrop-blur-xl bg-white/10 border border-white/20 rounded-2xl shadow-2xl p-4 flex items-center gap-4 min-w-[320px] animate-in fade-in slide-in-from-right-4">
-          {/* Conditional Styling for Icon based on type */}
+          {/* Icon Color: Emerald for success, Red for error */}
           <div className={`p-2 rounded-full ${notification.type === 'success' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`}>
             {notification.type === 'success' ? <CheckCircle2 size={20} /> : <X size={20} />}
           </div>
