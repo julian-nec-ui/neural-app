@@ -20,8 +20,8 @@ pipeline {
                 echo '🚀 Deploying React UI via Docker Compose...'
 
                 withCredentials([
-                  string(credentialsId: 'RESEND_API_KEY_SECRET', variable: 'RESEND_API_KEY'),
-                  string(credentialsId: 'VERIFIED_SENDER_SECRET', variable: 'VERIFIED_SENDER')
+                  string(credentialsId: 'RESEND_API_KEY', variable: 'RESEND_API_KEY'),
+                  string(credentialsId: 'NEXT_PUBLIC_VERIFIED_SENDER', variable: 'NEXT_PUBLIC_VERIFIED_SENDER')
                 ]) {
                 
                 script {
