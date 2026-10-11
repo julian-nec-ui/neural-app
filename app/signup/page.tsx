@@ -68,6 +68,25 @@ export default function CreateAccountPage() {
     }));
   };
 
+  // --- HELPER: Clean up raw backend/DB errors ---
+  const sanitizeError = (msg: string) => {
+    if (!msg) return "An unexpected error occurred";
+    
+    const lowerMsg = msg.toLowerCase();
+    
+    // Handle Duplicate Email/Key errors from Postgres/Hibernate
+    if (lowerMsg.includes("already exists") || lowerMsg.includes("duplicate key")) {
+      return "This email address is already registered. Please use another one.";
+    }
+    
+    // Handle generic Internal Server errors
+    if (lowerMsg.includes("internal server error") || lowerMsg.includes("could not execute statement")) {
+      return "The server encountered an error. Please try again later.";
+    }
+
+    return msg;
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     try {
       e.preventDefault();
@@ -112,11 +131,13 @@ export default function CreateAccountPage() {
         errorMessage = error.response?.data?.message || "An API error occurred";
       }
 
+      const cleanedMessage = sanitizeError(errorMessage);
+
       // --- Error Popup ---
       setNotification({
         show: true,
         type: 'error',
-        message: errorMessage,
+        message: cleanedMessage,
       });
       
       console.error("Error: " + errorMessage);
