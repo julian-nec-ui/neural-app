@@ -109,7 +109,7 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({ message: 'Reset link sent successfully', data: data }, { status: 200 });
-  } catch (error: unknown) {
-    return NextResponse.json({ error: "Failed to send reset email" }, { status: 500 });
+  } catch (error: any) {
+    return NextResponse.json({ error: "Failed to send reset email" + error.message }, { status: 500 });
   }
 }
