@@ -235,7 +235,7 @@ export default function CreateAccountPage() {
                       size={24}
                       className={`transition-all duration-300 ${passwordsMatchAndValid ? "text-emerald-400" : ""}`}
                       style={passwordsMatchAndValid
-                        ? { filter: 'drop-shadow(0 0 8px rgba(52, 211, 153, 0.8))' }
+                        ? { filter: 'drop-shadow(0 0 6px rgba(15 225 148 / 0.8))' }
                         : { color: "#909DF6" }
                       }
                     />
@@ -258,7 +258,7 @@ export default function CreateAccountPage() {
                       size={24}
                       className={`transition-all duration-300 ${passwordsMatchAndValid ? "text-emerald-400" : ""}`}
                       style={passwordsMatchAndValid
-                        ? { filter: 'drop-shadow(0 0 8px rgba(52, 211, 153, 0.8))' }
+                        ? { filter: 'drop-shadow(0 0 6px rgba(15 225 148 / 0.8))' }
                         : { color: "#909DF6" }
                       }
                     />
