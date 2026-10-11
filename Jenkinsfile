@@ -37,9 +37,9 @@ pipeline {
                 // 1. Remove old containers to prevent port conflicts
                 script {
                     if(isUnix()) {
-                        sh 'docker-compose -f docker-compose.yml down || echo no containers to stop +.+.+.'
+                        sh 'export RESEND_API_KEY=${RESEND_API_KEY} && export NEXT_PUBLIC_VERIFIED_SENDER=${NEXT_PUBLIC_VERIFIED_SENDER} && docker-compose -f docker-compose.yml down || echo no containers to stop +.+.+.'
                     } else {
-                        bat 'docker-compose -f docker-compose.yml down || echo no containers to stop +.+.+.'
+                        bat 'export RESEND_API_KEY=${RESEND_API_KEY} && export NEXT_PUBLIC_VERIFIED_SENDER=${NEXT_PUBLIC_VERIFIED_SENDER} && docker-compose -f docker-compose.yml down || echo no containers to stop +.+.+.'
                     }
                 }
                 
