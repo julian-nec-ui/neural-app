@@ -18,6 +18,11 @@ pipeline {
         stage('Deploy Neural App UI') {
             steps {
                 echo '🚀 Deploying React UI via Docker Compose...'
+
+                withCredentials([
+                  string(credentialsId: 'RESEND_API_KEY_SECRET', variable: 'RESEND_API_KEY'),
+                  string(credentialsId: 'VERIFIED_SENDER_SECRET', variable: 'VERIFIED_SENDER')
+                ]) {
                 
                 script {
                     // 1. Remove old containers to prevent port conflicts
@@ -26,6 +31,7 @@ pipeline {
                     } else {
                         bat 'docker rm -f file-gallery || echo no ghost container .+.+.+.'
                     }
+                  }
                 }
 
                 // 1. Remove old containers to prevent port conflicts

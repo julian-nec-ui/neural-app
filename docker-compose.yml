@@ -5,8 +5,9 @@ services:
     container_name: file-gallery
     ports:
       - "3000:3000"
-    env_file:
-      - .env.local
+    environment:
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - NEXT_PUBLIC_VERIFIED_SENDER=${NEXT_PUBLIC_VERIFIED_SENDER}
     restart: always
     networks:
       - ui-network
