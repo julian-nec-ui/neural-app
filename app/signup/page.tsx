@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from 'react'; // Added useEffect
-import { Mail, Lock, ArrowRight, Loader2, ShieldCheck, Eye, EyeOff, User, CheckCircle2, X } from 'lucide-react'; // Added CheckCircle2 and X
+import React, { useState, useEffect } from 'react';
+import { Mail, Lock, ArrowRight, Loader2, ShieldCheck, Eye, EyeOff, User, CheckCircle2, X } from 'lucide-react';
 import Link from 'next/link';
 import { NexusUserRequest, nexusService } from '../service/nexus-service';
 import axios from 'axios';
@@ -32,12 +32,14 @@ export default function CreateAccountPage() {
   const [notification, setNotification] = useState<{
     show: boolean;
     message: string;
+    type: 'success' | 'error'; // Added type to distinguish between success and error
   }>({
     show: false,
     message: '',
+    type: 'success',
   });
 
-  // Auto-hide popup after 5 seconds
+  // Auto-hide popup after 2750ms
   useEffect(() => {
     if (notification.show) {
       const timer = setTimeout(() => {
@@ -74,7 +76,7 @@ export default function CreateAccountPage() {
         return;
       }
 
-      setIsLoading(true); // Start loading
+      setIsLoading(true);
 
       const payload: NexusUserRequest = {
         firstName: formData.firstName,
@@ -86,12 +88,12 @@ export default function CreateAccountPage() {
       const response = await nexusService.createNexusUser(payload);
       console.log(response);
 
-      // --- ADDED: Simulate work delay of 500ms ---
       await new Promise((resolve) => setTimeout(resolve, 500));
 
-      // --- ADDED: Trigger Success Popup ---
+      // --- Success Popup ---
       setNotification({
         show: true,
+        type: 'success',
         message: `Welcome to Nexus, ${formData.firstName}! Account created successfully.`,
       });
 
@@ -104,25 +106,34 @@ export default function CreateAccountPage() {
       });
 
     } catch (error) {
+      let errorMessage = "An unexpected error occurred";
+      
       if (axios.isAxiosError(error)) {
-        const message = error.response?.data?.message || "An API error occurred";
-        console.error("Error: " + message);
-      } else {
-        console.error("An unknown error occurred");
+        errorMessage = error.response?.data?.message || "An API error occurred";
       }
+
+      // --- Error Popup ---
+      setNotification({
+        show: true,
+        type: 'error',
+        message: errorMessage,
+      });
+      
+      console.error("Error: " + errorMessage);
     } finally {
-      setIsLoading(false); // Stop loading
+      setIsLoading(false);
     }
   };
 
   return (
     <div className="min-h-screen w-full flex flex-col items-center justify-center bg-[#0f172a] relative overflow-x-hidden font-sans p-4">
 
-      {/* --- CUSTOM SUCCESS POPUP --- */}
+      {/* --- CUSTOM POPUP --- */}
       <div className={`fixed top-6 right-6 z-100 transition-all duration-500 transform ${notification.show ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'}`}>
         <div className="backdrop-blur-xl bg-white/10 border border-white/20 rounded-2xl shadow-2xl p-4 flex items-center gap-4 min-w-[320px] animate-in fade-in slide-in-from-right-4">
-          <div className="p-2 rounded-full bg-emerald-500/20 text-emerald-400">
-            <CheckCircle2 size={20} />
+          {/* Conditional Styling for Icon based on type */}
+          <div className={`p-2 rounded-full ${notification.type === 'success' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`}>
+            {notification.type === 'success' ? <CheckCircle2 size={20} /> : <X size={20} />}
           </div>
           <div className="flex-1">
             <p className="text-white text-sm font-medium">{notification.message}</p>
