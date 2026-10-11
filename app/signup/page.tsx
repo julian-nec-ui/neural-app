@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState } from 'react';
-import { Mail, Lock, ArrowRight, Loader2, ShieldCheck, Eye, EyeOff, User } from 'lucide-react';
+import React, { useState, useEffect } from 'react'; // Added useEffect
+import { Mail, Lock, ArrowRight, Loader2, ShieldCheck, Eye, EyeOff, User, CheckCircle2, X } from 'lucide-react'; // Added CheckCircle2 and X
 import Link from 'next/link';
 import { NexusUserRequest, nexusService } from '../service/nexus-service';
 import axios from 'axios';
@@ -16,7 +16,7 @@ interface SignupFormState {
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-const CreateAccountPage: React.FC = () => {
+export default function CreateAccountPage() {
   const [formData, setFormData] = useState<SignupFormState>({
     firstName: '',
     lastName: '',
@@ -27,6 +27,25 @@ const CreateAccountPage: React.FC = () => {
 
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  // --- POPUP STATE ---
+  const [notification, setNotification] = useState<{
+    show: boolean;
+    message: string;
+  }>({
+    show: false,
+    message: '',
+  });
+
+  // Auto-hide popup after 5 seconds
+  useEffect(() => {
+    if (notification.show) {
+      const timer = setTimeout(() => {
+        setNotification((prev) => ({ ...prev, show: false }));
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [notification.show]);
 
   const passwordsMatchAndValid =
     formData.password.length >= 6 &&
@@ -48,13 +67,14 @@ const CreateAccountPage: React.FC = () => {
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-
     try {
       e.preventDefault();
 
       if (!isFormValid) {
         return;
       }
+
+      setIsLoading(true); // Start loading
 
       const payload: NexusUserRequest = {
         firstName: formData.firstName,
@@ -64,8 +84,16 @@ const CreateAccountPage: React.FC = () => {
       }
 
       const response = await nexusService.createNexusUser(payload);
-
       console.log(response);
+
+      // --- ADDED: Simulate work delay of 500ms ---
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      // --- ADDED: Trigger Success Popup ---
+      setNotification({
+        show: true,
+        message: `Welcome to Nexus, ${formData.firstName}! Account created successfully.`,
+      });
 
       setFormData({
         firstName: '',
@@ -75,11 +103,6 @@ const CreateAccountPage: React.FC = () => {
         confirmPassword: '',
       });
 
-      setIsLoading(true);
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      console.log('Account created with:', response.data);
-      setIsLoading(false);
-
     } catch (error) {
       if (axios.isAxiosError(error)) {
         const message = error.response?.data?.message || "An API error occurred";
@@ -87,12 +110,31 @@ const CreateAccountPage: React.FC = () => {
       } else {
         console.error("An unknown error occurred");
       }
+    } finally {
+      setIsLoading(false); // Stop loading
     }
-
   };
 
   return (
     <div className="min-h-screen w-full flex flex-col items-center justify-center bg-[#0f172a] relative overflow-x-hidden font-sans p-4">
+
+      {/* --- CUSTOM SUCCESS POPUP --- */}
+      <div className={`fixed top-6 right-6 z-[100] transition-all duration-500 transform ${notification.show ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'}`}>
+        <div className="backdrop-blur-xl bg-white/10 border border-white/20 rounded-2xl shadow-2xl p-4 flex items-center gap-4 min-w-[320px] animate-in fade-in slide-in-from-right-4">
+          <div className="p-2 rounded-full bg-emerald-500/20 text-emerald-400">
+            <CheckCircle2 size={20} />
+          </div>
+          <div className="flex-1">
+            <p className="text-white text-sm font-medium">{notification.message}</p>
+          </div>
+          <button 
+            onClick={() => setNotification((prev) => ({ ...prev, show: false }))}
+            className="text-slate-400 hover:text-white transition-colors"
+          >
+            <X size={18} />
+          </button>
+        </div>
+      </div>
 
       {/* --- BACKGROUND ELEMENTS --- */}
       <div className="absolute -top-20 -left-20 w-96 h-96 bg-indigo-500/20 rounded-full blur-[120px] pointer-events-none" />
@@ -231,7 +273,7 @@ const CreateAccountPage: React.FC = () => {
               <button
                 type="submit"
                 disabled={isLoading || !isFormValid}
-                className={`w-full group relative flex items-center justify-center gap-2 py-3.5 px-4 font-semibold rounded-xl transition-all duration-300 text-base sm:text-lg ${isLoading || !isFormValid ? "bg-slate-700 text-slate-400 opacity-70 cursor-not-allowed" : "bg-linear-to-r from-indigo-600 via-indigo-500 to-cyan-600 text-white hover:shadow-[0_0_20px_rgba(79,70,229,0.4)] hover:-translate-y-0.5 active:translate-y-0"}`}
+                className={`w-full group relative flex items-center justify-center gap-2 py-3.5 px-4 font-semibold rounded-xl transition-all duration-300 text-base sm:text-lg ${isLoading || !isFormValid ? "bg-slate-700 text-slate-400 opacity-70" : "bg-linear-to-r from-indigo-600 via-indigo-500 to-cyan-600 text-white hover:shadow-[0_0_20px_rgba(79,70,229,0.4)] hover:-translate-y-0.5 active:translate-y-0"}`}
               >
                 {isLoading ? (
                   <Loader2 className="animate-spin" size={20} />
@@ -257,7 +299,6 @@ const CreateAccountPage: React.FC = () => {
           <div className="h-1.5 w-full bg-linear-to-r from-transparent via-indigo-400 to-transparent opacity-50" />
         </div>
 
-        {/* Legal Footer: CHANGED mt-8 to mt-[27px] to move it 5px up */}
         <div className="mt-4 flex flex-wrap justify-center gap-4 sm:gap-6 text-xs sm:text-sm text-slate-500">
           <a href="#" className="hover:text-slate-300 text-lg transition-colors">Privacy Policy</a>
           <a href="#" className="hover:text-slate-300 text-lg transition-colors">Terms of Service</a>
@@ -267,5 +308,3 @@ const CreateAccountPage: React.FC = () => {
     </div>
   );
 };
-
-export default CreateAccountPage;
