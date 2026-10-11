@@ -105,6 +105,7 @@ export async function POST(request: Request) {
 
     if(error){
       return NextResponse.json({ error: error.message }, { status: 500 });
+      console.error(error);
     }
 
     return NextResponse.json({ message: 'Reset link sent successfully', data: data }, { status: 200 });
