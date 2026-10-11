@@ -21,7 +21,7 @@ export async function POST(request: Request) {
     const token = "abc-123-unique-token";
     const resetLink = `http://localhost:3000/reset-password?token=${token}`;
 
-    await resend.emails.send({
+    const {data, error } = await resend.emails.send({
       from: `${process.env.NEXT_PUBLIC_VERIFIED_SENDER}`, // Use your verified domain here in production
       to: [email],
       subject: 'Reset Your Nexus Password',
@@ -103,8 +103,12 @@ export async function POST(request: Request) {
       `
     });
 
-    return NextResponse.json({ message: 'Reset link sent successfully' }, { status: 200 });
-  } catch (error) {
+    if(error){
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ message: 'Reset link sent successfully', data: data }, { status: 200 });
+  } catch (error: unknown) {
     return NextResponse.json({ error: "Failed to send reset email" }, { status: 500 });
   }
 }
