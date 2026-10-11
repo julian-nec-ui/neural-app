@@ -170,7 +170,10 @@ const ForgotPasswordPage: React.FC = () => {
               <button
                 type="submit"
                 disabled={isLoading || !isEmailValid}
-                className={`w-full group relative flex items-center justify-center gap-2 py-3.5 px-4 font-semibold rounded-xl transition-all duration-300 text-base sm:text-lg ${isLoading || !isEmailValid ? "bg-slate-700 text-slate-400 opacity-70" : "bg-linear-to-r from-indigo-600 via-indigo-500 to-cyan-600 text-white hover:shadow-[0_0_20px_rgba(79,70,229,0.4)] hover:-translate-y-0.5 active:translate-y-0"}`}
+                className={`w-full group relative flex items-center justify-center gap-2 py-3.5 px-4 
+                  font-semibold rounded-xl transition-all duration-300 text-base sm:text-lg 
+                  ${isLoading || !isEmailValid ? "bg-slate-700 text-slate-400 opacity-70" : 
+                    "bg-linear-to-r from-indigo-600 via-indigo-500 to-cyan-600 text-white hover:shadow-[0_0_20px_rgba(79,70,229,0.4)] hover:-translate-y-0.5 active:translate-y-0"}`}
               >
                 {isLoading ? (
                   <Loader2 className="animate-spin" size={20} />
