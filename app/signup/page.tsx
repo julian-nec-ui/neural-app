@@ -44,7 +44,7 @@ export default function CreateAccountPage() {
     if (notification.show) {
       const timer = setTimeout(() => {
         setNotification((prev) => ({ ...prev, show: false }));
-      }, 10000);
+      }, 2850);
       return () => clearTimeout(timer);
     }
   }, [notification.show]);
@@ -70,7 +70,10 @@ export default function CreateAccountPage() {
 
   // --- HELPER: Clean up raw backend/DB errors ---
   const sanitizeError = (msg: string) => {
-    if (!msg) return "An unexpected error occurred";
+    
+    if (!msg) {
+      return "An unexpected error occurred";
+    }
     
     const lowerMsg = msg.toLowerCase();
     
