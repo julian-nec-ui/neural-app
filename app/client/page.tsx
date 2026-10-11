@@ -251,8 +251,6 @@ export default function ClientPage() {
 
   }, [clients, sortConfig, currentPage, itemsPerPage]);
 
-
-
   const totalPages = Math.ceil(clients.length / itemsPerPage);
 
   const handleDeleteConfirm = async () => {
@@ -267,7 +265,6 @@ export default function ClientPage() {
       console.error("Error deleting client", err);
     }
   };
-
 
   const renderAddress = (address: Address | undefined) => {
     if (!address) return "No Address";
