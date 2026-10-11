@@ -66,6 +66,7 @@ const CreateAccountPage: React.FC = () => {
       const response = await nexusService.createNexusUser(payload);
       
       console.log(response);
+
       setFormData({
         firstName: '',
         lastName: '',
@@ -73,10 +74,10 @@ const CreateAccountPage: React.FC = () => {
         password: '',
         confirmPassword: '',
       });
-      
+
       setIsLoading(true);
       await new Promise((resolve) => setTimeout(resolve, 1500));
-      console.log('Account created with:', formData);
+      console.log('Account created with:', response.data);
       setIsLoading(false);
 
     } catch (error) {
