@@ -32,7 +32,7 @@ pipeline {
                         bat 'docker rm -f file-gallery || echo no ghost container .+.+.+.'
                     }
                   }
-                }
+                
 
                 // 1. Remove old containers to prevent port conflicts
                 script {
@@ -60,6 +60,7 @@ pipeline {
                 }
                 
                 echo '✅ UI is now live at http://localhost:3000'
+              }
             }
         }
     }
