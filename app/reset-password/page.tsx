@@ -22,13 +22,13 @@ const ResetPasswordForm = () => {
     password: '',
     confirmPassword: '',
   });
-  
+
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const isFormValid = 
-    formData.password.length >= 6 && 
+  const isFormValid =
+    formData.password.length >= 6 &&
     formData.password === formData.confirmPassword;
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -105,10 +105,10 @@ const ResetPasswordForm = () => {
           </div>
           <div className="relative group">
             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors">
-              <Lock size={24} style={{ color: "#909DF6" }}/>
+              <Lock size={24} style={{ color: "#909DF6" }} />
             </div>
-            <input 
-              type={showPassword ? "text" : "password"} 
+            <input
+              type={showPassword ? "text" : "password"}
               name="password"
               className="w-full pl-11 pr-12 py-3.5 bg-slate-900/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 backdrop-blur-sm text-base"
               placeholder="•••••••••"
@@ -129,10 +129,10 @@ const ResetPasswordForm = () => {
           </div>
           <div className="relative group">
             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors">
-              <Lock size={24} style={{ color: "#909DF6" }}/>
+              <Lock size={24} style={{ color: "#909DF6" }} />
             </div>
-            <input 
-              type={showPassword ? "text" : "password"} 
+            <input
+              type={showPassword ? "text" : "password"}
               name="confirmPassword"
               className="w-full pl-11 pr-12 py-3.5 bg-slate-900/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 backdrop-blur-sm text-base"
               placeholder="••••••••"
@@ -147,8 +147,8 @@ const ResetPasswordForm = () => {
           </div>
         </div>
 
-        <button 
-          type="submit" 
+        <button
+          type="submit"
           disabled={isLoading || !isFormValid}
           className={`w-full group relative flex items-center justify-center gap-2 py-3.5 px-4 font-semibold rounded-xl transition-all duration-300 text-base sm:text-lg ${isLoading || !isFormValid ? "bg-slate-700 text-slate-400 opacity-70 cursor-not-allowed" : "bg-linear-to-r from-indigo-600 via-indigo-500 to-cyan-600 text-white hover:shadow-[0_0_20px_rgba(79,70,229,0.4)] hover:-translate-y-0.5 active:translate-y-0"}`}
         >
@@ -165,7 +165,13 @@ export default function ResetPasswordPage() {
     <div className="min-h-screen w-full flex flex-col items-center justify-center bg-[#0f172a] relative overflow-x-hidden font-sans p-4">
       <div className="absolute -top-20 -left-20 w-96 h-96 bg-indigo-500/20 rounded-full blur-[120px] pointer-events-none" />
       <div className="absolute -bottom-20 -right-20 w-96 h-96 bg-cyan-500/20 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 contrast-150 pointer-events-none" />
+      <div
+        className="absolute inset-0 opacity-20 brightness-100 contrast-150 pointer-events-none"
+        style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`
+        }}
+      />
+
 
       <div className="relative z-10 mb-10 text-center group">
         <div className="flex items-center justify-center gap-3 mb-2">

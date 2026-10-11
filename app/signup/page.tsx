@@ -64,7 +64,7 @@ const CreateAccountPage: React.FC = () => {
       }
 
       const response = await nexusService.createNexusUser(payload);
-      
+
       console.log(response);
 
       setFormData({
@@ -97,7 +97,13 @@ const CreateAccountPage: React.FC = () => {
       {/* --- BACKGROUND ELEMENTS --- */}
       <div className="absolute -top-20 -left-20 w-96 h-96 bg-indigo-500/20 rounded-full blur-[120px] pointer-events-none" />
       <div className="absolute -bottom-20 -right-20 w-96 h-96 bg-cyan-500/20 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 contrast-150 pointer-events-none" />
+      <div
+        className="absolute inset-0 opacity-20 brightness-100 contrast-150 pointer-events-none"
+        style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`
+        }}
+      />
+
 
       {/* --- BRAND BANNER --- */}
       <div className="relative z-10 mb-10 text-center group">

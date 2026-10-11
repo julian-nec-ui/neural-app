@@ -9,7 +9,7 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const ForgotPasswordPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  
+
   // State for the popup notification
   const [notification, setNotification] = useState<{
     show: boolean;
@@ -62,13 +62,13 @@ const ForgotPasswordPage: React.FC = () => {
       // --- TYPE GUARD FIX START ---
       // We handle the 'unknown' type by checking if it's an actual Error object
       let errorMessage = 'An unexpected error occurred. Please try again.';
-      
+
       if (error instanceof Error) {
         errorMessage = error.message;
       } else if (typeof error === 'string') {
         errorMessage = error;
       }
-      
+
       setNotification({
         show: true,
         type: 'error',
@@ -82,7 +82,7 @@ const ForgotPasswordPage: React.FC = () => {
 
   return (
     <div className="min-h-screen w-full flex flex-col items-center justify-center bg-[#0f172a] relative overflow-x-hidden font-sans p-4">
-      
+
       {/* --- CUSTOM TOAST POPUP --- */}
       <div className={`fixed top-6 right-6 z-100 transition-all duration-500 transform ${notification.show ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'}`}>
         <div className="backdrop-blur-xl bg-white/10 border border-white/20 rounded-2xl shadow-2xl p-4 flex items-center gap-4 min-w-[320px] animate-in fade-in slide-in-from-right-4">
@@ -92,7 +92,7 @@ const ForgotPasswordPage: React.FC = () => {
           <div className="flex-1">
             <p className="text-white text-sm font-medium">{notification.message}</p>
           </div>
-          <button 
+          <button
             onClick={() => setNotification((prev) => ({ ...prev, show: false }))}
             className="text-slate-400 hover:text-white transition-colors"
           >
@@ -104,7 +104,13 @@ const ForgotPasswordPage: React.FC = () => {
       {/* --- BACKGROUND ELEMENTS --- */}
       <div className="absolute -top-20 -left-20 w-96 h-96 bg-indigo-500/20 rounded-full blur-[120px] pointer-events-none" />
       <div className="absolute -bottom-20 -right-20 w-96 h-96 bg-cyan-500/20 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 contrast-150 pointer-events-none" />
+      <div
+        className="absolute inset-0 opacity-20 brightness-100 contrast-150 pointer-events-none"
+        style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`
+        }}
+      />
+
 
       {/* --- BRAND BANNER --- */}
       <div className="relative z-10 mb-10 text-center group">
@@ -147,10 +153,10 @@ const ForgotPasswordPage: React.FC = () => {
                 </div>
                 <div className="relative group">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500 group-focus-within:text-indigo-400 transition-colors">
-                    <Mail size={24} style={{ color: "#909DF6" }}/>
+                    <Mail size={24} style={{ color: "#909DF6" }} />
                   </div>
-                  <input 
-                    type="email" 
+                  <input
+                    type="email"
                     className="w-full pl-11 pr-4 py-3.5 bg-slate-900/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 backdrop-blur-sm text-base hover:border-indigo-200 hover:ring-2 hover:ring-indigo-500/20"
                     placeholder="name@company.com"
                     value={email}
@@ -161,8 +167,8 @@ const ForgotPasswordPage: React.FC = () => {
                 </div>
               </div>
 
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 disabled={isLoading || !isEmailValid}
                 className={`w-full group relative flex items-center justify-center gap-2 py-3.5 px-4 font-semibold rounded-xl transition-all duration-300 text-base sm:text-lg ${isLoading || !isEmailValid ? "bg-slate-700 text-slate-400 opacity-70" : "bg-linear-to-r from-indigo-600 via-indigo-500 to-cyan-600 text-white hover:shadow-[0_0_20px_rgba(79,70,229,0.4)] hover:-translate-y-0.5 active:translate-y-0"}`}
               >
