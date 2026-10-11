@@ -19,7 +19,7 @@ export async function POST(request: Request) {
 
     // For this example, we'll just send a random token
     const token = "abc-123-unique-token";
-    const resetLink = `http://localhost:3001/reset-password?token=${token}`;
+    const resetLink = `http://localhost:3000/reset-password?token=${token}`;
 
     await resend.emails.send({
       from: `${process.env.NEXT_PUBLIC_VERIFIED_SENDER}`, // Use your verified domain here in production
