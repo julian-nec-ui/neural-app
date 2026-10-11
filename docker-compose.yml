@@ -6,8 +6,8 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - RESEND_API_KEY=re_iSvZYYCn_QEEb579u6aX8gE3BrFxvdUqh
-      - NEXT_PUBLIC_VERIFIED_SENDER=onboarding@resend.dev
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - NEXT_PUBLIC_VERIFIED_SENDER=${NEXT_PUBLIC_VERIFIED_SENDER}
     restart: always
     networks:
       - ui-network

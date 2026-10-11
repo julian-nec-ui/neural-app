@@ -37,9 +37,9 @@ pipeline {
                 // 1. Remove old containers to prevent port conflicts
                 script {
                     if(isUnix()) {
-                        sh 'export RESEND_API_KEY=${RESEND_API_KEY} && export NEXT_PUBLIC_VERIFIED_SENDER=${NEXT_PUBLIC_VERIFIED_SENDER} && docker-compose -f docker-compose.yml down || echo no containers to stop +.+.+.'
+                        sh 'docker-compose -f docker-compose.yml down || echo no containers to stop +.+.+.'
                     } else {
-                        bat 'export RESEND_API_KEY=${RESEND_API_KEY} && export NEXT_PUBLIC_VERIFIED_SENDER=${NEXT_PUBLIC_VERIFIED_SENDER} && docker-compose -f docker-compose.yml down || echo no containers to stop +.+.+.'
+                        bat 'docker-compose -f docker-compose.yml down || echo no containers to stop +.+.+.'
                     }
                 }
                 
@@ -47,9 +47,9 @@ pipeline {
                 // --build ensures that any changes to the Dockerfile or code are applied
                 script {
                     if(isUnix()) {
-                        sh 'docker-compose -f docker-compose.yml up --build -d'
+                        sh 'export RESEND_API_KEY=${RESEND_API_KEY} && export NEXT_PUBLIC_VERIFIED_SENDER=${NEXT_PUBLIC_VERIFIED_SENDER} && docker-compose -f docker-compose.yml up --build -d'
                     } else {
-                        bat 'docker-compose -f docker-compose.yml up --build -d'
+                        bat 'export RESEND_API_KEY=${RESEND_API_KEY} && export NEXT_PUBLIC_VERIFIED_SENDER=${NEXT_PUBLIC_VERIFIED_SENDER} && docker-compose -f docker-compose.yml up --build -d'
                     }
                 }
                 
