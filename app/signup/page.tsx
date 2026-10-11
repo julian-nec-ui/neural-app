@@ -119,7 +119,7 @@ export default function CreateAccountPage() {
     <div className="min-h-screen w-full flex flex-col items-center justify-center bg-[#0f172a] relative overflow-x-hidden font-sans p-4">
 
       {/* --- CUSTOM SUCCESS POPUP --- */}
-      <div className={`fixed top-6 right-6 z-[100] transition-all duration-500 transform ${notification.show ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'}`}>
+      <div className={`fixed top-6 right-6 z-100 transition-all duration-500 transform ${notification.show ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'}`}>
         <div className="backdrop-blur-xl bg-white/10 border border-white/20 rounded-2xl shadow-2xl p-4 flex items-center gap-4 min-w-[320px] animate-in fade-in slide-in-from-right-4">
           <div className="p-2 rounded-full bg-emerald-500/20 text-emerald-400">
             <CheckCircle2 size={20} />
