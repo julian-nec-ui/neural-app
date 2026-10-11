@@ -42,7 +42,7 @@ export default function CreateAccountPage() {
     if (notification.show) {
       const timer = setTimeout(() => {
         setNotification((prev) => ({ ...prev, show: false }));
-      }, 2000);
+      }, 2750);
       return () => clearTimeout(timer);
     }
   }, [notification.show]);
