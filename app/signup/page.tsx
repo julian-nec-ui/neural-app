@@ -119,7 +119,7 @@ export default function CreateAccountPage() {
     <Layout>
       <div className="min-h-[calc(100vh-200px)] w-full flex flex-col items-center justify-center relative overflow-x-hidden p-4">
         {/* Notification Popup */}
-        <div className={`fixed top-24 right-6 z-[100] transition-all duration-500 transform ${notification.show ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'}`}>
+        <div className={`fixed top-24 right-6 z-100 transition-all duration-500 transform ${notification.show ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'}`}>
           <div className="backdrop-blur-xl bg-white/10 border border-white/20 rounded-2xl shadow-2xl p-4 flex items-center gap-4 min-w-[320px]">
             <div className={`p-2 rounded-full ${notification.type === 'success' ? 'bg-emerald-500/20 text-emerald-500' : 'bg-red-500/20 text-red-500'}`}>
               {notification.type === 'success' ? <CheckCircle2 size={20} /> : <X size={20} />}
