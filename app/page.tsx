@@ -13,7 +13,7 @@ export default function HomePage() {
 
         {/* Hero Section */}
         <section className="relative z-10 max-w-7xl mx-auto px-4 py-24 sm:py-32 text-center">
-          <div className="inline-flex items-center gap-2 px-3 py-2 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-[#93e3d0] text-lg font-medium mb-6">
+          <div className="inline-flex items-center gap-3 px-3 py-2 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-[#93e3d0] text-lg font-medium mb-6">
             <span className="relative flex h-3 w-3">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
