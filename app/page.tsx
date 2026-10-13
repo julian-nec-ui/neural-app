@@ -17,7 +17,7 @@ export default function HomePage() {
           border hover:border-indigo-500/50 border-indigo-500/20 text-[#93e3d0] text-lg font-medium mb-6 ">
             <span className="relative flex h-3 w-3">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-[#59ad9a]"></span>
             </span>
             Now accepting new patients
           </div>
