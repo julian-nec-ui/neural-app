@@ -52,7 +52,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 
             {/* Logo Section */}
             <Link href="/" className="flex items-center gap-3 group">
-              <div className="relative p-1.5 bg-blue-500/10 rounded-xl border border-blue-500/20 group-hover:border-blue-400/50 transition-all duration-500 shadow-[0_0_20px_rgba(59,130,246,0.2)]">
+              <div className="relative p-1.5 transition-all duration-500">
 
                 {/* --- METALLIC 3D TOOTH WITH 4 ROOTS & ANIMATION --- */}
                 <svg
@@ -191,7 +191,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
             <div className="space-y-4">
               <div className="flex items-center gap-3">
-                <div className="p-1 bg-blue-500/10 rounded-lg border border-blue-500/20">
+                <div className="p-1">
                   <svg 
                     width="16" 
                     height="24" 
