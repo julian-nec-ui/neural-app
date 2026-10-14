@@ -49,12 +49,12 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 
             {/* Logo Section */}
             <Link href="/" className="flex items-center gap-3 group">
-              <div className="relative p-2 bg-blue-500/10 rounded-xl border border-blue-500/20 group-hover:border-blue-400/50 transition-all duration-500 shadow-[0_0_20px_rgba(59,130,246,0.2)]">
+              <div className="relative p-1.5 bg-blue-500/10 rounded-xl border border-blue-500/20 group-hover:border-blue-400/50 transition-all duration-500 shadow-[0_0_20px_rgba(59,130,246,0.2)]">
 
                 {/* --- METALLIC 3D TOOTH WITH 4 ROOTS & ANIMATION --- */}
                 <svg
                   viewBox="0 0 200 300"
-                  className="w-10 h-10 tooth-logo-wrap drop-shadow-lg"
+                  className="w-8 h-12 tooth-logo-wrap drop-shadow-lg"
                   xmlns="http://www.w3.org/2000/svg"
                 >
                   <defs>
@@ -188,8 +188,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
             <div className="space-y-4">
               <div className="flex items-center gap-3">
-                <div className="p-1.5 bg-blue-500/10 rounded-lg border border-blue-500/20">
-                  <svg width="20" height="30" viewBox="0 0 200 300" fill="none" xmlns="http://www.w3.org/2000/svg" className="drop-shadow-md">
+                <div className="p-1 bg-blue-500/10 rounded-lg border border-blue-500/20">
+                  <svg width="16" height="24" viewBox="0 0 200 300" fill="none" xmlns="http://www.w3.org/2000/svg" className="drop-shadow-md">
                     <defs>
                       <linearGradient id="footGrad" x1="0%" y1="0%" x2="100%" y2="100%">
                         <stop offset="0%" stopColor="#cbd5e1"/>
