@@ -22,8 +22,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
           50% { transform: perspective(800px) rotateY(10deg) translateY(-10%); }
         }
         @keyframes rootPulse {
-          0%, 100% { transform: scaleY(1); opacity: 0.9; }
-          50% { transform: scaleY(1.04); opacity: 1; }
+          0%, 100% { transform: scale(1); opacity: 0.9; }
+          50% { transform: scale(1.02); opacity: 1; }
         }
         @keyframes sweepLight {
           0% { transform: translateX(-70px); opacity: 0; }
@@ -36,7 +36,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
           animation: bounceRange 4s ease-in-out infinite; 
           transform-origin: center center; 
         }
-        .tooth-roots-pulse { 
+        .tooth-full-body { 
           animation: rootPulse 5s ease-in-out infinite; 
           transform-origin: center; 
         }
@@ -56,16 +56,11 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                   xmlns="http://www.w3.org/2000/svg"
                 >
                   <defs>
-                    <linearGradient id="metalBodyLogo" x1="0%" y1="0%" x2="100%" y2="100%">
+                    {/* Unified Gradient for Body and Roots */}
+                    <linearGradient id="metalBodyLogo" x1="0%" y1="0%" x2="0%" y2="100%">
                       <stop offset="0%" stopColor="#f8fafc" />
-                      <stop offset="30%" stopColor="#cbd5e1" />
-                      <stop offset="60%" stopColor="#64748b" />
-                      <stop offset="100%" stopColor="#334155" />
-                    </linearGradient>
-
-                    <linearGradient id="boneRootGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                      <stop offset="0%" stopColor="#94a3b8" />
-                      <stop offset="50%" stopColor="#475569" />
+                      <stop offset="20%" stopColor="#cbd5e1" />
+                      <stop offset="50%" stopColor="#64748b" />
                       <stop offset="100%" stopColor="#1e293b" />
                     </linearGradient>
 
@@ -87,55 +82,46 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                     </filter>
 
                     <clipPath id="toothClipLogo">
-                      <path d="M 60 50 C 60 40 140 40 140 50 C 150 70 150 100 135 120 L 115 130 L 85 130 L 65 120 C 50 100 50 70 60 50 Z" />
+                      <path d="M 60 50 C 70 40 130 40 140 50 C 150 70 150 100 135 120 Q 145 140 150 180 Q 145 185 135 175 Q 125 160 120 130 Q 125 160 115 190 Q 110 195 100 185 Q 90 160 90 130 Q 80 160 70 190 Q 60 195 50 185 Q 40 175 45 180 Q 50 140 65 120 C 50 100 50 70 60 50 Z" />
                     </clipPath>
                   </defs>
 
                   <g filter="url(#bevelLogo)">
-                    {/* Crown Base - Shortened and more squared/sturdy */}
+                    {/* Unified Single Path: Crown + 4 Merged Roots */}
                     <path 
-                      d="M 60 50 C 70 40 85 40 95 45 C 105 40 120 40 130 45 C 140 40 150 40 150 50 C 160 70 160 100 145 120 L 125 130 L 75 130 L 55 120 C 40 100 40 70 50 50 Z" 
+                      className="tooth-full-body"
+                      d="M 60 50 C 70 40 85 40 95 45 C 105 40 120 40 130 45 C 140 40 150 40 150 50 C 160 70 160 100 145 120 
+                         Q 155 140 160 180 Q 155 185 145 175 Q 135 160 130 130 
+                         Q 135 160 125 190 Q 120 195 110 185 Q 100 160 100 130 
+                         Q 90 160 80 190 Q 70 195 60 185 Q 50 175 45 180 
+                         Q 35 140 55 120 C 40 100 40 70 50 50 Z" 
                       fill="url(#metalBodyLogo)" 
                     />
 
-                    {/* Advanced 3D Sculpting Details */}
-                    {/* Primary Vertical Wall divide */}
-                    <path d="M 100 45 L 100 130" stroke="#1e293b" strokeWidth="2.5" opacity="0.6" /> 
+                    {/* 3D Detail Overlays - These now sit on top of the unified body */}
+                    {/* Primary Vertical Centerline */}
+                    <path d="M 100 45 L 100 130" stroke="#1e293b" strokeWidth="2" opacity="0.5" /> 
                     
-                    {/* Top-down grooves (X-shape) */}
-                    <path d="M 65 55 Q 100 65 135 55" fill="none" stroke="#1e293b" strokeWidth="2" opacity="0.5" />
-                    <path d="M 65 65 Q 100 75 135 65" fill="none" stroke="#1e293b" strokeWidth="1.5" opacity="0.4" />
-                    <path d="M 80 50 L 80 130" stroke="#1e293b" strokeWidth="1" opacity="0.3" />
-                    <path d="M 120 50 L 120 130" stroke="#1e293b" strokeWidth="1" opacity="0.3" />
+                    {/* Occlusal Grooves (Crown top) */}
+                    <path d="M 65 55 Q 100 65 135 55" fill="none" stroke="#1e293b" strokeWidth="2" opacity="0.4" />
+                    <path d="M 65 65 Q 100 75 135 65" fill="none" stroke="#1e293b" strokeWidth="1.5" opacity="0.3" />
                     
-                    {/* High-intensity Rim Lighting for 3D pop */}
+                    {/* Specular Rim Lighting (Creates the 3D 'edge' effect) */}
                     <path 
                       d="M 60 50 C 70 40 130 40 140 50 C 150 70 150 100 135 120" 
-                      fill="none" stroke="#ffffff" strokeWidth="1.2" opacity="0.7" 
+                      fill="none" stroke="#ffffff" strokeWidth="1.5" opacity="0.6" 
                     />
 
-                    {/* Glare Overlay */}
+                    {/* Crown Highlight Glare */}
                     <path 
                       d="M 60 50 C 70 40 85 40 95 45 C 105 40 120 40 130 45 C 140 40 150 40 150 50 C 160 70 160 100 145 120 L 125 130 L 75 130 L 55 120 C 40 100 40 70 50 50 Z" 
-                      fill="url(#crownGlareLogo)" opacity="0.6" 
+                      fill="url(#crownGlareLogo)" opacity="0.5" 
                     />
-
-                    {/* Bone-like Roots - Moved up to connect with shorter body */}
-                    <g className="tooth-roots-pulse">
-                      {/* Far Left Root */}
-                      <path d="M 75 125 Q 55 145 50 180 Q 53 182 60 175 Q 70 160 80 135 Z" fill="url(#boneRootGrad)" />
-                      {/* Near Left Root */}
-                      <path d="M 90 130 Q 85 155 82 190 Q 85 192 92 185 Q 100 165 105 135 Z" fill="url(#boneRootGrad)" />
-                      {/* Near Right Root */}
-                      <path d="M 110 130 Q 105 155 108 190 Q 115 192 122 185 Q 125 165 120 135 Z" fill="url(#boneRootGrad)" />
-                      {/* Far Right Root */}
-                      <path d="M 125 125 Q 145 145 150 180 Q 147 182 140 175 Q 130 160 120 135 Z" fill="url(#boneRootGrad)" />
-                    </g>
                   </g>
 
-                  {/* Sweeping Light Reflection */}
+                  {/* Sweeping Light Reflection - Now clipped to the merged shape */}
                   <g className="tooth-sweep-light">
-                    <rect x="-70" y="40" width="50" height="100" fill="white" clipPath="url(#toothClipLogo)" opacity="0.4" />
+                    <rect x="-70" y="40" width="50" height="160" fill="white" clipPath="url(#toothClipLogo)" opacity="0.4" />
                   </g>
                 </svg>
 
@@ -216,13 +202,13 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                     className="drop-shadow-md tooth-logo-wrap"
                   >
                     <defs>
-                      <linearGradient id="footGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <linearGradient id="footGrad" x1="0%" y1="0%" x2="0%" y2="100%">
                         <stop offset="0%" stopColor="#cbd5e1" />
                         <stop offset="50%" stopColor="#64748b" />
                         <stop offset="100%" stopColor="#334155" />
                       </linearGradient>
                     </defs>
-                    <path d="M 60 50 C 60 40 140 40 140 50 C 150 70 150 100 135 120 L 115 130 L 85 130 L 65 120 C 50 100 50 70 60 50 Z" fill="url(#footGrad)" />
+                    <path d="M 60 50 C 70 40 130 40 140 50 C 150 70 150 100 135 120 Q 145 140 150 180 Q 145 185 135 175 Q 125 160 120 130 Q 125 160 115 190 Q 110 195 100 185 Q 90 160 90 130 Q 80 160 70 190 Q 60 195 50 185 Q 40 175 45 180 Q 35 140 55 120 C 40 100 40 70 50 50 Z" fill="url(#footGrad)" />
                   </svg>
                 </div>
                 <span className="text-xl font-bold italic text-white -ml-1">PDG</span>
