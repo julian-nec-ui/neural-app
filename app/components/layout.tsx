@@ -18,12 +18,12 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     <div className="min-h-screen flex flex-col bg-[#0f172a] text-white font-sans">
       <style>{`
         @keyframes bounceRange {
-          0%, 100% { transform: perspective(1000px) rotateX(10deg) rotateY(-20deg) translateY(10%); }
-          50% { transform: perspective(1000px) rotateX(10deg) rotateY(20deg) translateY(-10%); }
+          0%, 100% { transform: perspective(1200px) rotateX(15deg) rotateY(-40deg) translateY(10%); }
+          50% { transform: perspective(1200px) rotateX(15deg) rotateY(40deg) translateY(-10%); }
         }
         @keyframes footerRise {
-          0%, 100% { transform: perspective(1000px) rotateX(10deg) rotateY(-20deg) translateY(0%); }
-          50% { transform: perspective(1000px) rotateX(10deg) rotateY(20deg) translateY(-20%); }
+          0%, 100% { transform: perspective(1200px) rotateX(15deg) rotateY(-40deg) translateY(0%); }
+          50% { transform: perspective(1200px) rotateX(15deg) rotateY(40deg) translateY(-20%); }
         }
         @keyframes rootPulse {
           0%, 100% { transform: scale(1); opacity: 0.9; }
@@ -236,7 +236,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                     height="22"
                     viewBox="0 0 200 200"
                     fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
+                    xmlns="http://www.w3.org/2000/sug"
                     className="drop-shadow-md footer-tooth-wrap"
                   >
                     <defs>
