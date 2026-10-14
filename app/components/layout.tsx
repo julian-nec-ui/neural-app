@@ -123,8 +123,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 
               </div>
 
-              {/* Brand Text - Size increased to ~54px and positioned close to SVG */}
-              <span className="text-[54px] font-black tracking-tighter italic flex items-baseline -ml-3">
+              {/* Brand Text - Increased by 25% (approx 67.5px) */}
+              <span className="text-[67px] font-black tracking-tighter italic flex items-baseline -ml-5">
                 <span className="bg-linear-to-b from-blue-700 via-blue-300 to-blue-900 bg-clip-text text-transparent">P</span>
                 <span className="bg-linear-to-b from-[#ef5102] via-amber-300 to-amber-700 bg-clip-text text-transparent">D</span>
                 <span className="bg-linear-to-b from-yellow-600 via-yellow-200 to-yellow-800 bg-clip-text text-transparent">G</span>
@@ -190,7 +190,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
             <div className="space-y-4">
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-0">
                 <div className="p-0">
                   <svg 
                     width="22" 
@@ -210,7 +210,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                     <path d="M 85 30 C 100 25 120 30 125 45 C 135 65 137 90 130 115 C 123 135 113 150 105 165 L 100 185 Q 98 192 95 192 Q 92 192 90 185 L 85 165 C 77 150 67 135 60 115 C 53 90 55 65 65 45 C 70 30 85 35 85 30 Z" fill="url(#footGrad)"/>
                   </svg>
                 </div>
-                <span className="text-xl font-bold italic text-white">PDG</span>
+                <span className="text-xl font-bold italic text-white -ml-1">PDG</span>
               </div>
               <p className="text-slate-500 text-sm leading-relaxed">
                 Redefining the boundaries of dental connectivity through
