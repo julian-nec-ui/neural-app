@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Mail, Lock, ArrowRight, Loader2, ShieldCheck, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, ArrowRight, Loader2, Eye, EyeOff } from 'lucide-react';
 
 interface LoginFormState {
   email: string;
@@ -11,6 +11,23 @@ interface LoginFormState {
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// Professional Detailed Tooth SVG
+const ToothIcon = () => (
+  <svg 
+    width="32" 
+    height="32" 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    xmlns="http://www.w3.org/2000/svg"
+    className="text-indigo-400"
+  >
+    <path 
+      d="M12 2C9 2 7 4 7 7C7 9 8 11 9 12C8 13 7 15 7 17C7 20 9 22 12 22C15 22 17 20 17 17C17 15 16 13 15 12C16 11 17 9 17 7C17 4 15 2 12 2ZM12 4C13.5 4 14.5 5 14.5 6.5C14.5 8 13.5 9 12 9C10.5 9 9.5 8 9.5 6.5C9.5 5 10.5 4 12 4ZM12 14C13 14 14 15 14 16.5C14 18 13 19 12 19C11 19 10 18 10 16.5C10 15 11 14 12 14Z" 
+      fill="currentColor" 
+    />
+  </svg>
+);
+
 const LoginPage: React.FC = () => {
   const [formData, setFormData] = useState<LoginFormState>({
     email: '',
@@ -18,9 +35,8 @@ const LoginPage: React.FC = () => {
   });
 
   const [isLoading, setIsLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false); // State to toggle password visibility
+  const [showPassword, setShowPassword] = useState(false);
 
-  // Logic: Email must be valid and password must be at least 6 chars
   const isFormValid =
     EMAIL_REGEX.test(formData.email) &&
     formData.password.length >= 6;
@@ -45,6 +61,28 @@ const LoginPage: React.FC = () => {
 
   return (
     <div className="min-h-screen w-full flex flex-col items-center justify-center bg-[#0f172a] relative overflow-x-hidden font-sans p-4">
+      
+      {/* Custom Metallic Animation Styles */}
+      <style jsx>{`
+        @keyframes metallic-flow {
+          0%, 100% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+        }
+        .metallic-pdg {
+          background: linear-gradient(
+            to right, 
+            #00d2ff 0%, #3a7bd5 25%,   /* Metallic Blue (P) */
+            #f2994a 40%, #f2c94c 60%,  /* Metallic Orange (D) */
+            #fceabb 75%, #f8b500 100%  /* Metallic Yellow (G) */
+          );
+          background-size: 200% auto;
+          -webkit-background-clip: text;
+          background-clip: text;
+          color: transparent;
+          animation: metallic-flow 5s ease-in-out infinite;
+          display: inline-block;
+        }
+      `}</style>
 
       {/* --- BACKGROUND ELEMENTS --- */}
       <div className="absolute -top-20 -left-20 w-96 h-96 bg-indigo-500/20 rounded-full blur-[120px] pointer-events-none" />
@@ -61,10 +99,10 @@ const LoginPage: React.FC = () => {
       <div className="relative z-10 mb-12 text-center group">
         <div className="flex items-center justify-center gap-3 mb-2">
           <div className="p-2 bg-indigo-500/10 rounded-lg border border-indigo-500/20 shadow-[0_0_15px_rgba(99,102,241,0.3)] group-hover:shadow-[0_0_25px_rgba(99,102,241,0.5)] transition-all duration-500">
-            <ShieldCheck size={32} className="text-indigo-400" />
+            <ToothIcon />
           </div>
           <h2 className="text-5xl sm:text-6xl font-black tracking-tighter italic">
-            <span className="bg-linear-to-br from-white via-slate-400 to-slate-600 bg-clip-text text-transparent drop-shadow-sm">
+            <span className="metallic-pdg drop-shadow-sm">
               PDG
             </span>
           </h2>
@@ -138,9 +176,8 @@ const LoginPage: React.FC = () => {
                     <Lock size={24} style={{ color: "#909DF6" }} />
                   </div>
                   <input
-                    type={showPassword ? "text" : "password"} // Dynamic type based on state
+                    type={showPassword ? "text" : "password"} 
                     name="password"
-                    // Increased pr-4 to pr-12 to prevent text from sliding under the icon
                     className="w-full pl-11 pr-12 py-3.5 bg-slate-900/50 border border-slate-700 
                     rounded-xl text-white placeholder-slate-500 outline-none transition-all
                      focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 
@@ -151,9 +188,8 @@ const LoginPage: React.FC = () => {
                     required
                     disabled={isLoading}
                   />
-                  {/* Show/Hide Toggle Button */}
                   <button
-                    type="button" // Set to "button" so it doesn't trigger form submission
+                    type="button" 
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-500 hover:text-indigo-400 transition-colors focus:outline-none"
                   >

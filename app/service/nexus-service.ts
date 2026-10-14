@@ -15,6 +15,12 @@ export interface NexusUser {
     password: string;
 }
 
+export interface NexusLoginRequest{
+    email: string;
+    password: string;
+}
+
+
 const NEXUS_API = axios.create({
     baseURL: 'http://localhost:8081/api',
     headers: {
@@ -29,4 +35,8 @@ const NEXUS_API = axios.create({
     createNexusUser(nexusUser: NexusUserRequest): Promise<AxiosResponse<NexusUser>> {
       return NEXUS_API.post('/nexus', nexusUser);
     },
+
+    getNexusUserByEmail(loginRequest: NexusLoginRequest): Promise<AxiosResponse<NexusUser>> {
+      return NEXUS_API.post('/nexus/',loginRequest);
+    },  
   };
