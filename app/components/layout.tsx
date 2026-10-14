@@ -22,10 +22,10 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
           0%, 100% { transform: perspective(800px) rotateY(-10deg) translateY(15%); }
           50% { transform: perspective(800px) rotateY(10deg) translateY(-15%); }
         }
-        @keyframes pulseGlow {
-          0%, 100% { filter: drop-shadow(0 0 6px rgba(148, 163, 184, 0.15)); }
-          50% { filter: drop-shadow(0 0 18px rgba(148, 163, 184, 0.5)); }
-        }
+        @keyframes rootPulse {
+  0%, 100% { transform: scaleY(1); opacity: 0.9; }
+  50% { transform: scaleY(1.035); opacity: 1; } /* scaleY 1.025 -> 1.035 (approx 10% increase in pulse intensity) */
+}
         @keyframes rootPulse {
           0%, 100% { transform: scaleY(1); opacity: 0.9; }
           50% { transform: scaleY(1.025); opacity: 1; }
@@ -41,7 +41,10 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
           animation: bounceRange 4s ease-in-out infinite, pulseGlow 2.8s ease-in-out infinite; 
           transform-origin: center center; 
         }
-        .tooth-roots-pulse { animation: rootPulse 3.2s ease-in-out infinite; transform-origin: center; }
+        .tooth-roots-pulse { 
+        animation: rootPulse 3.84s ease-in-out infinite; 
+        transform-origin: center; 
+      }
         .tooth-sweep-light rect { animation: sweepLight 3s ease-in-out infinite; }
       `}</style>
 
