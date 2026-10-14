@@ -22,13 +22,13 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
           0%, 100% { transform: perspective(800px) rotateY(-10deg) translateY(15%); }
           50% { transform: perspective(800px) rotateY(10deg) translateY(-15%); }
         }
-        @keyframes rootPulse {
-        0%, 100% { transform: scaleY(1); opacity: 0.9; }
-        50% { transform: scaleY(1.035); opacity: 1; } /* scaleY 1.025 -> 1.035 (approx 10% increase in pulse intensity) */
-}
+        @keyframes pulseGlow {
+          0%, 100% { filter: drop-shadow(0 0 6px rgba(148, 163, 184, 0.15)); }
+          50% { filter: drop-shadow(0 0 18px rgba(148, 163, 184, 0.5)); }
+        }
         @keyframes rootPulse {
           0%, 100% { transform: scaleY(1); opacity: 0.9; }
-          50% { transform: scaleY(1.025); opacity: 1; }
+          50% { transform: scaleY(1.035); opacity: 1; }
         }
         @keyframes sweepLight {
           0% { transform: translateX(-60px); opacity: 0; }
@@ -42,9 +42,9 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
           transform-origin: center center; 
         }
         .tooth-roots-pulse { 
-        animation: rootPulse 5.0s ease-in-out infinite; 
-        transform-origin: center; 
-      }
+          animation: rootPulse 3.84s ease-in-out infinite; 
+          transform-origin: center; 
+        }
         .tooth-sweep-light rect { animation: sweepLight 4s ease-in-out infinite; }
       `}</style>
 
@@ -126,9 +126,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 
               </div>
 
-              {/* Brand Text - Adjusted from ml-[5px] to ml-[3px] to move it 2px left */}
-              {/* Brand Text - Adjusted from ml-[1px] to ml-[-2px] to shift 3px further left */}
-              <span className="text-[67px] font-black tracking-tighter italic flex items-baseline -ml-0.5">
+              {/* Brand Text - Slanted to the right (Forward Slash) and shifted slightly left */}
+              <span className="text-[67px] font-black tracking-tighter italic flex items-baseline -ml-0.5 transform skew-x-[-15deg]">
                 <span className="bg-linear-to-b from-blue-700 via-blue-300 to-blue-900 bg-clip-text text-transparent">P</span>
                 <span className="bg-linear-to-b from-[#ef5102] via-amber-300 to-amber-700 bg-clip-text text-transparent">D</span>
                 <span className="bg-linear-to-b from-yellow-600 via-yellow-200 to-yellow-800 bg-clip-text text-transparent">G</span>
