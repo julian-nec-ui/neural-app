@@ -59,19 +59,25 @@ const LoginPage: React.FC = () => {
           0%, 100% { background-position: 0% 50%; }
           50% { background-position: 100% 50%; }
         }
-        .metallic-pdg {
-          background: linear-gradient(
-            to right, 
-            #002366 0%, #4169E1 25%,   /* ROYAL METALLIC BLUE for 'P' */
-            #f2994a 40%, #f2c94c 60%,  /* Metallic Orange for 'D' */
-            #fceabb 75%, #f8b500 100%  /* Metallic Yellow for 'G' */
-          );
+        .metallic-base {
           background-size: 200% auto;
           -webkit-background-clip: text;
           background-clip: text;
           color: transparent;
           animation: metallic-flow 6s ease-in-out infinite;
           display: inline-block;
+        }
+        /* Royal Blue Metallic: Deep Navy -> Royal Blue -> Bright Silver-Blue -> Royal Blue -> Deep Navy */
+        .royal-blue-metallic {
+          background: linear-gradient(to right, #001a4d 0%, #4169E1 25%, #B0C4DE 50%, #4169E1 75%, #001a4d 100%);
+        }
+        /* Orange Metallic: Dark Orange -> Gold -> Bright White-Orange -> Gold -> Dark Orange */
+        .orange-metallic {
+          background: linear-gradient(to right, #c47100 0%, #f2994a 25%, #ffe4b5 50%, #f2994a 75%, #c47100 100%);
+        }
+        /* Yellow Metallic: Dark Gold -> Yellow -> Bright White-Yellow -> Yellow -> Dark Gold */
+        .yellow-metallic {
+          background: linear-gradient(to right, #b8860b 0%, #f8b500 25%, #fff9c4 50%, #f8b500 75%, #b8860b 100%);
         }
       `}</style>
 
@@ -90,8 +96,10 @@ const LoginPage: React.FC = () => {
             <ToothIcon />
           </div>
           <h2 className="text-5xl sm:text-6xl font-black tracking-tighter italic">
-            <span className="metallic-pdg drop-shadow-sm">
-              PDG
+            <span className="drop-shadow-sm">
+              <span className="metallic-base royal-blue-metallic">P</span>
+              <span className="metallic-base orange-metallic">D</span>
+              <span className="metallic-base yellow-metallic">G</span>
             </span>
           </h2>
         </div>
