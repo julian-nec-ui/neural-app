@@ -1,7 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { ArrowRight, ShieldCheck, Zap, Globe } from 'lucide-react';
-import Layout from "../app/components/layout";
+import Layout from '../app/components/layout';
 
 export default function HomePage() {
   return (
@@ -13,24 +13,43 @@ export default function HomePage() {
 
         {/* Hero Section */}
         <section className="relative z-10 max-w-7xl mx-auto px-4 py-24 sm:py-32 text-center">
-          <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-indigo-500/10 
-          border hover:border-indigo-500/50 border-indigo-500/20 text-[#c5397d] text-lg font-medium mb-6 ">
+          <div className="inline-flex items-center gap-3 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xslg font-medium mb-6">
             <span className="relative flex h-3 w-3">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-[#35b698]"></span>
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
             </span>
-            Now accepting new patients
+            Now accepting new partners
           </div>
           
-          <h1 className="text-6xl sm:text-8xl font-black tracking-tighter italic mb-6">
-            <span className="bg-linear-to-br from-white via-slate-400 to-slate-600 bg-clip-text text-transparent">
-              BRIDGE THE <br /> GAP OF CARE
-            </span>
-          </h1>
+          {/* --- METALLIC BRANDING BLOCK --- */}
+          <div className="relative inline-block mb-8">
+            <h1 className="text-7xl sm:text-9xl font-black tracking-tighter italic flex items-center justify-center">
+              {/* Metallic Blue P */}
+              <span className="bg-linear-to-b from-blue-700 via-blue-300 to-blue-900 bg-clip-text text-transparent drop-shadow-[0_5px_5px_rgba(0,0,0,0.5)]">
+                P
+              </span>
+              {/* Metallic Mustard D */}
+              <span className="bg-linear-to-b from-amber-700 via-amber-300 to-amber-900 bg-clip-text text-transparent drop-shadow-[0_5px_5px_rgba(0,0,0,0.5)]">
+                D
+              </span>
+              {/* Metallic Yellow G */}
+              <span className="bg-linear-to-b from-yellow-600 via-yellow-200 to-yellow-800 bg-clip-text text-transparent drop-shadow-[0_5px_5px_rgba(0,0,0,0.5)]">
+                G
+              </span>
+            </h1>
+            
+            {/* Lower Right Subtitle: Prewit Dental Group */}
+            <div className="absolute -bottom-4 right-0 text-right">
+              <p className="text-lg sm:text-2xl font-bold tracking-tight italic bg-linear-to-r from-slate-400 via-slate-100 to-slate-500 bg-clip-text text-transparent opacity-90">
+                Prewit Dental Group
+              </p>
+            </div>
+          </div>
+          {/* --- END BRANDING BLOCK --- */}
           
           <p className="text-slate-400 text-lg sm:text-xl max-w-2xl mx-auto mb-10 leading-relaxed">
-            Nexus provides the most secure and seamless connectivity infrastructure for 
-            modern healthcare providers and patients worldwide.
+            Providing the most secure and seamless connectivity infrastructure for 
+            modern dental providers and patients worldwide.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
