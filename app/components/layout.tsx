@@ -42,7 +42,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
           transform-origin: center center; 
         }
         .tooth-roots-pulse { 
-        animation: rootPulse 3.84s ease-in-out infinite; 
+        animation: rootPulse 5.4s ease-in-out infinite; 
         transform-origin: center; 
       }
         .tooth-sweep-light rect { animation: sweepLight 3s ease-in-out infinite; }
