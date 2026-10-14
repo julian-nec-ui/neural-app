@@ -67,7 +67,7 @@ const LoginPage: React.FC = () => {
           animation: metallic-flow 6s ease-in-out infinite;
           display: inline-block;
         }
-        /* Royal Blue Metallic: Deep Navy -> Royal Blue -> Bright Silver-Blue -> Royal Blue -> Deep Navy */
+        /* Royal mediumblue Metallic: Deep mediumblue -> Royal Blue -> Bright Silver-Blue -> Royal Blue -> Deep mediumblue */
         .royal-blue-metallic {
           background: linear-gradient(to right, #001a4d 0%, #4169E1 25%, #B0C4DE 50%, #4169E1 75%, #001a4d 100%);
         }
