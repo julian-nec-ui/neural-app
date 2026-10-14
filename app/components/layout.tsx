@@ -20,7 +20,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
       <style>{`
         @keyframes floatRotate {
           0%, 100% { transform: perspective(800px) rotateY(-10deg) translateY(0); }
-          50% { transform: perspective(800px) rotateY(10deg) translateY(-4px); }
+          50% { transform: perspective(800px) rotateY(10deg) translateY(-12px); }
         }
         @keyframes pulseGlow {
           0%, 100% { filter: drop-shadow(0 0 6px rgba(148, 163, 184, 0.15)); }
@@ -37,9 +37,12 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
           40% { transform: translateX(80px); opacity: 0; }
           100% { transform: translateX(80px); opacity: 0; }
         }
-        .tooth-logo-wrap { animation: floatRotate 6s ease-in-out infinite, pulseGlow 3.5s ease-in-out infinite; transform-origin: center bottom; }
-        .tooth-roots-pulse { animation: rootPulse 4s ease-in-out infinite; transform-origin: center; }
-        .tooth-sweep-light rect { animation: sweepLight 3.8s ease-in-out infinite; }
+        .tooth-logo-wrap { 
+          animation: floatRotate 4.8s ease-in-out infinite, pulseGlow 2.8s ease-in-out infinite; 
+          transform-origin: center bottom; 
+        }
+        .tooth-roots-pulse { animation: rootPulse 3.2s ease-in-out infinite; transform-origin: center; }
+        .tooth-sweep-light rect { animation: sweepLight 3s ease-in-out infinite; }
       `}</style>
 
       {/* --- HEADER --- */}
