@@ -20,7 +20,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
       <style>{`
         @keyframes floatRotate {
           0%, 100% { transform: perspective(800px) rotateY(-10deg) translateY(0); }
-          50% { transform: perspective(800px) rotateY(10deg) translateY(-8px); }
+          50% { transform: perspective(800px) rotateY(10deg) translateY(-4px); }
         }
         @keyframes pulseGlow {
           0%, 100% { filter: drop-shadow(0 0 6px rgba(148, 163, 184, 0.15)); }
