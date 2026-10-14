@@ -18,9 +18,9 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     <div className="min-h-screen flex flex-col bg-[#0f172a] text-white font-sans">
       {/* Inlined CSS for SVG Animations (Scoped & React-safe) */}
       <style>{`
-        @keyframes floatRotate {
-          0%, 100% { transform: perspective(800px) rotateY(-10deg) translateY(0); }
-          50% { transform: perspective(800px) rotateY(10deg) translateY(-12px); }
+        @keyframes bounceRange {
+          0%, 100% { transform: perspective(800px) rotateY(-10deg) translateY(15%); }
+          50% { transform: perspective(800px) rotateY(10deg) translateY(-15%); }
         }
         @keyframes pulseGlow {
           0%, 100% { filter: drop-shadow(0 0 6px rgba(148, 163, 184, 0.15)); }
@@ -38,8 +38,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
           100% { transform: translateX(80px); opacity: 0; }
         }
         .tooth-logo-wrap { 
-          animation: floatRotate 4.8s ease-in-out infinite, pulseGlow 2.8s ease-in-out infinite; 
-          transform-origin: center bottom; 
+          animation: bounceRange 4s ease-in-out infinite, pulseGlow 2.8s ease-in-out infinite; 
+          transform-origin: center center; 
         }
         .tooth-roots-pulse { animation: rootPulse 3.2s ease-in-out infinite; transform-origin: center; }
         .tooth-sweep-light rect { animation: sweepLight 3s ease-in-out infinite; }
