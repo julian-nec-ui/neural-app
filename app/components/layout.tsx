@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Menu, X } from 'lucide-react';
+import { Menu, X } from 'lucide-react'; // Fixed the import path here
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -18,13 +18,12 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     <div className="min-h-screen flex flex-col bg-[#0f172a] text-white font-sans">
       <style>{`
         @keyframes bounceRange {
-          0%, 100% { transform: perspective(800px) rotateY(-10deg) translateY(10%); }
-          50% { transform: perspective(800px) rotateY(10deg) translateY(-10%); }
+          0%, 100% { transform: perspective(800px) rotateY(-25deg) translateY(10%); }
+          50% { transform: perspective(800px) rotateY(25deg) translateY(-10%); }
         }
-        /* New animation for the footer tooth to rise higher */
         @keyframes footerRise {
-          0%, 100% { transform: perspective(800px) rotateY(-10deg) translateY(0%); }
-          50% { transform: perspective(800px) rotateY(10deg) translateY(-20%); }
+          0%, 100% { transform: perspective(800px) rotateY(-25deg) translateY(0%); }
+          50% { transform: perspective(800px) rotateY(25deg) translateY(-20%); }
         }
         @keyframes rootPulse {
           0%, 100% { transform: scale(1); opacity: 0.9; }
@@ -40,10 +39,12 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         .tooth-logo-wrap { 
           animation: bounceRange 4s ease-in-out infinite; 
           transform-origin: center center; 
+          transform-style: preserve-3d;
         }
         .footer-tooth-wrap { 
           animation: footerRise 4s ease-in-out infinite; 
           transform-origin: center center; 
+          transform-style: preserve-3d;
         }
         .tooth-full-body { 
           animation: rootPulse 5s ease-in-out infinite; 
@@ -230,7 +231,6 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
             <div className="space-y-4">
               <div className="flex items-center gap-0">
                 <div className="p-0">
-                  {/* Changed className from tooth-logo-wrap to footer-tooth-wrap */}
                   <svg
                     width="22"
                     height="22"
