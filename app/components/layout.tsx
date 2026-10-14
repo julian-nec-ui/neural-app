@@ -93,7 +93,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
             <div className="space-y-4">
               <div className="flex items-center gap-2">
                 <ShieldCheck size={24} className="text-indigo-400" />
-                <span className="text-xl font-bold italic text-white">NEXUS</span>
+                <span className="text-xl font-bold italic text-white">PDG</span>
               </div>
               <p className="text-slate-500 text-sm leading-relaxed">
                 Redefining the boundaries of healthcare connectivity through 

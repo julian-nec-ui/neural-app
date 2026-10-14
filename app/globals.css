@@ -55,6 +55,20 @@
   --font-mono: var(--font-geist-mono);
 }
 
+@theme {
+  /* Define the custom animation for the metallic shimmer */
+  --animate-metallic-shimmer: metallic-shimmer 3s linear infinite;
+
+  @keyframes metallic-shimmer {
+    0%, 100% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+  }
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;

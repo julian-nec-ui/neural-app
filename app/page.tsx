@@ -43,8 +43,10 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Now Accepting Badge - Positioned directly under the PDG Line */}
-            <div className="inline-flex items-center gap-3 px-4 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-sm font-medium">
+            {/* Now Accepting Badge */}
+            <div className="inline-flex items-center gap-3 px-4 py-1.5 rounded-full bg-indigo-500/10 
+              border border-indigo-500/20 text-indigo-400 text-sm font-medium
+              hover:border">
               <span className="relative flex h-3 w-3">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
@@ -69,7 +71,7 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* Features Grid */}
+        {/* Features Grid with Metallic Hover Borders */}
         <section className="relative z-10 max-w-7xl mx-auto px-4 py-20">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
@@ -77,12 +79,20 @@ export default function HomePage() {
               { icon: <Zap className="text-cyan-400" />, title: "Instant Sync", desc: "Real-time data synchronization across all medical devices and portals." },
               { icon: <Globe className="text-indigo-400" />, title: "Global Reach", desc: "Deployed across 14 countries, connecting millions of care points." },
             ].map((feature, i) => (
-              <div key={i} className="p-8 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-sm hover:border-indigo-500/50 transition-all group">
-                <div className="mb-4 p-3 bg-slate-900 rounded-2xl w-fit group-hover:scale-110 transition-transform">
-                  {feature.icon}
+              <div key={i} className="group relative p-0.5 rounded-3xl transition-all duration-300">
+                
+                {/* METALLIC HOVER LAYER (Tailwind v4) */}
+                {/* This is invisible (opacity-0) until the group is hovered */}
+                <div className="absolute inset-0 rounded-3xl bg-linear-to-r from-blue-700 via-orange-500 to-blue-700 bg-size-[200%_auto] animate-metallic-shimmer opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                
+                {/* MAIN CONTENT CARD */}
+                <div className="relative z-10 h-full w-full p-8 rounded-[calc(1.5rem-2px)] bg-[#0f172a] border border-white/10 group-hover:border-transparent transition-all duration-300">
+                  <div className="mb-4 p-3 bg-slate-900 rounded-2xl w-fit group-hover:scale-110 transition-transform">
+                    {feature.icon}
+                  </div>
+                  <h3 className="text-xl font-bold mb-2 text-white">{feature.title}</h3>
+                  <p className="text-slate-500 text-sm leading-relaxed">{feature.desc}</p>
                 </div>
-                <h3 className="text-xl font-bold mb-2">{feature.title}</h3>
-                <p className="text-slate-500 text-sm leading-relaxed">{feature.desc}</p>
               </div>
             ))}
           </div>
