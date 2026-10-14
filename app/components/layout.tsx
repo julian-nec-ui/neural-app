@@ -25,10 +25,6 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
           0%, 100% { transform: perspective(800px) rotateY(-25deg) translateY(0%); }
           50% { transform: perspective(800px) rotateY(25deg) translateY(-20%); }
         }
-        @keyframes rootPulse {
-          0%, 100% { transform: scale(1); opacity: 0.9; }
-          50% { transform: scale(1.02); opacity: 1; }
-        }
         @keyframes sweepLight {
           0% { transform: translateX(-70px); opacity: 0; }
           15% { opacity: 0.6; }
@@ -45,10 +41,6 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
           animation: footerRise 4s ease-in-out infinite; 
           transform-origin: center center; 
           transform-style: preserve-3d;
-        }
-        .tooth-full-body { 
-          animation: rootPulse 5s ease-in-out infinite; 
-          transform-origin: center; 
         }
         .tooth-sweep-light rect { animation: sweepLight 4s ease-in-out infinite; }
       `}</style>
@@ -97,7 +89,6 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 
                   <g filter="url(#bevelLogo)">
                     <path 
-                      className="tooth-full-body"
                       d="M 60 50 C 70 40 85 40 95 45 C 105 40 120 40 130 45 C 140 40 150 40 150 50 C 160 70 160 100 145 120 
                          Q 150 140 155 175 Q 150 180 140 170 Q 130 155 130 130 
                          Q 130 155 120 185 Q 115 190 105 180 Q 95 155 95 130 
