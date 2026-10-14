@@ -16,73 +16,71 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#0f172a] text-white font-sans">
-      {/* Inlined CSS for SVG Animations (Scoped & React-safe) */}
       <style>{`
         @keyframes bounceRange {
-          0%, 100% { transform: perspective(800px) rotateY(-10deg) translateY(15%); }
-          50% { transform: perspective(800px) rotateY(10deg) translateY(-15%); }
+          0%, 100% { transform: perspective(800px) rotateY(-10deg) translateY(10%); }
+          50% { transform: perspective(800px) rotateY(10deg) translateY(-10%); }
         }
         @keyframes rootPulse {
           0%, 100% { transform: scaleY(1); opacity: 0.9; }
-          50% { transform: scaleY(1.035); opacity: 1; }
+          50% { transform: scaleY(1.04); opacity: 1; }
         }
         @keyframes sweepLight {
-          0% { transform: translateX(-60px); opacity: 0; }
-          10% { opacity: 0.5; }
-          30% { opacity: 0.5; }
-          40% { transform: translateX(80px); opacity: 0; }
-          100% { transform: translateX(80px); opacity: 0; }
+          0% { transform: translateX(-70px); opacity: 0; }
+          15% { opacity: 0.6; }
+          35% { opacity: 0.6; }
+          50% { transform: translateX(100px); opacity: 0; }
+          100% { transform: translateX(100px); opacity: 0; }
         }
         .tooth-logo-wrap { 
           animation: bounceRange 4s ease-in-out infinite; 
           transform-origin: center center; 
         }
         .tooth-roots-pulse { 
-          animation: rootPulse 5.0s ease-in-out infinite; 
+          animation: rootPulse 5s ease-in-out infinite; 
           transform-origin: center; 
         }
         .tooth-sweep-light rect { animation: sweepLight 4s ease-in-out infinite; }
       `}</style>
 
-      {/* --- HEADER --- */}
       <header className="sticky top-0 z-50 backdrop-blur-xl bg-[#0f172a]/80 border-b border-white/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-20">
 
-            {/* Logo Section */}
             <Link href="/" className="flex items-center gap-0 group">
               <div className="relative p-1.5 transition-all duration-500">
 
-                {/* --- METALLIC 3D TOOTH WITH 4 ROOTS & ANIMATION --- */}
                 <svg
                   viewBox="0 0 200 200" 
-                  className="w-10 h-10 tooth-logo-wrap drop-shadow-lg"
+                  className="w-10 h-10 tooth-logo-wrap drop-shadow-2xl"
                   xmlns="http://www.w3.org/2000/svg"
                 >
                   <defs>
+                    {/* Main Body Gradient */}
                     <linearGradient id="metalBodyLogo" x1="0%" y1="0%" x2="100%" y2="100%">
                       <stop offset="0%" stopColor="#f8fafc" />
-                      <stop offset="40%" stopColor="#cbd5e1" />
-                      <stop offset="65%" stopColor="#64748b" />
-                      <stop offset="90%" stopColor="#334155" />
+                      <stop offset="30%" stopColor="#cbd5e1" />
+                      <stop offset="70%" stopColor="#64748b" />
+                      <stop offset="100%" stopColor="#334155" />
+                    </linearGradient>
+
+                    {/* Organic Bone-like Gradient for Roots */}
+                    <linearGradient id="boneRootGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                      <stop offset="0%" stopColor="#94a3b8" />
+                      <stop offset="50%" stopColor="#475569" />
+                      <stop offset="100%" stopColor="#1e293b" />
                     </linearGradient>
 
                     <radialGradient id="crownGlareLogo" cx="30%" cy="20%" r="70%">
                       <stop offset="0%" stopColor="#ffffff" stopOpacity="0.9" />
-                      <stop offset="40%" stopColor="#e2e8f0" stopOpacity="0.5" />
+                      <stop offset="50%" stopColor="#e2e8f0" stopOpacity="0.3" />
                       <stop offset="100%" stopColor="#64748b" stopOpacity="0" />
                     </radialGradient>
 
-                    <linearGradient id="rootShadowLogo" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="#94a3b8" />
-                      <stop offset="60%" stopColor="#475569" />
-                      <stop offset="100%" stopColor="#0f172a" />
-                    </linearGradient>
-
                     <filter id="bevelLogo" x="-30%" y="-30%" width="160%" height="160%">
-                      <feGaussianBlur in="SourceAlpha" stdDeviation="2" result="blur" />
-                      <feOffset dx="1.5" dy="2" result="offsetBlur" />
-                      <feFlood floodColor="#000000" floodOpacity="0.5" result="shadowColor" />
+                      <feGaussianBlur in="SourceAlpha" stdDeviation="1.5" result="blur" />
+                      <feOffset dx="1" dy="2" result="offsetBlur" />
+                      <feFlood floodColor="#000000" floodOpacity="0.6" result="shadowColor" />
                       <feComposite in="shadowColor" in2="offsetBlur" operator="in" result="shadow" />
                       <feMerge>
                         <feMergeNode in="shadow" />
@@ -91,41 +89,52 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                     </filter>
 
                     <clipPath id="toothClipLogo">
-                      <path d="M 70 40 C 85 30 115 30 130 40 C 145 60 145 100 130 130 L 115 150 L 85 150 L 70 130 C 55 100 55 60 70 40 Z" />
+                      <path d="M 65 45 C 65 30 135 30 135 45 C 145 60 145 100 130 130 L 115 150 L 85 150 L 70 130 C 55 100 55 60 65 45 Z" />
                     </clipPath>
                   </defs>
 
                   <g filter="url(#bevelLogo)">
-                    {/* Crown Base - Made more square/wider */}
-                    <path d="M 70 40 C 85 30 115 30 130 40 C 145 60 145 100 130 130 L 115 150 L 85 150 L 70 130 C 55 100 55 60 70 40 Z" fill="url(#metalBodyLogo)" />
+                    {/* Crown Base - Anatomical shape with cusps */}
+                    <path 
+                      d="M 65 45 C 75 35 85 35 92 40 C 100 35 110 35 118 40 C 125 35 135 35 135 45 C 145 60 145 100 130 130 L 115 150 L 85 150 L 70 130 C 55 100 55 60 65 45 Z" 
+                      fill="url(#metalBodyLogo)" 
+                    />
 
-                    {/* 3D Grooves and Wall Details */}
-                    <path d="M 100 40 L 100 150" stroke="#475569" strokeWidth="3" opacity="0.4" /> {/* Central vertical groove */}
-                    <path d="M 75 60 Q 100 70 125 60" fill="none" stroke="#334155" strokeWidth="2" opacity="0.3" /> {/* Top anatomy curve */}
-                    <path d="M 80 110 Q 100 120 120 110" fill="none" stroke="#334155" strokeWidth="2" opacity="0.3" /> {/* Bottom anatomy curve */}
+                    {/* 3D Sculpted Grooves (Internal Walls) */}
+                    {/* Center vertical divide */}
+                    <path d="M 100 40 L 100 150" stroke="#334155" strokeWidth="2" opacity="0.5" /> 
+                    {/* Horizontal Occlusal Grooves (top of tooth) */}
+                    <path d="M 75 45 Q 100 55 125 45" fill="none" stroke="#1e293b" strokeWidth="2" opacity="0.4" />
+                    <path d="M 80 65 Q 100 75 120 65" fill="none" stroke="#1e293b" strokeWidth="1.5" opacity="0.3" />
                     
-                    {/* Crown Highlight Overlay */}
-                    <path d="M 70 40 C 85 30 115 30 130 40 C 145 60 145 100 130 130 L 115 150 L 85 150 L 70 130 C 55 100 55 60 70 40 Z" fill="url(#crownGlareLogo)" opacity="0.6" />
+                    {/* Rim Lighting (Edges) */}
+                    <path 
+                      d="M 65 45 C 65 30 135 30 135 45 C 145 60 145 100 130 130" 
+                      fill="none" stroke="#f1f5f9" strokeWidth="1" opacity="0.6" 
+                    />
 
-                    {/* Metallic Edge Stroke */}
-                    <path d="M 70 40 C 85 30 115 30 130 40 C 145 60 145 100 130 130 L 115 150 L 85 150 L 70 130 C 55 100 55 60 70 40 Z" fill="none" stroke="#f1f5f9" strokeWidth="1.5" opacity="0.5" />
+                    {/* Highlight Overlay */}
+                    <path 
+                      d="M 65 45 C 75 35 85 35 92 40 C 100 35 110 35 118 40 C 125 35 135 35 135 45 C 145 60 145 100 130 130 L 115 150 L 85 150 L 70 130 C 55 100 55 60 65 45 Z" 
+                      fill="url(#crownGlareLogo)" opacity="0.6" 
+                    />
 
-                    {/* 4 Enhanced Roots - Thicker and more visible */}
+                    {/* Organic Bone-like Roots */}
                     <g className="tooth-roots-pulse">
-                      {/* Front Left Root */}
-                      <path d="M 85 140 L 70 180 Q 65 190 75 190 Q 85 190 90 170 Z" fill="url(#rootShadowLogo)" />
-                      {/* Front Right Root */}
-                      <path d="M 115 140 L 130 180 Q 135 190 125 190 Q 115 190 110 170 Z" fill="url(#rootShadowLogo)" />
-                      {/* Back Left Root */}
-                      <path d="M 80 130 L 60 170 Q 55 180 65 180 Q 75 180 80 150 Z" fill="url(#rootShadowLogo)" opacity="0.8" />
-                      {/* Back Right Root */}
-                      <path d="M 120 130 L 140 170 Q 145 180 135 180 Q 125 180 120 150 Z" fill="url(#rootShadowLogo)" opacity="0.8" />
+                      {/* Far Left Root - Tapered and curved */}
+                      <path d="M 80 140 Q 60 160 55 190 Q 58 192 65 185 Q 75 170 85 150 Z" fill="url(#boneRootGrad)" />
+                      {/* Near Left Root - Tapered and curved */}
+                      <path d="M 90 150 Q 85 175 82 195 Q 85 197 92 190 Q 100 170 105 150 Z" fill="url(#boneRootGrad)" />
+                      {/* Near Right Root - Tapered and curved */}
+                      <path d="M 110 150 Q 105 175 108 195 Q 115 197 122 190 Q 125 170 120 150 Z" fill="url(#boneRootGrad)" />
+                      {/* Far Right Root - Tapered and curved */}
+                      <path d="M 120 140 Q 140 160 145 190 Q 142 192 135 185 Q 125 170 115 150 Z" fill="url(#boneRootGrad)" />
                     </g>
                   </g>
 
                   {/* Sweeping Light Reflection */}
                   <g className="tooth-sweep-light">
-                    <rect x="-60" y="30" width="40" height="170" fill="white" clipPath="url(#toothClipLogo)" />
+                    <rect x="-70" y="30" width="50" height="170" fill="white" clipPath="url(#toothClipLogo)" opacity="0.4" />
                   </g>
                 </svg>
 
@@ -139,7 +148,6 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 
             </Link>
 
-            {/* Desktop Nav */}
             <nav className="hidden md:flex items-center gap-8">
               {navLinks.map((link) => (
                 <Link
@@ -158,7 +166,6 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
               </Link>
             </nav>
 
-            {/* Mobile Menu Button */}
             <div className="md:hidden">
               <button onClick={() => setIsOpen(!isOpen)} className="text-slate-400 hover:text-white">
                 {isOpen ? <X size={28} /> : <Menu size={28} />}
@@ -167,7 +174,6 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
           </div>
         </div>
 
-        {/* Mobile Nav Dropdown */}
         {isOpen && (
           <div className="md:hidden bg-[#0f172a] border-b border-white/10 px-4 py-6 space-y-4 animate-in slide-in-from-top duration-300">
             {navLinks.map((link) => (
@@ -215,7 +221,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                         <stop offset="100%" stopColor="#334155" />
                       </linearGradient>
                     </defs>
-                    <path d="M 70 40 C 85 30 115 30 130 40 C 145 60 145 100 130 130 L 115 150 L 85 150 L 70 130 C 55 100 55 60 70 40 Z" fill="url(#footGrad)" />
+                    <path d="M 65 45 C 65 30 135 30 135 45 C 145 60 145 100 130 130 L 115 150 L 85 150 L 70 130 C 55 100 55 60 65 45 Z" fill="url(#footGrad)" />
                   </svg>
                 </div>
                 <span className="text-xl font-bold italic text-white -ml-1">PDG</span>
