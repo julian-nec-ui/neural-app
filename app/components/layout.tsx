@@ -86,46 +86,52 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                   </defs>
 
                   <g filter="url(#bevelLogo)">
+                    {/* Unified Body - Root paths updated for more "faceted" contour */}
                     <path 
                       className="tooth-full-body"
                       d="M 60 50 C 70 40 85 40 95 45 C 105 40 120 40 130 45 C 140 40 150 40 150 50 C 160 70 160 100 145 120 
-                         Q 150 140 155 175 Q 150 180 140 170 Q 130 155 130 130 
-                         Q 130 155 120 185 Q 115 190 105 180 Q 95 155 95 130 
-                         Q 85 155 75 185 Q 70 190 60 180 Q 50 170 45 175 
-                         Q 40 140 60 120 C 40 100 40 70 50 50 Z" 
+                         Q 152 140 158 170 Q 155 182 142 175 Q 132 160 130 130 
+                         Q 132 155 122 185 Q 118 192 105 182 Q 95 160 95 130 
+                         Q 85 160 75 185 Q 68 192 58 182 Q 48 160 45 175 
+                         Q 42 155 60 120 C 40 100 40 70 50 50 Z" 
                       fill="url(#metalBodyLogo)" 
                     />
 
-                    <g stroke="#ffffff" strokeWidth="1.5" opacity="0.7" fill="none" strokeLinecap="round">
-                      <path d="M 145 120 Q 155 140 160 175" /> 
-                      <path d="M 130 130 Q 130 155 120 185" /> 
-                      <path d="M 85 130 Q 85 155 75 185" />   
-                      <path d="M 65 120 Q 50 140 45 175" />   
+                    {/* --- ROOT EDGES & RIDGES --- */}
+                    {/* High-contrast edge pairs: A light line and a dark line together create a "beveled edge" */}
+                    <g fill="none" strokeLinecap="round">
+                      {/* Far Right Root Edge */}
+                      <path d="M 145 120 Q 152 140 157 170" stroke="#ffffff" strokeWidth="1" opacity="0.6" />
+                      <path d="M 143 120 Q 148 140 152 170" stroke="#1e293b" strokeWidth="0.8" opacity="0.4" />
+                      
+                      {/* Inner Right Root Edge */}
+                      <path d="M 130 130 Q 130 155 122 185" stroke="#ffffff" strokeWidth="1" opacity="0.6" />
+                      <path d="M 128 130 Q 128 155 118 185" stroke="#1e293b" strokeWidth="0.8" opacity="0.4" />
+                      
+                      {/* Inner Left Root Edge */}
+                      <path d="M 85 130 Q 85 155 75 185" stroke="#ffffff" strokeWidth="1" opacity="0.6" />
+                      <path d="M 87 130 Q 87 155 87 185" stroke="#1e293b" strokeWidth="0.8" opacity="0.4" />
+                      
+                      {/* Far Left Root Edge */}
+                      <path d="M 65 120 Q 50 140 45 175" stroke="#ffffff" strokeWidth="1" opacity="0.6" />
+                      <path d="M 67 120 Q 55 140 50 175" stroke="#1e293b" strokeWidth="0.8" opacity="0.4" />
                     </g>
 
-                    <g stroke="#cbd5e1" strokeWidth="3" opacity="0.3" fill="none" strokeLinecap="round">
+                    {/* Volumetric Shadowing for Root Depth */}
+                    <g stroke="#cbd5e1" strokeWidth="2" opacity="0.3" fill="none" strokeLinecap="round">
                       <path d="M 142 125 Q 150 140 152 170" /> 
                       <path d="M 128 135 Q 125 155 115 180" /> 
                       <path d="M 87 135 Q 90 155 80 180" />
                       <path d="M 68 125 Q 60 140 58 170" />
                     </g>
 
-                    {/* --- ENHANCED CROWN GROOVES --- */}
+                    {/* Crown Details */}
                     <g stroke="#1e293b" fill="none">
-                      {/* Main vertical center divide */}
                       <path d="M 100 45 L 100 130" strokeWidth="2" opacity="0.5" /> 
-                      
-                      {/* Lateral wall grooves (gives the tooth a squared 3D feel) */}
-                      <path d="M 80 50 L 80 120" strokeWidth="1.5" opacity="0.3" />
-                      <path d="M 120 50 L 120 120" strokeWidth="1.5" opacity="0.3" />
-
-                      {/* Top Occlusal Fissures (The "X" and curves of a real molar) */}
                       <path d="M 65 55 Q 100 65 135 55" strokeWidth="2" opacity="0.4" />
                       <path d="M 65 65 Q 100 75 135 65" strokeWidth="1.5" opacity="0.3" />
                       <path d="M 85 50 L 100 60 L 115 50" strokeWidth="1.5" opacity="0.4" />
                       <path d="M 85 65 L 100 55 L 115 65" strokeWidth="1.5" opacity="0.4" />
-
-                      {/* Cervical Line (The groove where crown meets roots) */}
                       <path d="M 60 120 Q 100 135 140 120" strokeWidth="2" opacity="0.5" />
                     </g>
                     
@@ -168,7 +174,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
               <Link
                 href="/signup"
                 className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-full text-sm font-semibold transition-all shadow-[0_0_15px_rgba(79,70,229,0.4)]"
-              >
+                >
                 Join PDG
               </Link>
             </nav>
