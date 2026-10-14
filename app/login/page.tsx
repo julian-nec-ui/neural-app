@@ -56,26 +56,26 @@ const LoginPage: React.FC = () => {
       
       <style jsx>{`
         @keyframes metallic-flow {
-          0%, 100% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
+          0% { background-position: 0% 50%; }
+          100% { background-position: 200% 50%; }
         }
         .metallic-base {
           background-size: 200% auto;
           -webkit-background-clip: text;
           background-clip: text;
           color: transparent;
-          animation: metallic-flow 6s ease-in-out infinite;
+          animation: metallic-flow 6s linear infinite;
           display: inline-block;
         }
-        /* Royal mediumblue Metallic: Deep mediumblue -> Royal Blue -> Bright Silver-Blue -> Royal Blue -> Deep mediumblue */
+        /* Royal Blue Metallic: Deep Navy -> Royal Blue -> Silver-Blue -> Royal Blue -> Deep Navy */
         .royal-blue-metallic {
-          background: linear-gradient(to right, #001a4d 0%, #506AB9 25%, #0C5AC0 50%, #1A48D2 75%, #10398D 100%);
+          background: linear-gradient(to right, #001a4d 0%, #4169E1 25%, #B0C4DE 50%, #4169E1 75%, #001a4d 100%);
         }
-        /* Orange Metallic: Dark Orange -> Gold -> Bright White-Orange -> Gold -> Dark Orange */
+        /* Orange Metallic */
         .orange-metallic {
           background: linear-gradient(to right, #c47100 0%, #f2994a 25%, #ffe4b5 50%, #f2994a 75%, #c47100 100%);
         }
-        /* Yellow Metallic: Dark Gold -> Yellow -> Bright White-Yellow -> Yellow -> Dark Gold */
+        /* Yellow Metallic */
         .yellow-metallic {
           background: linear-gradient(to right, #b8860b 0%, #f8b500 25%, #fff9c4 50%, #f8b500 75%, #b8860b 100%);
         }
@@ -95,11 +95,11 @@ const LoginPage: React.FC = () => {
           <div className="p-2 bg-indigo-500/10 rounded-lg border border-indigo-500/20 shadow-[0_0_15px_rgba(99,102,241,0.3)] group-hover:shadow-[0_0_25px_rgba(99,102,241,0.5)] transition-all duration-500">
             <ToothIcon />
           </div>
-          <h2 className="text-5xl sm:text-6xl font-black tracking-tighter italic">
+          <h2 className="text-3xl sm:text-5xl font-black tracking-tighter italic">
             <span className="drop-shadow-sm">
-              <span className="metallic-base royal-blue-metallic">P</span>
-              <span className="metallic-base orange-metallic">D</span>
-              <span className="metallic-base yellow-metallic">G</span>
+              <span className="metallic-base royal-blue-metallic mr-2">Prewitt</span>
+              <span className="metallic-base orange-metallic mr-2">Dental</span>
+              <span className="metallic-base yellow-metallic">Group</span>
             </span>
           </h2>
         </div>
