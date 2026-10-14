@@ -26,19 +26,19 @@ export default function HomePage() {
                   P
                 </span>
                 {/* Metallic Mustard D */}
-                <span className="bg-linear-to-b from-amber-700 via-amber-300 to-amber-900 bg-clip-text text-transparent drop-shadow-[0_5px_5px_rgba(0,0,0,0.5)]">
+                <span className="bg-linear-to-b from-[#ef5102] via-amber-300 to-amber-900 bg-clip-text text-transparent drop-shadow-[0_5px_5px_rgba(0,0,0,0.5)]">
                   D
                 </span>
                 {/* Metallic Yellow G */}
-                <span className="bg-linear-to-b from-yellow-600 via-yellow-200 to-yellow-800 bg-clip-text text-transparent drop-shadow-[0_5px_5px_rgba(0,0,0,0.5)]">
+                <span className="bg-linear-to-b from-yellow-500 via-yellow-200 to-yellow-800 bg-clip-text text-transparent drop-shadow-[0_5px_5px_rgba(0,0,0,0.5)]">
                   G
                 </span>
               </h1>
               
               {/* Footnote Continuation: Prewit Dental Group */}
-              <div className="ml-1 sm:ml-6">
+              <div className="ml-1 sm:ml-4">
                 <p className="text-lg sm:text-3xl font-bold tracking-tight italic bg-linear-to-r from-slate-400 via-slate-100 to-slate-500 bg-clip-text text-transparent opacity-90 whitespace-nowrap">
-                  Prewit Dental Group
+                  Prewitt Dental Group
                 </p>
               </div>
             </div>
