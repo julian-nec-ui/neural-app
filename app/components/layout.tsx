@@ -189,7 +189,14 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
             <div className="space-y-4">
               <div className="flex items-center gap-3">
                 <div className="p-1 bg-blue-500/10 rounded-lg border border-blue-500/20">
-                  <svg width="16" height="24" viewBox="0 0 200 300" fill="none" xmlns="http://www.w3.org/2000/svg" className="drop-shadow-md">
+                  <svg 
+                    width="16" 
+                    height="24" 
+                    viewBox="0 0 200 300" 
+                    fill="none" 
+                    xmlns="http://www.w3.org/2000/svg" 
+                    className="drop-shadow-md tooth-logo-wrap"
+                  >
                     <defs>
                       <linearGradient id="footGrad" x1="0%" y1="0%" x2="100%" y2="100%">
                         <stop offset="0%" stopColor="#cbd5e1"/>
