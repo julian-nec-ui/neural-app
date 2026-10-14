@@ -56,7 +56,6 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                   xmlns="http://www.w3.org/2000/svg"
                 >
                   <defs>
-                    {/* Adjusted Gradient: Root end is significantly lighter for illumination */}
                     <linearGradient id="metalBodyLogo" x1="0%" y1="0%" x2="0%" y2="100%">
                       <stop offset="0%" stopColor="#f8fafc" />
                       <stop offset="20%" stopColor="#cbd5e1" />
@@ -97,30 +96,37 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                       fill="url(#metalBodyLogo)" 
                     />
 
-                    {/* --- ROOT ILLUMINATION SYSTEM --- */}
-                    
-                    {/* 1. Inner-Core Glow: Semi-transparent thick lines that make the roots look like they are glowing from within */}
+                    {/* --- BLUE BIOLUMINESCENT VEINS --- */}
+                    {/* Layer 1: The Glow (Light blue, semi-transparent, thicker) */}
+                    <g stroke="#60a5fa" strokeWidth="2" opacity="0.4" fill="none" strokeLinecap="round">
+                      <path d="M 142 125 Q 148 145 152 170" /> 
+                      <path d="M 125 135 Q 120 155 115 180" /> 
+                      <path d="M 85 135 Q 80 155 75 180" />   
+                      <path d="M 68 125 Q 60 145 55 170" />   
+                    </g>
+                    {/* Layer 2: The Core (Deep blue, thinner, sharper) */}
+                    <g stroke="#2563eb" strokeWidth="0.8" opacity="0.7" fill="none" strokeLinecap="round">
+                      <path d="M 142 125 Q 148 145 152 170" /> 
+                      <path d="M 125 135 Q 120 155 115 180" /> 
+                      <path d="M 85 135 Q 80 155 75 180" />   
+                      <path d="M 68 125 Q 60 145 55 170" />   
+                      {/* Branching points to look organic */}
+                      <path d="M 145 140 Q 148 145 150 150" />
+                      <path d="M 80 160 Q 75 165 72 170" />
+                    </g>
+
+                    {/* --- ROOT ILLUMINATION --- */}
                     <g stroke="#ffffff" strokeWidth="4" opacity="0.2" fill="none" strokeLinecap="round">
                       <path d="M 145 120 Q 150 140 150 170" /> 
                       <path d="M 130 130 Q 125 150 115 180" /> 
                       <path d="M 85 130 Q 80 150 75 180" />   
                       <path d="M 65 120 Q 55 140 50 170" />   
                     </g>
-
-                    {/* 2. High-Intensity Speculars: Bright, thick white edges */}
                     <g stroke="#ffffff" strokeWidth="2" opacity="0.9" fill="none" strokeLinecap="round">
                       <path d="M 145 120 Q 155 140 160 175" /> 
                       <path d="M 130 130 Q 130 155 120 185" /> 
                       <path d="M 85 130 Q 85 155 75 185" />   
                       <path d="M 65 120 Q 50 140 45 175" />   
-                    </g>
-
-                    {/* 3. Volumetric Definition: Subtle shadows to maintain 3D shape despite the light */}
-                    <g stroke="#475569" strokeWidth="1" opacity="0.4" fill="none" strokeLinecap="round">
-                      <path d="M 140 120 Q 140 140 140 170" /> 
-                      <path d="M 125 130 Q 120 150 110 180" /> 
-                      <path d="M 90 130 Q 85 150 80 180" />
-                      <path d="M 60 120 Q 55 140 55 170" />
                     </g>
 
                     {/* --- CROWN DETAILS --- */}
