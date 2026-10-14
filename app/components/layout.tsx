@@ -58,7 +58,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                   <defs>
                     <linearGradient id="metalBodyLogo" x1="0%" y1="0%" x2="0%" y2="100%">
                       <stop offset="0%" stopColor="#f8fafc" />
-                      <stop offset="20%" stopColor="#cbd5e1" />
+                      <stop offset="20%" stopColor="#D2DCE8" />
                       <stop offset="50%" stopColor="#64748b" />
                       <stop offset="100%" stopColor="#475569" />
                     </linearGradient>
