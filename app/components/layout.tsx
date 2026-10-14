@@ -23,8 +23,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
           50% { transform: perspective(800px) rotateY(10deg) translateY(-15%); }
         }
         @keyframes rootPulse {
-  0%, 100% { transform: scaleY(1); opacity: 0.9; }
-  50% { transform: scaleY(1.035); opacity: 1; } /* scaleY 1.025 -> 1.035 (approx 10% increase in pulse intensity) */
+        0%, 100% { transform: scaleY(1); opacity: 0.9; }
+        50% { transform: scaleY(1.035); opacity: 1; } /* scaleY 1.025 -> 1.035 (approx 10% increase in pulse intensity) */
 }
         @keyframes rootPulse {
           0%, 100% { transform: scaleY(1); opacity: 0.9; }
