@@ -56,7 +56,6 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                   xmlns="http://www.w3.org/2000/svg"
                 >
                   <defs>
-                    {/* Adjusted Gradient: Root end is lighter to accept more shading */}
                     <linearGradient id="metalBodyLogo" x1="0%" y1="0%" x2="0%" y2="100%">
                       <stop offset="0%" stopColor="#f8fafc" />
                       <stop offset="20%" stopColor="#cbd5e1" />
@@ -87,7 +86,6 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                   </defs>
 
                   <g filter="url(#bevelLogo)">
-                    {/* Unified Body */}
                     <path 
                       className="tooth-full-body"
                       d="M 60 50 C 70 40 85 40 95 45 C 105 40 120 40 130 45 C 140 40 150 40 150 50 C 160 70 160 100 145 120 
@@ -98,16 +96,13 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                       fill="url(#metalBodyLogo)" 
                     />
 
-                    {/* --- ENHANCED ROOT LIGHTING --- */}
-                    {/* 1. Strong Specular Highlights (The bright "peaks") */}
                     <g stroke="#ffffff" strokeWidth="1.5" opacity="0.7" fill="none" strokeLinecap="round">
-                      <path d="M 145 120 Q 155 140 160 175" /> {/* Far Right */}
-                      <path d="M 130 130 Q 130 155 120 185" /> {/* Inner Right */}
-                      <path d="M 85 130 Q 85 155 75 185" />   {/* Inner Left */}
-                      <path d="M 65 120 Q 50 140 45 175" />   {/* Far Left */}
+                      <path d="M 145 120 Q 155 140 160 175" /> 
+                      <path d="M 130 130 Q 130 155 120 185" /> 
+                      <path d="M 85 130 Q 85 155 75 185" />   
+                      <path d="M 65 120 Q 50 140 45 175" />   
                     </g>
 
-                    {/* 2. Volumetric Glow (Subtle inner shading to make roots look round) */}
                     <g stroke="#cbd5e1" strokeWidth="3" opacity="0.3" fill="none" strokeLinecap="round">
                       <path d="M 142 125 Q 150 140 152 170" /> 
                       <path d="M 128 135 Q 125 155 115 180" /> 
@@ -115,25 +110,36 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                       <path d="M 68 125 Q 60 140 58 170" />
                     </g>
 
-                    {/* Crown Details */}
-                    <path d="M 100 45 L 100 130" stroke="#1e293b" strokeWidth="2" opacity="0.5" /> 
-                    <path d="M 65 55 Q 100 65 135 55" fill="none" stroke="#1e293b" strokeWidth="2" opacity="0.4" />
-                    <path d="M 65 65 Q 100 75 135 65" fill="none" stroke="#1e293b" strokeWidth="1.5" opacity="0.3" />
+                    {/* --- ENHANCED CROWN GROOVES --- */}
+                    <g stroke="#1e293b" fill="none">
+                      {/* Main vertical center divide */}
+                      <path d="M 100 45 L 100 130" strokeWidth="2" opacity="0.5" /> 
+                      
+                      {/* Lateral wall grooves (gives the tooth a squared 3D feel) */}
+                      <path d="M 80 50 L 80 120" strokeWidth="1.5" opacity="0.3" />
+                      <path d="M 120 50 L 120 120" strokeWidth="1.5" opacity="0.3" />
+
+                      {/* Top Occlusal Fissures (The "X" and curves of a real molar) */}
+                      <path d="M 65 55 Q 100 65 135 55" strokeWidth="2" opacity="0.4" />
+                      <path d="M 65 65 Q 100 75 135 65" strokeWidth="1.5" opacity="0.3" />
+                      <path d="M 85 50 L 100 60 L 115 50" strokeWidth="1.5" opacity="0.4" />
+                      <path d="M 85 65 L 100 55 L 115 65" strokeWidth="1.5" opacity="0.4" />
+
+                      {/* Cervical Line (The groove where crown meets roots) */}
+                      <path d="M 60 120 Q 100 135 140 120" strokeWidth="2" opacity="0.5" />
+                    </g>
                     
-                    {/* Crown Specular Rim Lighting */}
                     <path 
                       d="M 60 50 C 70 40 130 40 140 50 C 150 70 150 100 135 120" 
                       fill="none" stroke="#ffffff" strokeWidth="1.5" opacity="0.6" 
                     />
 
-                    {/* Crown Glare */}
                     <path 
                       d="M 60 50 C 70 40 85 40 95 45 C 105 40 120 40 130 45 C 140 40 150 40 150 50 C 160 70 160 100 145 120 L 125 130 L 75 130 L 55 120 C 40 100 40 70 50 50 Z" 
                       fill="url(#crownGlareLogo)" opacity="0.5" 
                     />
                   </g>
 
-                  {/* Sweeping Light Reflection */}
                   <g className="tooth-sweep-light">
                     <rect x="-70" y="40" width="50" height="160" fill="white" clipPath="url(#toothClipLogo)" opacity="0.4" />
                   </g>
