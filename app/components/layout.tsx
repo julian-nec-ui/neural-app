@@ -56,15 +56,13 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                   xmlns="http://www.w3.org/2000/svg"
                 >
                   <defs>
-                    {/* Main Body Gradient */}
                     <linearGradient id="metalBodyLogo" x1="0%" y1="0%" x2="100%" y2="100%">
                       <stop offset="0%" stopColor="#f8fafc" />
                       <stop offset="30%" stopColor="#cbd5e1" />
-                      <stop offset="70%" stopColor="#64748b" />
+                      <stop offset="60%" stopColor="#64748b" />
                       <stop offset="100%" stopColor="#334155" />
                     </linearGradient>
 
-                    {/* Organic Bone-like Gradient for Roots */}
                     <linearGradient id="boneRootGrad" x1="0%" y1="0%" x2="0%" y2="100%">
                       <stop offset="0%" stopColor="#94a3b8" />
                       <stop offset="50%" stopColor="#475569" />
@@ -78,9 +76,9 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                     </radialGradient>
 
                     <filter id="bevelLogo" x="-30%" y="-30%" width="160%" height="160%">
-                      <feGaussianBlur in="SourceAlpha" stdDeviation="1.5" result="blur" />
-                      <feOffset dx="1" dy="2" result="offsetBlur" />
-                      <feFlood floodColor="#000000" floodOpacity="0.6" result="shadowColor" />
+                      <feGaussianBlur in="SourceAlpha" stdDeviation="1.2" result="blur" />
+                      <feOffset dx="1" dy="1.5" result="offsetBlur" />
+                      <feFlood floodColor="#000000" floodOpacity="0.7" result="shadowColor" />
                       <feComposite in="shadowColor" in2="offsetBlur" operator="in" result="shadow" />
                       <feMerge>
                         <feMergeNode in="shadow" />
@@ -89,52 +87,55 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                     </filter>
 
                     <clipPath id="toothClipLogo">
-                      <path d="M 65 45 C 65 30 135 30 135 45 C 145 60 145 100 130 130 L 115 150 L 85 150 L 70 130 C 55 100 55 60 65 45 Z" />
+                      <path d="M 60 50 C 60 40 140 40 140 50 C 150 70 150 100 135 120 L 115 130 L 85 130 L 65 120 C 50 100 50 70 60 50 Z" />
                     </clipPath>
                   </defs>
 
                   <g filter="url(#bevelLogo)">
-                    {/* Crown Base - Anatomical shape with cusps */}
+                    {/* Crown Base - Shortened and more squared/sturdy */}
                     <path 
-                      d="M 65 45 C 75 35 85 35 92 40 C 100 35 110 35 118 40 C 125 35 135 35 135 45 C 145 60 145 100 130 130 L 115 150 L 85 150 L 70 130 C 55 100 55 60 65 45 Z" 
+                      d="M 60 50 C 70 40 85 40 95 45 C 105 40 120 40 130 45 C 140 40 150 40 150 50 C 160 70 160 100 145 120 L 125 130 L 75 130 L 55 120 C 40 100 40 70 50 50 Z" 
                       fill="url(#metalBodyLogo)" 
                     />
 
-                    {/* 3D Sculpted Grooves (Internal Walls) */}
-                    {/* Center vertical divide */}
-                    <path d="M 100 40 L 100 150" stroke="#334155" strokeWidth="2" opacity="0.5" /> 
-                    {/* Horizontal Occlusal Grooves (top of tooth) */}
-                    <path d="M 75 45 Q 100 55 125 45" fill="none" stroke="#1e293b" strokeWidth="2" opacity="0.4" />
-                    <path d="M 80 65 Q 100 75 120 65" fill="none" stroke="#1e293b" strokeWidth="1.5" opacity="0.3" />
+                    {/* Advanced 3D Sculpting Details */}
+                    {/* Primary Vertical Wall divide */}
+                    <path d="M 100 45 L 100 130" stroke="#1e293b" strokeWidth="2.5" opacity="0.6" /> 
                     
-                    {/* Rim Lighting (Edges) */}
+                    {/* Top-down grooves (X-shape) */}
+                    <path d="M 65 55 Q 100 65 135 55" fill="none" stroke="#1e293b" strokeWidth="2" opacity="0.5" />
+                    <path d="M 65 65 Q 100 75 135 65" fill="none" stroke="#1e293b" strokeWidth="1.5" opacity="0.4" />
+                    <path d="M 80 50 L 80 130" stroke="#1e293b" strokeWidth="1" opacity="0.3" />
+                    <path d="M 120 50 L 120 130" stroke="#1e293b" strokeWidth="1" opacity="0.3" />
+                    
+                    {/* High-intensity Rim Lighting for 3D pop */}
                     <path 
-                      d="M 65 45 C 65 30 135 30 135 45 C 145 60 145 100 130 130" 
-                      fill="none" stroke="#f1f5f9" strokeWidth="1" opacity="0.6" 
+                      d="M 60 50 C 70 40 130 40 140 50 C 150 70 150 100 135 120" 
+                      fill="none" stroke="#ffffff" strokeWidth="1.2" opacity="0.7" 
                     />
 
-                    {/* Highlight Overlay */}
+                    {/* Glare Overlay */}
                     <path 
-                      d="M 65 45 C 75 35 85 35 92 40 C 100 35 110 35 118 40 C 125 35 135 35 135 45 C 145 60 145 100 130 130 L 115 150 L 85 150 L 70 130 C 55 100 55 60 65 45 Z" 
+                      d="M 60 50 C 70 40 85 40 95 45 C 105 40 120 40 130 45 C 140 40 150 40 150 50 C 160 70 160 100 145 120 L 125 130 L 75 130 L 55 120 C 40 100 40 70 50 50 Z" 
                       fill="url(#crownGlareLogo)" opacity="0.6" 
                     />
 
-                    {/* Organic Bone-like Roots */}
+                    {/* Bone-like Roots - Moved up to connect with shorter body */}
                     <g className="tooth-roots-pulse">
-                      {/* Far Left Root - Tapered and curved */}
-                      <path d="M 80 140 Q 60 160 55 190 Q 58 192 65 185 Q 75 170 85 150 Z" fill="url(#boneRootGrad)" />
-                      {/* Near Left Root - Tapered and curved */}
-                      <path d="M 90 150 Q 85 175 82 195 Q 85 197 92 190 Q 100 170 105 150 Z" fill="url(#boneRootGrad)" />
-                      {/* Near Right Root - Tapered and curved */}
-                      <path d="M 110 150 Q 105 175 108 195 Q 115 197 122 190 Q 125 170 120 150 Z" fill="url(#boneRootGrad)" />
-                      {/* Far Right Root - Tapered and curved */}
-                      <path d="M 120 140 Q 140 160 145 190 Q 142 192 135 185 Q 125 170 115 150 Z" fill="url(#boneRootGrad)" />
+                      {/* Far Left Root */}
+                      <path d="M 75 125 Q 55 145 50 180 Q 53 182 60 175 Q 70 160 80 135 Z" fill="url(#boneRootGrad)" />
+                      {/* Near Left Root */}
+                      <path d="M 90 130 Q 85 155 82 190 Q 85 192 92 185 Q 100 165 105 135 Z" fill="url(#boneRootGrad)" />
+                      {/* Near Right Root */}
+                      <path d="M 110 130 Q 105 155 108 190 Q 115 192 122 185 Q 125 165 120 135 Z" fill="url(#boneRootGrad)" />
+                      {/* Far Right Root */}
+                      <path d="M 125 125 Q 145 145 150 180 Q 147 182 140 175 Q 130 160 120 135 Z" fill="url(#boneRootGrad)" />
                     </g>
                   </g>
 
                   {/* Sweeping Light Reflection */}
                   <g className="tooth-sweep-light">
-                    <rect x="-70" y="30" width="50" height="170" fill="white" clipPath="url(#toothClipLogo)" opacity="0.4" />
+                    <rect x="-70" y="40" width="50" height="100" fill="white" clipPath="url(#toothClipLogo)" opacity="0.4" />
                   </g>
                 </svg>
 
@@ -221,7 +222,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                         <stop offset="100%" stopColor="#334155" />
                       </linearGradient>
                     </defs>
-                    <path d="M 65 45 C 65 30 135 30 135 45 C 145 60 145 100 130 130 L 115 150 L 85 150 L 70 130 C 55 100 55 60 65 45 Z" fill="url(#footGrad)" />
+                    <path d="M 60 50 C 60 40 140 40 140 50 C 150 70 150 100 135 120 L 115 130 L 85 130 L 65 120 C 50 100 50 70 60 50 Z" fill="url(#footGrad)" />
                   </svg>
                 </div>
                 <span className="text-xl font-bold italic text-white -ml-1">PDG</span>
