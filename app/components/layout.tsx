@@ -54,7 +54,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                 {/* --- METALLIC 3D TOOTH WITH 4 ROOTS & ANIMATION --- */}
                 <svg
                   viewBox="0 0 200 300"
-                  className="w-14 h-21 tooth-logo-wrap drop-shadow-lg"
+                  className="w-10 h-10 tooth-logo-wrap drop-shadow-lg"
                   xmlns="http://www.w3.org/2000/svg"
                 >
                   <defs>
