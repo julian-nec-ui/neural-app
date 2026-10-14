@@ -23,12 +23,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
           50% { transform: perspective(800px) rotateY(10deg) translateY(-15%); }
         }
         @keyframes rootPulse {
-        0%, 100% { transform: scaleY(1); opacity: 0.9; }
-        50% { transform: scaleY(1.035); opacity: 1; } /* scaleY 1.025 -> 1.035 (approx 10% increase in pulse intensity) */
-}
-        @keyframes rootPulse {
           0%, 100% { transform: scaleY(1); opacity: 0.9; }
-          50% { transform: scaleY(1.025); opacity: 1; }
+          50% { transform: scaleY(1.035); opacity: 1; }
         }
         @keyframes sweepLight {
           0% { transform: translateX(-60px); opacity: 0; }
@@ -38,13 +34,13 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
           100% { transform: translateX(80px); opacity: 0; }
         }
         .tooth-logo-wrap { 
-          animation: bounceRange 4s ease-in-out infinite, pulseGlow 2.8s ease-in-out infinite; 
+          animation: bounceRange 4s ease-in-out infinite; 
           transform-origin: center center; 
         }
         .tooth-roots-pulse { 
-        animation: rootPulse 5.0s ease-in-out infinite; 
-        transform-origin: center; 
-      }
+          animation: rootPulse 5.0s ease-in-out infinite; 
+          transform-origin: center; 
+        }
         .tooth-sweep-light rect { animation: sweepLight 4s ease-in-out infinite; }
       `}</style>
 
@@ -59,8 +55,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 
                 {/* --- METALLIC 3D TOOTH WITH 4 ROOTS & ANIMATION --- */}
                 <svg
-                  viewBox="0 0 200 300"
-                  className="w-8 h-12 tooth-logo-wrap drop-shadow-lg"
+                  viewBox="0 0 200 200" 
+                  className="w-10 h-10 tooth-logo-wrap drop-shadow-lg"
                   xmlns="http://www.w3.org/2000/svg"
                 >
                   <defs>
@@ -95,39 +91,46 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                     </filter>
 
                     <clipPath id="toothClipLogo">
-                      <path d="M 85 30 C 100 25 120 30 125 45 C 135 65 137 90 130 115 C 123 135 113 150 105 165 L 100 185 Q 98 192 95 192 Q 92 192 90 185 L 85 165 C 77 150 67 135 60 115 C 53 90 55 65 65 45 C 70 30 85 35 85 30 Z" />
+                      <path d="M 70 40 C 85 30 115 30 130 40 C 145 60 145 100 130 130 L 115 150 L 85 150 L 70 130 C 55 100 55 60 70 40 Z" />
                     </clipPath>
                   </defs>
 
                   <g filter="url(#bevelLogo)">
-                    {/* Crown Base */}
-                    <path d="M 85 30 C 100 25 120 30 125 45 C 135 65 137 90 130 115 C 123 135 113 150 105 165 L 100 185 Q 98 192 95 192 Q 92 192 90 185 L 85 165 C 77 150 67 135 60 115 C 53 90 55 65 65 45 C 70 30 85 35 85 30 Z" fill="url(#metalBodyLogo)" />
+                    {/* Crown Base - Made more square/wider */}
+                    <path d="M 70 40 C 85 30 115 30 130 40 C 145 60 145 100 130 130 L 115 150 L 85 150 L 70 130 C 55 100 55 60 70 40 Z" fill="url(#metalBodyLogo)" />
 
+                    {/* 3D Grooves and Wall Details */}
+                    <path d="M 100 40 L 100 150" stroke="#475569" strokeWidth="3" opacity="0.4" /> {/* Central vertical groove */}
+                    <path d="M 75 60 Q 100 70 125 60" fill="none" stroke="#334155" strokeWidth="2" opacity="0.3" /> {/* Top anatomy curve */}
+                    <path d="M 80 110 Q 100 120 120 110" fill="none" stroke="#334155" strokeWidth="2" opacity="0.3" /> {/* Bottom anatomy curve */}
+                    
                     {/* Crown Highlight Overlay */}
-                    <path d="M 85 30 C 100 25 120 30 125 45 C 135 65 137 90 130 115 C 123 135 113 150 105 165 L 100 185 Q 98 192 95 192 Q 92 192 90 185 L 85 165 C 77 150 67 135 60 115 C 53 90 55 65 65 45 C 70 30 85 35 85 30 Z" fill="url(#crownGlareLogo)" opacity="0.7" />
+                    <path d="M 70 40 C 85 30 115 30 130 40 C 145 60 145 100 130 130 L 115 150 L 85 150 L 70 130 C 55 100 55 60 70 40 Z" fill="url(#crownGlareLogo)" opacity="0.6" />
 
                     {/* Metallic Edge Stroke */}
-                    <path d="M 85 30 C 100 25 120 30 125 45 C 135 65 137 90 130 115 C 123 135 113 150 105 165 L 100 185 Q 98 192 95 192 Q 92 192 90 185 L 85 165 C 77 150 67 135 60 115 C 53 90 55 65 65 45 C 70 30 85 35 85 30 Z" fill="none" stroke="#f1f5f9" strokeWidth="1" opacity="0.5" />
+                    <path d="M 70 40 C 85 30 115 30 130 40 C 145 60 145 100 130 130 L 115 150 L 85 150 L 70 130 C 55 100 55 60 70 40 Z" fill="none" stroke="#f1f5f9" strokeWidth="1.5" opacity="0.5" />
 
-                    {/* 4 Animated Roots */}
+                    {/* 4 Enhanced Roots - Thicker and more visible */}
                     <g className="tooth-roots-pulse">
-                      <path d="M 88 160 L 78 185 Q 72 205 68 225 Q 66 220 74 200 L 84 170 Z" fill="url(#rootShadowLogo)" />
-                      <path d="M 102 160 L 112 185 Q 118 205 122 225 Q 124 220 116 200 L 106 170 Z" fill="url(#rootShadowLogo)" />
-                      <path d="M 82 168 L 72 195 Q 66 218 60 240 Q 58 235 68 210 L 78 185 Z" fill="url(#rootShadowLogo)" />
-                      <path d="M 108 168 L 118 195 Q 124 218 130 240 Q 132 235 122 210 L 112 185 Z" fill="url(#rootShadowLogo)" />
+                      {/* Front Left Root */}
+                      <path d="M 85 140 L 70 180 Q 65 190 75 190 Q 85 190 90 170 Z" fill="url(#rootShadowLogo)" />
+                      {/* Front Right Root */}
+                      <path d="M 115 140 L 130 180 Q 135 190 125 190 Q 115 190 110 170 Z" fill="url(#rootShadowLogo)" />
+                      {/* Back Left Root */}
+                      <path d="M 80 130 L 60 170 Q 55 180 65 180 Q 75 180 80 150 Z" fill="url(#rootShadowLogo)" opacity="0.8" />
+                      {/* Back Right Root */}
+                      <path d="M 120 130 L 140 170 Q 145 180 135 180 Q 125 180 120 150 Z" fill="url(#rootShadowLogo)" opacity="0.8" />
                     </g>
                   </g>
 
                   {/* Sweeping Light Reflection */}
                   <g className="tooth-sweep-light">
-                    <rect x="-60" y="20" width="36" height="270" fill="white" clipPath="url(#toothClipLogo)" />
+                    <rect x="-60" y="30" width="40" height="170" fill="white" clipPath="url(#toothClipLogo)" />
                   </g>
                 </svg>
 
               </div>
 
-              {/* Brand Text - Adjusted from ml-[5px] to ml-[3px] to move it 2px left */}
-              {/* Brand Text - Adjusted from ml-[1px] to ml-[-2px] to shift 3px further left */}
               <span className="text-[67px] font-black tracking-tighter italic flex items-baseline -ml-0.5">
                 <span className="bg-linear-to-b from-blue-700 via-blue-300 to-blue-900 bg-clip-text text-transparent">P</span>
                 <span className="bg-linear-to-b from-[#ef5102] via-amber-300 to-amber-700 bg-clip-text text-transparent">D</span>
@@ -199,8 +202,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                 <div className="p-0">
                   <svg
                     width="22"
-                    height="33"
-                    viewBox="0 0 200 300"
+                    height="22"
+                    viewBox="0 0 200 200"
                     fill="none"
                     xmlns="http://www.w3.org/2000/svg"
                     className="drop-shadow-md tooth-logo-wrap"
@@ -212,7 +215,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                         <stop offset="100%" stopColor="#334155" />
                       </linearGradient>
                     </defs>
-                    <path d="M 85 30 C 100 25 120 30 125 45 C 135 65 137 90 130 115 C 123 135 113 150 105 165 L 100 185 Q 98 192 95 192 Q 92 192 90 185 L 85 165 C 77 150 67 135 60 115 C 53 90 55 65 65 45 C 70 30 85 35 85 30 Z" fill="url(#footGrad)" />
+                    <path d="M 70 40 C 85 30 115 30 130 40 C 145 60 145 100 130 130 L 115 150 L 85 150 L 70 130 C 55 100 55 60 70 40 Z" fill="url(#footGrad)" />
                   </svg>
                 </div>
                 <span className="text-xl font-bold italic text-white -ml-1">PDG</span>
