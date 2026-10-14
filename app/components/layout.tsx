@@ -190,11 +190,11 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
             <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="p-1">
+              <div className="flex items-center gap-2">
+                <div className="p-0">
                   <svg 
-                    width="18.4" 
-                    height="27.6" 
+                    width="22" 
+                    height="33" 
                     viewBox="0 0 200 300" 
                     fill="none" 
                     xmlns="http://www.w3.org/2000/svg" 
