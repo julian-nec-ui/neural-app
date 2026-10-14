@@ -17,15 +17,24 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
   return (
     <div className="min-h-screen flex flex-col bg-[#0f172a] text-white font-sans">
       <style>{`
+        /* 
+           Cure the "shrinking" by adding scaleX compensation.
+           When rotateY is 90 or 270, the SVG normally disappears. 
+           We pump scaleX up to 2.5 at those points to keep the width visible.
+        */
         @keyframes bounceRange {
-          0% { transform: perspective(1200px) rotateX(15deg) rotateY(0deg) translateY(10%); }
-          50% { transform: perspective(1200px) rotateX(15deg) rotateY(180deg) translateY(-10%); }
-          100% { transform: perspective(1200px) rotateX(15deg) rotateY(360deg) translateY(10%); }
+          0%   { transform: perspective(1200px) rotateX(15deg) rotateY(0deg) scaleX(1) translateY(10%); }
+          25%  { transform: perspective(1200px) rotateX(15deg) rotateY(90deg) scaleX(2.5) translateY(0%); }
+          50%  { transform: perspective(1200px) rotateX(15deg) rotateY(180deg) scaleX(1) translateY(-10%); }
+          75%  { transform: perspective(1200px) rotateX(15deg) rotateY(270deg) scaleX(2.5) translateY(0%); }
+          100% { transform: perspective(1200px) rotateX(15deg) rotateY(360deg) scaleX(1) translateY(10%); }
         }
         @keyframes footerRise {
-          0% { transform: perspective(1200px) rotateX(15deg) rotateY(0deg) translateY(0%); }
-          50% { transform: perspective(1200px) rotateX(15deg) rotateY(180deg) translateY(-20%); }
-          100% { transform: perspective(1200px) rotateX(15deg) rotateY(360deg) translateY(0%); }
+          0%   { transform: perspective(1200px) rotateX(15deg) rotateY(0deg) scaleX(1) translateY(0%); }
+          25%  { transform: perspective(1200px) rotateX(15deg) rotateY(90deg) scaleX(2.5) translateY(-10%); }
+          50%  { transform: perspective(1200px) rotateX(15deg) rotateY(180deg) scaleX(1) translateY(-20%); }
+          75%  { transform: perspective(1200px) rotateX(15deg) rotateY(270deg) scaleX(2.5) translateY(-10%); }
+          100% { transform: perspective(1200px) rotateX(15deg) rotateY(360deg) scaleX(1) translateY(0%); }
         }
         @keyframes rootPulse {
           0%, 100% { transform: scale(1); opacity: 0.9; }
