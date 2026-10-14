@@ -96,26 +96,23 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                       fill="url(#metalBodyLogo)" 
                     />
 
-                    {/* --- BLUE BIOLUMINESCENT VEINS --- */}
-                    {/* Layer 1: The Glow (Light blue, semi-transparent, thicker) */}
+                    {/* Blue Bioluminescent Veins */}
                     <g stroke="#60a5fa" strokeWidth="2" opacity="0.4" fill="none" strokeLinecap="round">
                       <path d="M 142 125 Q 148 145 152 170" /> 
                       <path d="M 125 135 Q 120 155 115 180" /> 
                       <path d="M 85 135 Q 80 155 75 180" />   
                       <path d="M 68 125 Q 60 145 55 170" />   
                     </g>
-                    {/* Layer 2: The Core (Deep blue, thinner, sharper) */}
                     <g stroke="#2563eb" strokeWidth="0.8" opacity="0.7" fill="none" strokeLinecap="round">
                       <path d="M 142 125 Q 148 145 152 170" /> 
                       <path d="M 125 135 Q 120 155 115 180" /> 
                       <path d="M 85 135 Q 80 155 75 180" />   
                       <path d="M 68 125 Q 60 145 55 170" />   
-                      {/* Branching points to look organic */}
                       <path d="M 145 140 Q 148 145 150 150" />
                       <path d="M 80 160 Q 75 165 72 170" />
                     </g>
 
-                    {/* --- ROOT ILLUMINATION --- */}
+                    {/* Root Illumination */}
                     <g stroke="#ffffff" strokeWidth="4" opacity="0.2" fill="none" strokeLinecap="round">
                       <path d="M 145 120 Q 150 140 150 170" /> 
                       <path d="M 130 130 Q 125 150 115 180" /> 
@@ -129,7 +126,6 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                       <path d="M 65 120 Q 50 140 45 175" />   
                     </g>
 
-                    {/* --- CROWN DETAILS --- */}
                     <g stroke="#1e293b" fill="none">
                       <path d="M 100 45 L 100 130" strokeWidth="2" opacity="0.5" /> 
                       <path d="M 80 50 L 80 120" strokeWidth="1.5" opacity="0.3" />
@@ -243,7 +239,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                     <path d="M 60 50 C 70 40 130 40 140 50 C 150 70 150 100 135 120 Q 140 140 145 175 Q 140 180 130 170 Q 120 155 120 130 Q 120 155 110 185 Q 105 190 95 180 Q 85 155 85 130 Q 75 155 65 185 Q 60 190 50 180 Q 40 170 45 175 Q 50 140 65 120 C 50 100 50 70 60 50 Z" fill="url(#footGrad)" />
                   </svg>
                 </div>
-                <span className="text-xl font-bold italic text-white -ml-1">PDG</span>
+                {/* Adjusted from -ml-1 (-4px) to -ml-[1px] to move it 3px to the right */}
+                <span className="text-xl font-bold italic text-white -ml-[1px]">PDG</span>
               </div>
               <p className="text-slate-500 text-sm leading-relaxed">
                 Redefining the boundaries of dental connectivity through
