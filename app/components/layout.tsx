@@ -21,6 +21,11 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
           0%, 100% { transform: perspective(800px) rotateY(-10deg) translateY(10%); }
           50% { transform: perspective(800px) rotateY(10deg) translateY(-10%); }
         }
+        /* New animation for the footer tooth to rise higher */
+        @keyframes footerRise {
+          0%, 100% { transform: perspective(800px) rotateY(-10deg) translateY(0%); }
+          50% { transform: perspective(800px) rotateY(10deg) translateY(-20%); }
+        }
         @keyframes rootPulse {
           0%, 100% { transform: scale(1); opacity: 0.9; }
           50% { transform: scale(1.02); opacity: 1; }
@@ -34,6 +39,10 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         }
         .tooth-logo-wrap { 
           animation: bounceRange 4s ease-in-out infinite; 
+          transform-origin: center center; 
+        }
+        .footer-tooth-wrap { 
+          animation: footerRise 4s ease-in-out infinite; 
           transform-origin: center center; 
         }
         .tooth-full-body { 
@@ -221,14 +230,14 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
             <div className="space-y-4">
               <div className="flex items-center gap-0">
                 <div className="p-0">
-                  {/* FOOTER TOOTH: Now identical in detail to the header, keeping scale at 22x22 */}
+                  {/* Changed className from tooth-logo-wrap to footer-tooth-wrap */}
                   <svg
                     width="22"
                     height="22"
                     viewBox="0 0 200 200"
                     fill="none"
                     xmlns="http://www.w3.org/2000/svg"
-                    className="drop-shadow-md tooth-logo-wrap"
+                    className="drop-shadow-md footer-tooth-wrap"
                   >
                     <defs>
                       <linearGradient id="metalBodyFoot" x1="0%" y1="0%" x2="0%" y2="100%">
@@ -252,7 +261,6 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                            Q 40 140 60 120 C 40 100 40 70 50 50 Z" 
                         fill="url(#metalBodyFoot)" 
                       />
-                      {/* Blue Veins (Footer Scale) */}
                       <g stroke="#60a5fa" strokeWidth="2" opacity="0.4" fill="none">
                         <path d="M 142 125 Q 148 145 152 170" /> 
                         <path d="M 125 135 Q 120 155 115 180" /> 
@@ -265,7 +273,6 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                         <path d="M 85 135 Q 80 155 75 180" />   
                         <path d="M 68 125 Q 60 145 55 170" />   
                       </g>
-                      {/* Root Illumination (Footer Scale) */}
                       <g stroke="#ffffff" strokeWidth="4" opacity="0.2" fill="none">
                         <path d="M 145 120 Q 150 140 150 170" /> 
                         <path d="M 130 130 Q 125 150 115 180" /> 
@@ -278,14 +285,12 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                         <path d="M 85 130 Q 85 155 75 185" />   
                         <path d="M 65 120 Q 50 140 45 175" />   
                       </g>
-                      {/* Crown Grooves (Footer Scale) */}
                       <g stroke="#1e293b" fill="none">
                         <path d="M 100 45 L 100 130" strokeWidth="2" opacity="0.5" /> 
                         <path d="M 65 55 Q 100 65 135 55" strokeWidth="2" opacity="0.4" />
                         <path d="M 65 65 Q 100 75 135 65" strokeWidth="1.5" opacity="0.3" />
                         <path d="M 60 120 Q 100 135 140 120" strokeWidth="2" opacity="0.5" />
                       </g>
-                      {/* Rim Lighting */}
                       <path 
                         d="M 60 50 C 70 40 130 40 140 50 C 150 70 150 100 135 120" 
                         fill="none" stroke="#ffffff" strokeWidth="1.5" opacity="0.6" 
