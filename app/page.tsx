@@ -14,41 +14,45 @@ export default function HomePage() {
         {/* Hero Section */}
         <section className="relative z-10 max-w-7xl mx-auto px-4 py-24 sm:py-32 text-center">
           
-          {/* --- METALLIC BRANDING BLOCK --- */}
-          <div className="relative inline-flex items-baseline justify-center mb-12">
-            {/* Main PDG Letters */}
-            <h1 className="text-7xl sm:text-9xl font-black tracking-tighter italic flex items-center justify-center">
-              {/* Metallic Blue P */}
-              <span className="bg-linear-to-b from-blue-700 via-blue-300 to-blue-900 bg-clip-text text-transparent drop-shadow-[0_5px_5px_rgba(0,0,0,0.5)]">
-                P
-              </span>
-              {/* Metallic Mustard D */}
-              <span className="bg-linear-to-b from-amber-700 via-amber-300 to-amber-900 bg-clip-text text-transparent drop-shadow-[0_5px_5px_rgba(0,0,0,0.5)]">
-                D
-              </span>
-              {/* Metallic Yellow G */}
-              <span className="bg-linear-to-b from-yellow-600 via-yellow-200 to-yellow-800 bg-clip-text text-transparent drop-shadow-[0_5px_5px_rgba(0,0,0,0.5)]">
-                G
-              </span>
-            </h1>
+          {/* --- BRANDING GROUP --- */}
+          <div className="flex flex-col items-center justify-center mb-12">
             
-            {/* Footnote Continuation: Prewit Dental Group */}
-            <div className="ml-3 sm:ml-6">
-              <p className="text-lg sm:text-3xl font-bold tracking-tight italic bg-linear-to-r from-slate-400 via-slate-100 to-slate-500 bg-clip-text text-transparent opacity-90 whitespace-nowrap">
-                Prewit Dental Group
-              </p>
+            {/* PDG & Prewit Dental Group Line */}
+            <div className="relative inline-flex items-baseline justify-center mb-6">
+              {/* Main PDG Letters */}
+              <h1 className="text-7xl sm:text-9xl font-black tracking-tighter italic flex items-center justify-center">
+                {/* Metallic Blue P */}
+                <span className="bg-linear-to-b from-blue-700 via-blue-300 to-blue-900 bg-clip-text text-transparent drop-shadow-[0_5px_5px_rgba(0,0,0,0.5)]">
+                  P
+                </span>
+                {/* Metallic Mustard D */}
+                <span className="bg-linear-to-b from-amber-700 via-amber-300 to-amber-900 bg-clip-text text-transparent drop-shadow-[0_5px_5px_rgba(0,0,0,0.5)]">
+                  D
+                </span>
+                {/* Metallic Yellow G */}
+                <span className="bg-linear-to-b from-yellow-600 via-yellow-200 to-yellow-800 bg-clip-text text-transparent drop-shadow-[0_5px_5px_rgba(0,0,0,0.5)]">
+                  G
+                </span>
+              </h1>
+              
+              {/* Footnote Continuation: Prewit Dental Group */}
+              <div className="ml-3 sm:ml-6">
+                <p className="text-lg sm:text-3xl font-bold tracking-tight italic bg-linear-to-r from-slate-400 via-slate-100 to-slate-500 bg-clip-text text-transparent opacity-90 whitespace-nowrap">
+                  Prewit Dental Group
+                </p>
+              </div>
+            </div>
+
+            {/* Now Accepting Badge - Positioned directly under the PDG Line */}
+            <div className="inline-flex items-center gap-3 px-4 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-sm font-medium">
+              <span className="relative flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+              </span>
+              Now accepting new patients
             </div>
           </div>
-          {/* --- END BRANDING BLOCK --- */}
-
-          {/* Now Accepting Badge */}
-          <div className="inline-flex items-center gap-3 px-4 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-sm font-medium mb-8">
-            <span className="relative flex h-3 w-3">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
-            </span>
-            Now accepting new patients
-          </div>
+          {/* --- END BRANDING GROUP --- */}
           
           <p className="text-slate-400 text-lg sm:text-xl max-w-2xl mx-auto mb-10 leading-relaxed">
             Providing the most secure and seamless connectivity infrastructure for 
