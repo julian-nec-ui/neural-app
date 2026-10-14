@@ -193,8 +193,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
               <div className="flex items-center gap-3">
                 <div className="p-1">
                   <svg 
-                    width="16" 
-                    height="24" 
+                    width="18.4" 
+                    height="27.6" 
                     viewBox="0 0 200 300" 
                     fill="none" 
                     xmlns="http://www.w3.org/2000/svg" 
