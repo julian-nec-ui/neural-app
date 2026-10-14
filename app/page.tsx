@@ -35,9 +35,10 @@ export default function HomePage() {
                 </span>
               </h1>
               
-              {/* Footnote Continuation: Prewit Dental Group */}
+              {/* Footnote Continuation: Prewitt Dental Group */}
               <div className="ml-1 sm:ml-4">
-                <p className="text-lg sm:text-3xl font-bold tracking-tight italic bg-linear-to-r from-slate-400 via-slate-100 to-slate-500 bg-clip-text text-transparent opacity-90 whitespace-nowrap">
+                {/* CHANGED: Now uses the Blue -> Orange -> Yellow Metallic Gradient */}
+                <p className="text-lg sm:text-3xl font-bold tracking-tight italic bg-linear-to-r from-blue-600 via-[#ef5102] to-yellow-500 bg-clip-text text-transparent opacity-90 whitespace-nowrap drop-shadow-sm">
                   Prewitt Dental Group
                 </p>
               </div>
@@ -80,12 +81,7 @@ export default function HomePage() {
               { icon: <Globe className="text-indigo-400" />, title: "Global Reach", desc: "Deployed across 14 countries, connecting millions of care points." },
             ].map((feature, i) => (
               <div key={i} className="group relative p-0.5 rounded-3xl transition-all duration-300">
-                
-                {/* METALLIC HOVER LAYER (Tailwind v4) */}
-                {/* This is invisible (opacity-0) until the group is hovered */}
                 <div className="absolute inset-0 rounded-3xl bg-linear-to-r from-blue-700 via-orange-500 to-blue-700 bg-size-[200%_auto] animate-metallic-shimmer opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                
-                {/* MAIN CONTENT CARD */}
                 <div className="relative z-10 h-full w-full p-8 rounded-[calc(1.5rem-2px)] bg-[#0f172a] border border-white/10 group-hover:border-transparent transition-all duration-300">
                   <div className="mb-4 p-3 bg-slate-900 rounded-2xl w-fit group-hover:scale-110 transition-transform">
                     {feature.icon}
