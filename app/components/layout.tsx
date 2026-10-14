@@ -16,32 +16,6 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#0f172a] text-white font-sans">
-      {/* Inlined CSS for SVG Animations (Scoped & React-safe) */}
-      <style>{`
-        @keyframes floatRotate {
-          0%, 100% { transform: perspective(800px) rotateY(-10deg) translateY(0); }
-          50% { transform: perspective(800px) rotateY(10deg) translateY(-8px); }
-        }
-        @keyframes pulseGlow {
-          0%, 100% { filter: drop-shadow(0 0 6px rgba(148, 163, 184, 0.15)); }
-          50% { filter: drop-shadow(0 0 18px rgba(148, 163, 184, 0.5)); }
-        }
-        @keyframes rootPulse {
-          0%, 100% { transform: scaleY(1); opacity: 0.9; }
-          50% { transform: scaleY(1.025); opacity: 1; }
-        }
-        @keyframes sweepLight {
-          0% { transform: translateX(-60px); opacity: 0; }
-          10% { opacity: 0.5; }
-          30% { opacity: 0.5; }
-          40% { transform: translateX(80px); opacity: 0; }
-          100% { transform: translateX(80px); opacity: 0; }
-        }
-        .tooth-logo-wrap { animation: floatRotate 6s ease-in-out infinite, pulseGlow 3.5s ease-in-out infinite; transform-origin: center bottom; }
-        .tooth-roots-pulse { animation: rootPulse 4s ease-in-out infinite; transform-origin: center; }
-        .tooth-sweep-light rect { animation: sweepLight 3.8s ease-in-out infinite; }
-      `}</style>
-
       {/* --- HEADER --- */}
       <header className="sticky top-0 z-50 backdrop-blur-xl bg-[#0f172a]/80 border-b border-white/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -51,70 +25,149 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
             <Link href="/" className="flex items-center gap-3 group">
               <div className="relative p-2 bg-blue-500/10 rounded-xl border border-blue-500/20 group-hover:border-blue-400/50 transition-all duration-500 shadow-[0_0_20px_rgba(59,130,246,0.2)]">
 
-                {/* --- METALLIC 3D TOOTH WITH 4 ROOTS & ANIMATION --- */}
+                {/* --- PROFESSIONAL REALISTIC TOOTH SVG --- */}
                 <svg
-                  viewBox="0 0 200 300"
-                  className="w-14 h-[84px] tooth-logo-wrap drop-shadow-lg"
-                  xmlns="http://www.w3.org/2000/svg"
+                  xmlns="http://w3.org"
+                  viewBox="0 0 400 450"
+                  className="w-full h-full drop-shadow-[0_0_25px_rgba(148,163,184,0.15)]"
                 >
                   <defs>
-                    <linearGradient id="metalBodyLogo" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="#f8fafc"/>
-                      <stop offset="40%" stopColor="#cbd5e1"/>
-                      <stop offset="65%" stopColor="#64748b"/>
-                      <stop offset="90%" stopColor="#334155"/>
+                    {/* Base Chrome/Metallic Gradient for Left/Front Faces */}
+                    <linearGradient id="chrome-light" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#f8fafc" />
+                      <stop offset="20%" stopColor="#cbd5e1" />
+                      <stop offset="40%" stopColor="#475569" />
+                      <stop offset="45%" stopColor="#94a3b8" />
+                      <stop offset="50%" stopColor="#f1f5f9" />
+                      <stop offset="80%" stopColor="#64748b" />
+                      <stop offset="100%" stopColor="#1e293b" />
                     </linearGradient>
 
-                    <radialGradient id="crownGlareLogo" cx="30%" cy="20%" r="70%">
-                      <stop offset="0%" stopColor="#ffffff" stopOpacity="0.9"/>
-                      <stop offset="40%" stopColor="#e2e8f0" stopOpacity="0.5"/>
-                      <stop offset="100%" stopColor="#64748b" stopOpacity="0"/>
-                    </radialGradient>
-
-                    <linearGradient id="rootShadowLogo" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="#94a3b8"/>
-                      <stop offset="60%" stopColor="#475569"/>
-                      <stop offset="100%" stopColor="#0f172a"/>
+                    {/* Darker Metallic Gradient for Depth, Shadows, and Back Roots */}
+                    <linearGradient id="chrome-dark" x1="100%" y1="0%" x2="0%" y2="100%">
+                      <stop offset="0%" stopColor="#94a3b8" />
+                      <stop offset="25%" stopColor="#475569" />
+                      <stop offset="50%" stopColor="#1e293b" />
+                      <stop offset="75%" stopColor="#334155" />
+                      <stop offset="100%" stopColor="#0f172a" />
                     </linearGradient>
 
-                    <filter id="bevelLogo" x="-30%" y="-30%" width="160%" height="160%">
-                      <feGaussianBlur in="SourceAlpha" stdDeviation="2" result="blur"/>
-                      <feOffset dx="1.5" dy="2" result="offsetBlur"/>
-                      <feFlood floodColor="#000000" floodOpacity="0.5" result="shadowColor"/>
-                      <feComposite in="shadowColor" in2="offsetBlur" operator="in" result="shadow"/>
-                      <feMerge>
-                        <feMergeNode in="shadow"/>
-                        <feMergeNode in="SourceGraphic"/>
-                      </feMerge>
+                    {/* Ultra Bright Specular Highlight Gradient */}
+                    <linearGradient id="specular" x1="0%" y1="0%" x2="0%" y2="100%">
+                      <stop offset="0%" stopColor="#ffffff" stopOpacity="0.9" />
+                      <stop offset="50%" stopColor="#ffffff" stopOpacity="0.1" />
+                      <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
+                    </linearGradient>
+
+                    {/* Soft Glow Filter for High-End Metallic Reflection */}
+                    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                      <feGaussianBlur stdDeviation="4" result="blur" />
+                      <feComposite in="SourceGraphic" in2="blur" operator="over" />
                     </filter>
-
-                    <clipPath id="toothClipLogo">
-                      <path d="M 85 30 C 100 25 120 30 125 45 C 135 65 137 90 130 115 C 123 135 113 150 105 165 L 100 185 Q 98 192 95 192 Q 92 192 90 185 L 85 165 C 77 150 67 135 60 115 C 53 90 55 65 65 45 C 70 30 85 35 85 30 Z"/>
-                    </clipPath>
                   </defs>
 
-                  <g filter="url(#bevelLogo)">
-                    {/* Crown Base */}
-                    <path d="M 85 30 C 100 25 120 30 125 45 C 135 65 137 90 130 115 C 123 135 113 150 105 165 L 100 185 Q 98 192 95 192 Q 92 192 90 185 L 85 165 C 77 150 67 135 60 115 C 53 90 55 65 65 45 C 70 30 85 35 85 30 Z" fill="url(#metalBodyLogo)"/>
-                    
-                    {/* Crown Highlight Overlay */}
-                    <path d="M 85 30 C 100 25 120 30 125 45 C 135 65 137 90 130 115 C 123 135 113 150 105 165 L 100 185 Q 98 192 95 192 Q 92 192 90 185 L 85 165 C 77 150 67 135 60 115 C 53 90 55 65 65 45 C 70 30 85 35 85 30 Z" fill="url(#crownGlareLogo)" opacity="0.7"/>
-                    
-                    {/* Metallic Edge Stroke */}
-                    <path d="M 85 30 C 100 25 120 30 125 45 C 135 65 137 90 130 115 C 123 135 113 150 105 165 L 100 185 Q 98 192 95 192 Q 92 192 90 185 L 85 165 C 77 150 67 135 60 115 C 53 90 55 65 65 45 C 70 30 85 35 85 30 Z" fill="none" stroke="#f1f5f9" strokeWidth="1" opacity="0.5"/>
-
-                    {/* 4 Animated Roots */}
-                    <g className="tooth-roots-pulse">
-                      <path d="M 88 160 L 78 185 Q 72 205 68 225 Q 66 220 74 200 L 84 170 Z" fill="url(#rootShadowLogo)"/>
-                      <path d="M 102 160 L 112 185 Q 118 205 122 225 Q 124 220 116 200 L 106 170 Z" fill="url(#rootShadowLogo)"/>
-                      <path d="M 82 168 L 72 195 Q 66 218 60 240 Q 58 235 68 210 L 78 185 Z" fill="url(#rootShadowLogo)"/>
-                      <path d="M 108 168 L 118 195 Q 124 218 130 240 Q 132 235 122 210 L 112 185 Z" fill="url(#rootShadowLogo)"/>
-                    </g>
+                  {/* BACKGROUND ROOTS (The two rear roots of the four-rooted molar) */}
+                  <g className="animate-[pulse_4s_easeInOut_infinite] opacity-80">
+                    {/* Root 3: Rear Left */}
+                    <path
+                      d="M 160 240 C 150 290, 135 340, 120 370 C 115 380, 125 385, 132 375 C 150 345, 175 295, 185 245 Z"
+                      fill="url(#chrome-dark)"
+                      stroke="#475569"
+                      strokeWidth="1"
+                    />
+                    {/* Root 4: Rear Right */}
+                    <path
+                      d="M 240 240 C 250 290, 265 340, 280 370 C 285 380, 275 385, 268 375 C 250 345, 225 295, 215 245 Z"
+                      fill="url(#chrome-dark)"
+                      stroke="#475569"
+                      strokeWidth="1"
+                    />
                   </g>
 
-                  {/* Sweeping Light Reflection */}
-                  <g className="tooth-sweep-light">
-                    <rect x="-60" y="20" width="36" height="270" fill="white" clipPath="url(#toothClipLogo)"/>
+                  {/* MAIN TOOTH BODY & FOREGROUND ROOTS */}
+                  {/* Animated via Tailwind tracking keyframe behaviors mapping to clean metallic shimmer */}
+                  <g className="transition-all duration-700 ease-in-out hover:scale-[1.02] origin-center">
+
+                    {/* Root 1: Front Left */}
+                    <path
+                      d="M 135 230 C 120 290, 90 350, 75 400 C 70 415, 88 415, 95 395 C 120 340, 155 270, 175 230 Z"
+                      fill="url(#chrome-light)"
+                      stroke="#94a3b8"
+                      strokeWidth="1.5"
+                    />
+
+                    {/* Root 2: Front Right */}
+                    <path
+                      d="M 265 230 C 280 290, 310 350, 325 400 C 330 415, 312 415, 305 395 C 280 340, 245 270, 225 230 Z"
+                      fill="url(#chrome-light)"
+                      stroke="#94a3b8"
+                      strokeWidth="1.5"
+                    />
+
+                    {/* Crown Body (Molar Top) */}
+                    <path
+                      d="M 100 150 
+                 C 80 120, 110 70, 150 85 
+                 C 180 95, 220 95, 250 85 
+                 C 290 70, 320 120, 300 150 
+                 C 315 200, 280 240, 265 245 
+                 C 235 220, 165 220, 135 245 
+                 C 120 240, 85 200, 100 150 Z"
+                      fill="url(#chrome-light)"
+                      stroke="#cbd5e1"
+                      strokeWidth="2"
+                    />
+
+                    {/* Metallic Cusp Ridges / Contours for 3D Illusion */}
+                    <path
+                      d="M 150 85 C 170 120, 230 120, 250 85"
+                      fill="none"
+                      stroke="#475569"
+                      strokeWidth="3"
+                      opacity="0.4"
+                    />
+                    <path
+                      d="M 100 150 C 140 160, 260 160, 300 150"
+                      fill="none"
+                      stroke="#1e293b"
+                      strokeWidth="2"
+                      opacity="0.5"
+                    />
+                    <path
+                      d="M 195 95 L 195 225"
+                      fill="none"
+                      stroke="url(#chrome-dark)"
+                      strokeWidth="4"
+                      opacity="0.3"
+                    />
+
+                    {/* SPECULAR SHIMMER OVERLAYS (Animated Liquid-like Metal Highlights) */}
+                    {/* Left Crown Highlight */}
+                    <path
+                      d="M 115 140 C 105 120, 125 95, 150 100 C 135 110, 125 125, 120 145 Z"
+                      fill="url(#specular)"
+                      className="animate-[pulse_3s_infinite_alternate] mix-blend-overlay"
+                      filter="url(#glow)"
+                    />
+
+                    {/* Right Crown Highlight */}
+                    <path
+                      d="M 285 140 C 295 120, 275 95, 250 100 C 265 110, 275 125, 280 145 Z"
+                      fill="url(#specular)"
+                      className="animate-[pulse_3s_infinite_alternate_1.5s] mix-blend-overlay"
+                      filter="url(#glow)"
+                    />
+
+                    {/* Center Crown High-Gloss Sheen Line */}
+                    <ellipse
+                      cx="200"
+                      cy="130"
+                      rx="45"
+                      ry="8"
+                      fill="url(#specular)"
+                      transform="rotate(-10, 200, 130)"
+                      className="animate-[ping_5s_infinite] opacity-20 mix-blend-screen"
+                    />
                   </g>
                 </svg>
 
@@ -189,15 +242,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
             <div className="space-y-4">
               <div className="flex items-center gap-3">
                 <div className="p-1.5 bg-blue-500/10 rounded-lg border border-blue-500/20">
-                  <svg width="20" height="30" viewBox="0 0 200 300" fill="none" xmlns="http://www.w3.org/2000/svg" className="drop-shadow-md">
-                    <defs>
-                      <linearGradient id="footGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stopColor="#cbd5e1"/>
-                        <stop offset="50%" stopColor="#64748b"/>
-                        <stop offset="100%" stopColor="#334155"/>
-                      </linearGradient>
-                    </defs>
-                    <path d="M 85 30 C 100 25 120 30 125 45 C 135 65 137 90 130 115 C 123 135 113 150 105 165 L 100 185 Q 98 192 95 192 Q 92 192 90 185 L 85 165 C 77 150 67 135 60 115 C 53 90 55 65 65 45 C 70 30 85 35 85 30 Z" fill="url(#footGrad)"/>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 2C14.5 2 17 3.5 17 7C17 9 16 11 16 13C16 16 18 18 19 20C20 22 18 23 17 23C16 23 15 22 15 20C15 18 14 17 13 17C12 17 11 18 11 20C11 22 10 23 9 23C8 23 7 22 7 20C7 18 9 16 9 13C9 11 8 9 8 7C8 3.5 10.5 2 12 2Z" fill="url(#enamelGrad)" />
                   </svg>
                 </div>
                 <span className="text-xl font-bold italic text-white">PDG</span>
