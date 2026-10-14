@@ -123,8 +123,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 
               </div>
 
-              {/* Brand Text - Increased by 25% (approx 67.5px) */}
-              <span className="text-[67px] font-black tracking-tighter italic flex items-baseline -ml-5">
+              {/* Brand Text - Using ml-[5px] for absolute precise 5px offset from the SVG container */}
+              <span className="text-[67px] font-black tracking-tighter italic flex items-baseline ml-[5px]">
                 <span className="bg-linear-to-b from-blue-700 via-blue-300 to-blue-900 bg-clip-text text-transparent">P</span>
                 <span className="bg-linear-to-b from-[#ef5102] via-amber-300 to-amber-700 bg-clip-text text-transparent">D</span>
                 <span className="bg-linear-to-b from-yellow-600 via-yellow-200 to-yellow-800 bg-clip-text text-transparent">G</span>
