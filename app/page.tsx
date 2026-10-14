@@ -36,7 +36,7 @@ export default function HomePage() {
               </h1>
               
               {/* Footnote Continuation: Prewit Dental Group */}
-              <div className="ml-3 sm:ml-6">
+              <div className="ml-1 sm:ml-6">
                 <p className="text-lg sm:text-3xl font-bold tracking-tight italic bg-linear-to-r from-slate-400 via-slate-100 to-slate-500 bg-clip-text text-transparent opacity-90 whitespace-nowrap">
                   Prewit Dental Group
                 </p>
