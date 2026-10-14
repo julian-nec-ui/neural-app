@@ -56,11 +56,12 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                   xmlns="http://www.w3.org/2000/svg"
                 >
                   <defs>
+                    {/* Adjusted Gradient: Root end is lighter to accept more shading */}
                     <linearGradient id="metalBodyLogo" x1="0%" y1="0%" x2="0%" y2="100%">
                       <stop offset="0%" stopColor="#f8fafc" />
                       <stop offset="20%" stopColor="#cbd5e1" />
                       <stop offset="50%" stopColor="#64748b" />
-                      <stop offset="100%" stopColor="#334155" />
+                      <stop offset="100%" stopColor="#475569" />
                     </linearGradient>
 
                     <radialGradient id="crownGlareLogo" cx="30%" cy="20%" r="70%">
@@ -86,7 +87,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                   </defs>
 
                   <g filter="url(#bevelLogo)">
-                    {/* Unified Body - Roots adjusted to be slightly thinner */}
+                    {/* Unified Body */}
                     <path 
                       className="tooth-full-body"
                       d="M 60 50 C 70 40 85 40 95 45 C 105 40 120 40 130 45 C 140 40 150 40 150 50 C 160 70 160 100 145 120 
@@ -97,13 +98,21 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                       fill="url(#metalBodyLogo)" 
                     />
 
-                    {/* --- ROOT LIGHTING (The "Shade Light" requested) --- */}
-                    {/* These paths follow the outer edges of the thinner roots to create 3D highlights */}
-                    <g stroke="#ffffff" strokeWidth="1" opacity="0.4" fill="none">
-                      <path d="M 145 120 Q 150 140 155 175" /> {/* Far Right highlight */}
-                      <path d="M 130 130 Q 130 155 120 185" /> {/* Inner Right highlight */}
-                      <path d="M 85 130 Q 85 155 75 185" />   {/* Inner Left highlight */}
-                      <path d="M 65 120 Q 50 140 45 175" />   {/* Far Left highlight */}
+                    {/* --- ENHANCED ROOT LIGHTING --- */}
+                    {/* 1. Strong Specular Highlights (The bright "peaks") */}
+                    <g stroke="#ffffff" strokeWidth="1.5" opacity="0.7" fill="none" strokeLinecap="round">
+                      <path d="M 145 120 Q 155 140 160 175" /> {/* Far Right */}
+                      <path d="M 130 130 Q 130 155 120 185" /> {/* Inner Right */}
+                      <path d="M 85 130 Q 85 155 75 185" />   {/* Inner Left */}
+                      <path d="M 65 120 Q 50 140 45 175" />   {/* Far Left */}
+                    </g>
+
+                    {/* 2. Volumetric Glow (Subtle inner shading to make roots look round) */}
+                    <g stroke="#cbd5e1" strokeWidth="3" opacity="0.3" fill="none" strokeLinecap="round">
+                      <path d="M 142 125 Q 150 140 152 170" /> 
+                      <path d="M 128 135 Q 125 155 115 180" /> 
+                      <path d="M 87 135 Q 90 155 80 180" />
+                      <path d="M 68 125 Q 60 140 58 170" />
                     </g>
 
                     {/* Crown Details */}
