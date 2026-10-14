@@ -144,7 +144,7 @@ export default function CreateAccountPage() {
             <div className="p-6 sm:p-8">
               <div className="text-center mb-10">
                 <h1 className="text-4xl font-bold text-white tracking-tight mb-2">
-                  Join <span className="bg-linear-to-r from-slate-200 via-slate-400 to-slate-200 bg-clip-text text-transparent">Nexus</span>
+                  Join <span className="bg-linear-to-r from-slate-200 via-slate-400 to-slate-200 bg-clip-text text-transparent">PDG</span>
                 </h1>
                 <p className="text-slate-400 text-sm">Create your account to get started</p>
               </div>

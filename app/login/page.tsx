@@ -65,7 +65,7 @@ const LoginPage: React.FC = () => {
           </div>
           <h2 className="text-5xl sm:text-6xl font-black tracking-tighter italic">
             <span className="bg-linear-to-br from-white via-slate-400 to-slate-600 bg-clip-text text-transparent drop-shadow-sm">
-              NEXUS
+              PDG
             </span>
           </h2>
         </div>

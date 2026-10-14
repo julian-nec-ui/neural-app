@@ -26,7 +26,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                 <ShieldCheck size={28} className="text-indigo-400" />
               </div>
               <span className="text-2xl font-black tracking-tighter italic bg-linear-to-br from-white to-slate-500 bg-clip-text text-transparent">
-                NEXUS
+                PDG
               </span>
             </Link>
 
@@ -45,7 +45,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                 href="/signup" 
                 className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-full text-sm font-semibold transition-all shadow-[0_0_15px_rgba(79,70,229,0.4)]"
               >
-                Join Nexus
+                Join PDG
               </Link>
             </nav>
 
@@ -75,7 +75,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
               href="/signup" 
               className="block w-full text-center px-5 py-3 bg-indigo-600 rounded-xl font-semibold"
             >
-              Join Nexus
+              Join PDG
             </Link>
           </div>
         )}
@@ -122,7 +122,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
           
           <div className="pt-8 border-t border-white/5 text-center">
             <p className="text-slate-600 text-xs">
-              © {new Date().getFullYear()} NEXUS Connectivity Inc. All rights reserved.
+              © {new Date().getFullYear()} PDG Dental Inc. All rights reserved.
             </p>
           </div>
         </div>

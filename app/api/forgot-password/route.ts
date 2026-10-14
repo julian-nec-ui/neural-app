@@ -48,7 +48,7 @@ export async function POST(request: Request) {
                     <tr>
                       <td align="center" style="padding: 40px 40px 20px 40px;">
                         <h1 style="color: #ffffff; font-size: 32px; font-weight: 800; letter-spacing: -1px; margin: 0; font-style: italic;">
-                          NEXUS
+                          PDG
                         </h1>
                         <p style="color: #94a3b8; font-size: 12px; text-transform: uppercase; letter-spacing: 2px; margin-top: 8px; font-weight: 600;">
                           The Future of Connectivity
@@ -84,7 +84,7 @@ export async function POST(request: Request) {
                           If you didn't request this, you can safely ignore this email.
                         </p>
                         <p style="color: #475569; font-size: 12px; margin-top: 10px;">
-                          &copy; ${new Date().getFullYear()} NEXUS Inc. All rights reserved.
+                          &copy; ${new Date().getFullYear()} PDG Inc. All rights reserved.
                         </p>
                       </td>
                     </tr>

@@ -26,11 +26,11 @@ export default function HomePage() {
                   P
                 </span>
                 {/* Metallic Mustard D */}
-                <span className="bg-linear-to-b from-[#ef5102] via-amber-300 to-amber-900 bg-clip-text text-transparent drop-shadow-[0_5px_5px_rgba(0,0,0,0.5)]">
+                <span className="bg-linear-to-b from-[#ef5102] via-amber-300 to-amber-700 bg-clip-text text-transparent drop-shadow-[0_5px_5px_rgba(0,0,0,0.5)]">
                   D
                 </span>
                 {/* Metallic Yellow G */}
-                <span className="bg-linear-to-b from-yellow-500 via-yellow-200 to-yellow-800 bg-clip-text text-transparent drop-shadow-[0_5px_5px_rgba(0,0,0,0.5)]">
+                <span className="bg-linear-to-b from-yellow-600 via-yellow-200 to-yellow-800 bg-clip-text text-transparent drop-shadow-[0_5px_5px_rgba(0,0,0,0.5)]">
                   G
                 </span>
               </h1>
