@@ -18,12 +18,14 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     <div className="min-h-screen flex flex-col bg-[#0f172a] text-white font-sans">
       <style>{`
         @keyframes bounceRange {
-          0%, 100% { transform: perspective(1200px) rotateX(15deg) rotateY(-40deg) translateY(10%); }
-          50% { transform: perspective(1200px) rotateX(15deg) rotateY(40deg) translateY(-10%); }
+          0% { transform: perspective(1200px) rotateX(15deg) rotateY(0deg) translateY(10%); }
+          50% { transform: perspective(1200px) rotateX(15deg) rotateY(180deg) translateY(-10%); }
+          100% { transform: perspective(1200px) rotateX(15deg) rotateY(360deg) translateY(10%); }
         }
         @keyframes footerRise {
-          0%, 100% { transform: perspective(1200px) rotateX(15deg) rotateY(-40deg) translateY(0%); }
-          50% { transform: perspective(1200px) rotateX(15deg) rotateY(40deg) translateY(-20%); }
+          0% { transform: perspective(1200px) rotateX(15deg) rotateY(0deg) translateY(0%); }
+          50% { transform: perspective(1200px) rotateX(15deg) rotateY(180deg) translateY(-20%); }
+          100% { transform: perspective(1200px) rotateX(15deg) rotateY(360deg) translateY(0%); }
         }
         @keyframes rootPulse {
           0%, 100% { transform: scale(1); opacity: 0.9; }
@@ -37,12 +39,12 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
           100% { transform: translateX(100px); opacity: 0; }
         }
         .tooth-logo-wrap { 
-          animation: bounceRange 4s ease-in-out infinite; 
+          animation: bounceRange 6s linear infinite; 
           transform-origin: center center; 
           transform-style: preserve-3d;
         }
         .footer-tooth-wrap { 
-          animation: footerRise 4s ease-in-out infinite; 
+          animation: footerRise 6s linear infinite; 
           transform-origin: center center; 
           transform-style: preserve-3d;
         }
@@ -236,7 +238,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                     height="22"
                     viewBox="0 0 200 200"
                     fill="none"
-                    xmlns="http://www.w3.org/2000/sug"
+                    xmlns="http://www.w3.org/2000/svg"
                     className="drop-shadow-md footer-tooth-wrap"
                   >
                     <defs>
