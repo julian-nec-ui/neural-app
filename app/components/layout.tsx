@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Menu, X } from 'lucide-react'; // Fixed the import path here
+import { Menu, X } from 'lucide-react';
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -18,12 +18,12 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     <div className="min-h-screen flex flex-col bg-[#0f172a] text-white font-sans">
       <style>{`
         @keyframes bounceRange {
-          0%, 100% { transform: perspective(800px) rotateY(-25deg) translateY(10%); }
-          50% { transform: perspective(800px) rotateY(25deg) translateY(-10%); }
+          0%, 100% { transform: perspective(1000px) rotateX(10deg) rotateY(-20deg) translateY(10%); }
+          50% { transform: perspective(1000px) rotateX(10deg) rotateY(20deg) translateY(-10%); }
         }
         @keyframes footerRise {
-          0%, 100% { transform: perspective(800px) rotateY(-25deg) translateY(0%); }
-          50% { transform: perspective(800px) rotateY(25deg) translateY(-20%); }
+          0%, 100% { transform: perspective(1000px) rotateX(10deg) rotateY(-20deg) translateY(0%); }
+          50% { transform: perspective(1000px) rotateX(10deg) rotateY(20deg) translateY(-20%); }
         }
         @keyframes rootPulse {
           0%, 100% { transform: scale(1); opacity: 0.9; }
@@ -302,7 +302,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                     </g>
                   </svg>
                 </div>
-                <span className="text-xl font-bold italic text-white -ml-[1px]">PDG</span>
+                <span className="text-xl font-bold italic text-white -ml-px">PDG</span>
               </div>
               <p className="text-slate-500 text-sm leading-relaxed">
                 Redefining the boundaries of dental connectivity through
