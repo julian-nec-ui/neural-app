@@ -69,7 +69,7 @@ const LoginPage: React.FC = () => {
         }
         /* Royal mediumblue Metallic: Deep mediumblue -> Royal Blue -> Bright Silver-Blue -> Royal Blue -> Deep mediumblue */
         .royal-blue-metallic {
-          background: linear-gradient(to right, #001a4d 0%, #2554E2 25%, #869EBD 50%, #1A48D2 75%, #10398D 100%);
+          background: linear-gradient(to right, #001a4d 0%, #506AB9 25%, #0C5AC0 50%, #1A48D2 75%, #10398D 100%);
         }
         /* Orange Metallic: Dark Orange -> Gold -> Bright White-Orange -> Gold -> Dark Orange */
         .orange-metallic {
