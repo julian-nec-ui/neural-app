@@ -88,6 +88,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                   </defs>
 
                   <g filter="url(#bevelLogo)">
+                    {/* Body path - Pulsate class completely removed */}
                     <path 
                       d="M 60 50 C 70 40 85 40 95 45 C 105 40 120 40 130 45 C 140 40 150 40 150 50 C 160 70 160 100 145 120 
                          Q 150 140 155 175 Q 150 180 140 170 Q 130 155 130 130 
