@@ -51,7 +51,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
           <div className="flex justify-between items-center h-20">
 
             {/* Logo Section */}
-            <Link href="/" className="flex items-center gap-3 group">
+            <Link href="/" className="flex items-center gap-2 group">
               <div className="relative p-1.5 transition-all duration-500">
 
                 {/* --- METALLIC 3D TOOTH WITH 4 ROOTS & ANIMATION --- */}
@@ -123,8 +123,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 
               </div>
 
-              {/* Brand Text */}
-              <span className="text-2xl font-black tracking-tighter italic flex items-baseline">
+              {/* Brand Text - Increased size and moved left via negative margin */}
+              <span className="text-[24px] font-black tracking-tighter italic flex items-baseline -ml-1">
                 <span className="bg-linear-to-b from-blue-700 via-blue-300 to-blue-900 bg-clip-text text-transparent">P</span>
                 <span className="bg-linear-to-b from-[#ef5102] via-amber-300 to-amber-700 bg-clip-text text-transparent">D</span>
                 <span className="bg-linear-to-b from-yellow-600 via-yellow-200 to-yellow-800 bg-clip-text text-transparent">G</span>
@@ -192,10 +192,9 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
             <div className="space-y-4">
               <div className="flex items-center gap-1">
                 <div className="p-0">
-                  {/* Footer SVG - Increased width/height by 20% from previous versions and removed outer padding */}
                   <svg 
-                    width="28" 
-                    height="42" 
+                    width="22" 
+                    height="33" 
                     viewBox="0 0 200 300" 
                     fill="none" 
                     xmlns="http://www.w3.org/2000/svg" 
