@@ -158,7 +158,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                       filter="url(#glow)"
                     />
 
-                    {/* Center Crown High-Gloss Sheen Line */}
+                    {/* Center Crown High-Gloss Sheen Line (Animated Liquid-like Metal Highlights) */}
                     <ellipse
                       cx="200"
                       cy="130"
