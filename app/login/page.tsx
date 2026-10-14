@@ -62,9 +62,9 @@ const LoginPage: React.FC = () => {
         .metallic-pdg {
           background: linear-gradient(
             to right, 
-            #002366 0%, #4169E1 25%,
-            #f2994a 40%, #f2c94c 60%,
-            #fceabb 75%, #f8b500 100%
+            #002366 0%, #4169E1 25%,   /* ROYAL METALLIC BLUE for 'P' */
+            #f2994a 40%, #f2c94c 60%,  /* Metallic Orange for 'D' */
+            #fceabb 75%, #f8b500 100%  /* Metallic Yellow for 'G' */
           );
           background-size: 200% auto;
           -webkit-background-clip: text;
