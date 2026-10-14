@@ -56,12 +56,11 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                   xmlns="http://www.w3.org/2000/svg"
                 >
                   <defs>
-                    {/* Unified Gradient for Body and Roots */}
                     <linearGradient id="metalBodyLogo" x1="0%" y1="0%" x2="0%" y2="100%">
                       <stop offset="0%" stopColor="#f8fafc" />
                       <stop offset="20%" stopColor="#cbd5e1" />
                       <stop offset="50%" stopColor="#64748b" />
-                      <stop offset="100%" stopColor="#1e293b" />
+                      <stop offset="100%" stopColor="#334155" />
                     </linearGradient>
 
                     <radialGradient id="crownGlareLogo" cx="30%" cy="20%" r="70%">
@@ -82,44 +81,50 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                     </filter>
 
                     <clipPath id="toothClipLogo">
-                      <path d="M 60 50 C 70 40 130 40 140 50 C 150 70 150 100 135 120 Q 145 140 150 180 Q 145 185 135 175 Q 125 160 120 130 Q 125 160 115 190 Q 110 195 100 185 Q 90 160 90 130 Q 80 160 70 190 Q 60 195 50 185 Q 40 175 45 180 Q 50 140 65 120 C 50 100 50 70 60 50 Z" />
+                      <path d="M 60 50 C 70 40 130 40 140 50 C 150 70 150 100 135 120 Q 140 140 145 175 Q 140 180 130 170 Q 120 155 120 130 Q 120 155 110 185 Q 105 190 95 180 Q 85 155 85 130 Q 75 155 65 185 Q 60 190 50 180 Q 40 170 45 175 Q 50 140 65 120 C 50 100 50 70 60 50 Z" />
                     </clipPath>
                   </defs>
 
                   <g filter="url(#bevelLogo)">
-                    {/* Unified Single Path: Crown + 4 Merged Roots */}
+                    {/* Unified Body - Roots adjusted to be slightly thinner */}
                     <path 
                       className="tooth-full-body"
                       d="M 60 50 C 70 40 85 40 95 45 C 105 40 120 40 130 45 C 140 40 150 40 150 50 C 160 70 160 100 145 120 
-                         Q 155 140 160 180 Q 155 185 145 175 Q 135 160 130 130 
-                         Q 135 160 125 190 Q 120 195 110 185 Q 100 160 100 130 
-                         Q 90 160 80 190 Q 70 195 60 185 Q 50 175 45 180 
-                         Q 35 140 55 120 C 40 100 40 70 50 50 Z" 
+                         Q 150 140 155 175 Q 150 180 140 170 Q 130 155 130 130 
+                         Q 130 155 120 185 Q 115 190 105 180 Q 95 155 95 130 
+                         Q 85 155 75 185 Q 70 190 60 180 Q 50 170 45 175 
+                         Q 40 140 60 120 C 40 100 40 70 50 50 Z" 
                       fill="url(#metalBodyLogo)" 
                     />
 
-                    {/* 3D Detail Overlays - These now sit on top of the unified body */}
-                    {/* Primary Vertical Centerline */}
+                    {/* --- ROOT LIGHTING (The "Shade Light" requested) --- */}
+                    {/* These paths follow the outer edges of the thinner roots to create 3D highlights */}
+                    <g stroke="#ffffff" strokeWidth="1" opacity="0.4" fill="none">
+                      <path d="M 145 120 Q 150 140 155 175" /> {/* Far Right highlight */}
+                      <path d="M 130 130 Q 130 155 120 185" /> {/* Inner Right highlight */}
+                      <path d="M 85 130 Q 85 155 75 185" />   {/* Inner Left highlight */}
+                      <path d="M 65 120 Q 50 140 45 175" />   {/* Far Left highlight */}
+                    </g>
+
+                    {/* Crown Details */}
                     <path d="M 100 45 L 100 130" stroke="#1e293b" strokeWidth="2" opacity="0.5" /> 
-                    
-                    {/* Occlusal Grooves (Crown top) */}
                     <path d="M 65 55 Q 100 65 135 55" fill="none" stroke="#1e293b" strokeWidth="2" opacity="0.4" />
                     <path d="M 65 65 Q 100 75 135 65" fill="none" stroke="#1e293b" strokeWidth="1.5" opacity="0.3" />
                     
-                    {/* Specular Rim Lighting (Creates the 3D 'edge' effect) */}
+                    {/* Crown Specular Rim Lighting */}
                     <path 
                       d="M 60 50 C 70 40 130 40 140 50 C 150 70 150 100 135 120" 
                       fill="none" stroke="#ffffff" strokeWidth="1.5" opacity="0.6" 
                     />
 
-                    {/* Crown Highlight Glare */}
+                    {/* Crown Glare */}
                     <path 
                       d="M 60 50 C 70 40 85 40 95 45 C 105 40 120 40 130 45 C 140 40 150 40 150 50 C 160 70 160 100 145 120 L 125 130 L 75 130 L 55 120 C 40 100 40 70 50 50 Z" 
                       fill="url(#crownGlareLogo)" opacity="0.5" 
                     />
                   </g>
 
-                  {/* Sweeping Light Reflection - Now clipped to the merged shape */}
+                  {/* Sweeping Light Reflection */}
                   <g className="tooth-sweep-light">
                     <rect x="-70" y="40" width="50" height="160" fill="white" clipPath="url(#toothClipLogo)" opacity="0.4" />
                   </g>
@@ -208,7 +213,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                         <stop offset="100%" stopColor="#334155" />
                       </linearGradient>
                     </defs>
-                    <path d="M 60 50 C 70 40 130 40 140 50 C 150 70 150 100 135 120 Q 145 140 150 180 Q 145 185 135 175 Q 125 160 120 130 Q 125 160 115 190 Q 110 195 100 185 Q 90 160 90 130 Q 80 160 70 190 Q 60 195 50 185 Q 40 175 45 180 Q 35 140 55 120 C 40 100 40 70 50 50 Z" fill="url(#footGrad)" />
+                    <path d="M 60 50 C 70 40 130 40 140 50 C 150 70 150 100 135 120 Q 140 140 145 175 Q 140 180 130 170 Q 120 155 120 130 Q 120 155 110 185 Q 105 190 95 180 Q 85 155 85 130 Q 75 155 65 185 Q 60 190 50 180 Q 40 170 45 175 Q 50 140 65 120 C 50 100 50 70 60 50 Z" fill="url(#footGrad)" />
                   </svg>
                 </div>
                 <span className="text-xl font-bold italic text-white -ml-1">PDG</span>
