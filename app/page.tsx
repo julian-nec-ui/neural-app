@@ -14,8 +14,9 @@ export default function HomePage() {
         {/* Hero Section */}
         <section className="relative z-10 max-w-7xl mx-auto px-4 py-24 sm:py-32 text-center">
           
-          {/* --- METALLIC BRANDING BLOCK (Now Moved to Top) --- */}
-          <div className="relative inline-block mb-10">
+          {/* --- METALLIC BRANDING BLOCK --- */}
+          <div className="relative inline-flex items-baseline justify-center mb-12">
+            {/* Main PDG Letters */}
             <h1 className="text-7xl sm:text-9xl font-black tracking-tighter italic flex items-center justify-center">
               {/* Metallic Blue P */}
               <span className="bg-linear-to-b from-blue-700 via-blue-300 to-blue-900 bg-clip-text text-transparent drop-shadow-[0_5px_5px_rgba(0,0,0,0.5)]">
@@ -31,16 +32,16 @@ export default function HomePage() {
               </span>
             </h1>
             
-            {/* Lower Right Subtitle: Prewit Dental Group */}
-            <div className="absolute -bottom-4 right-0 text-right">
-              <p className="text-lg sm:text-2xl font-bold tracking-tight italic bg-linear-to-r from-slate-400 via-slate-100 to-slate-500 bg-clip-text text-transparent opacity-90">
+            {/* Footnote Continuation: Prewit Dental Group */}
+            <div className="ml-3 sm:ml-6">
+              <p className="text-lg sm:text-3xl font-bold tracking-tight italic bg-linear-to-r from-slate-400 via-slate-100 to-slate-500 bg-clip-text text-transparent opacity-90 whitespace-nowrap">
                 Prewit Dental Group
               </p>
             </div>
           </div>
           {/* --- END BRANDING BLOCK --- */}
 
-          {/* Now Accepting Badge (Now moved below PDG) */}
+          {/* Now Accepting Badge */}
           <div className="inline-flex items-center gap-3 px-4 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-sm font-medium mb-8">
             <span className="relative flex h-3 w-3">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
