@@ -123,8 +123,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 
               </div>
 
-              {/* Brand Text - Increased size and moved left via negative margin */}
-              <span className="text-[24px] font-black tracking-tighter italic flex items-baseline -ml-1">
+              {/* Brand Text - Bigger size (approx 36px) and shifted slightly right compared to previous version */}
+              <span className="text-[36px] font-black tracking-tighter italic flex items-baseline ml-1">
                 <span className="bg-linear-to-b from-blue-700 via-blue-300 to-blue-900 bg-clip-text text-transparent">P</span>
                 <span className="bg-linear-to-b from-[#ef5102] via-amber-300 to-amber-700 bg-clip-text text-transparent">D</span>
                 <span className="bg-linear-to-b from-yellow-600 via-yellow-200 to-yellow-800 bg-clip-text text-transparent">G</span>
