@@ -23,53 +23,62 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
             
             {/* Logo Section */}
             <Link href="/" className="flex items-center gap-3 group">
-              <div className="relative p-2 bg-blue-500/10 rounded-xl border border-blue-500/20 group-hover:border-blue-400/50 transition-all duration-500 shadow-[0_0_15px_rgba(59,130,246,0.2)] group-hover:shadow-[0_0_20px_rgba(59,130,246,0.4)]">
+              <div className="relative p-2 bg-blue-500/10 rounded-xl border border-blue-500/20 group-hover:border-blue-400/50 transition-all duration-500 shadow-[0_0_20px_rgba(59,130,246,0.2)]">
                 
-                {/* --- HIGH-DETAIL METALLIC TOOTH SVG --- */}
+                {/* --- PROFESSIONAL REALISTIC TOOTH SVG --- */}
                 <svg 
                   width="32" 
                   height="32" 
                   viewBox="0 0 24 24" 
                   fill="none" 
                   xmlns="http://www.w3.org/2000/svg"
-                  className="drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]"
+                  className="drop-shadow-lg"
                 >
                   <defs>
-                    {/* Multi-stop gradient for polished enamel look */}
-                    <linearGradient id="detailedToothGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                      <stop offset="0%" stopColor="#BFDBFE" />   {/* Soft light blue */}
-                      <stop offset="30%" stopColor="#FFFFFF" />  {/* Pure white highlight */}
-                      <stop offset="60%" stopColor="#60A5FA" />  {/* Mid blue */}
-                      <stop offset="100%" stopColor="#1E3A8A" /> {/* Deep blue base */}
+                    {/* Main Metallic Enamel Gradient */}
+                    <linearGradient id="enamelGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#E0F2FE" />   {/* Ice Blue */}
+                      <stop offset="40%" stopColor="#FFFFFF" />  {/* Pure White Polish */}
+                      <stop offset="70%" stopColor="#93C5FD" />  {/* Steel Blue */}
+                      <stop offset="100%" stopColor="#1E40AF" /> {/* Deep Cobalt */}
                     </linearGradient>
-                    
-                    {/* Highlight overlay for 3D effect */}
-                    <linearGradient id="shineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                      <stop offset="0%" stopColor="white" stopOpacity="0.6" />
-                      <stop offset="100%" stopColor="white" stopOpacity="0" />
+
+                    {/* Shadow Gradient for Depth */}
+                    <linearGradient id="shadowGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                      <stop offset="0%" stopColor="#1E40AF" stopOpacity="0.6" />
+                      <stop offset="100%" stopColor="#1E3A8A" stopOpacity="0.2" />
                     </linearGradient>
                   </defs>
 
-                  {/* The Main Tooth Body (Anatomical shape with two roots) */}
+                  {/* 1. BASE STRUCTURE: Detailed Molar Shape */}
                   <path 
                     d="M12 2C14.5 2 17 3.5 17 7C17 9 16 11 16 13C16 16 18 18 19 20C20 22 18 23 17 23C16 23 15 22 15 20C15 18 14 17 13 17C12 17 11 18 11 20C11 22 10 23 9 23C8 23 7 22 7 20C7 18 9 16 9 13C9 11 8 9 8 7C8 3.5 10.5 2 12 2Z" 
-                    fill="url(#detailedToothGrad)" 
-                  />
-                  
-                  {/* The Crown Detail (A subtle arc on top to define the tooth's surface) */}
-                  <path 
-                    d="M8 7C8 5 10 4 12 4C14 4 16 5 16 7" 
-                    stroke="url(#shineGrad)" 
-                    strokeWidth="1.5" 
-                    strokeLinecap="round" 
+                    fill="url(#enamelGrad)" 
                   />
 
-                  {/* Healthy Shine Sparkle */}
-                  <circle cx="11" cy="6" r="1" fill="white" className="animate-pulse" />
+                  {/* 2. DEPTH LAYER: Inner shadow to create 3D volume */}
+                  <path 
+                    d="M12 4C11 4 10 5 10 7C10 9 11 11 12 11C13 11 14 9 14 7C14 5 13 4 12 4Z" 
+                    fill="url(#shadowGrad)" 
+                    opacity="0.5"
+                  />
+
+                  {/* 3. SPECULAR HIGHLIGHT: The 'Realistic' Polish Shine */}
+                  <path 
+                    d="M9 6C8.5 7 8.5 9 8.5 11C8.5 13 9 14 10 15" 
+                    stroke="white" 
+                    strokeWidth="1.2" 
+                    strokeLinecap="round" 
+                    strokeOpacity="0.8" 
+                    filter="blur(0.5px)"
+                  />
+                  
+                  {/* The Healthy Sparkle */}
+                  <circle cx="15" cy="5" r="0.8" fill="white" className="animate-pulse" />
                 </svg>
               </div>
 
-              {/* Brand Text matching Home Page Metallic Colors */}
+              {/* Brand Text */}
               <span className="text-2xl font-black tracking-tighter italic flex items-baseline">
                 <span className="bg-linear-to-b from-blue-700 via-blue-300 to-blue-900 bg-clip-text text-transparent">P</span>
                 <span className="bg-linear-to-b from-[#ef5102] via-amber-300 to-amber-700 bg-clip-text text-transparent">D</span>
@@ -128,24 +137,18 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         )}
       </header>
 
-      {/* --- MAIN CONTENT --- */}
       <main className="grow">
         {children}
       </main>
 
-      {/* --- FOOTER --- */}
       <footer className="bg-[#0a0f1d] border-t border-white/5 pt-12 pb-6">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
             <div className="space-y-4">
               <div className="flex items-center gap-3">
-                {/* Footer Version of Detailed Metallic Tooth */}
                 <div className="p-1.5 bg-blue-500/10 rounded-lg border border-blue-500/20">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path 
-                      d="M12 2C14.5 2 17 3.5 17 7C17 9 16 11 16 13C16 16 18 18 19 20C20 22 18 23 17 23C16 23 15 22 15 20C15 18 14 17 13 17C12 17 11 18 11 20C11 22 10 23 9 23C8 23 7 22 7 20C7 18 9 16 9 13C9 11 8 9 8 7C8 3.5 10.5 2 12 2Z" 
-                      fill="url(#detailedToothGrad)" 
-                    />
+                    <path d="M12 2C14.5 2 17 3.5 17 7C17 9 16 11 16 13C16 16 18 18 19 20C20 22 18 23 17 23C16 23 15 22 15 20C15 18 14 17 13 17C12 17 11 18 11 20C11 22 10 23 9 23C8 23 7 22 7 20C7 18 9 16 9 13C9 11 8 9 8 7C8 3.5 10.5 2 12 2Z" fill="url(#enamelGrad)" />
                   </svg>
                 </div>
                 <span className="text-xl font-bold italic text-white">PDG</span>
