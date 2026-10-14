@@ -56,11 +56,12 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                   xmlns="http://www.w3.org/2000/svg"
                 >
                   <defs>
+                    {/* Adjusted Gradient: Root end is significantly lighter for illumination */}
                     <linearGradient id="metalBodyLogo" x1="0%" y1="0%" x2="0%" y2="100%">
                       <stop offset="0%" stopColor="#f8fafc" />
-                      <stop offset="20%" stopColor="#D2DCE8" />
-                      <stop offset="50%" stopColor="#64748b" />
-                      <stop offset="100%" stopColor="#475569" />
+                      <stop offset="20%" stopColor="#cbd5e1" />
+                      <stop offset="50%" stopColor="#94a3b8" />
+                      <stop offset="100%" stopColor="#cbd5e1" /> 
                     </linearGradient>
 
                     <radialGradient id="crownGlareLogo" cx="30%" cy="20%" r="70%">
@@ -96,36 +97,41 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                       fill="url(#metalBodyLogo)" 
                     />
 
-                    <g stroke="#ffffff" strokeWidth="1.5" opacity="0.7" fill="none" strokeLinecap="round">
+                    {/* --- ROOT ILLUMINATION SYSTEM --- */}
+                    
+                    {/* 1. Inner-Core Glow: Semi-transparent thick lines that make the roots look like they are glowing from within */}
+                    <g stroke="#ffffff" strokeWidth="4" opacity="0.2" fill="none" strokeLinecap="round">
+                      <path d="M 145 120 Q 150 140 150 170" /> 
+                      <path d="M 130 130 Q 125 150 115 180" /> 
+                      <path d="M 85 130 Q 80 150 75 180" />   
+                      <path d="M 65 120 Q 55 140 50 170" />   
+                    </g>
+
+                    {/* 2. High-Intensity Speculars: Bright, thick white edges */}
+                    <g stroke="#ffffff" strokeWidth="2" opacity="0.9" fill="none" strokeLinecap="round">
                       <path d="M 145 120 Q 155 140 160 175" /> 
                       <path d="M 130 130 Q 130 155 120 185" /> 
                       <path d="M 85 130 Q 85 155 75 185" />   
                       <path d="M 65 120 Q 50 140 45 175" />   
                     </g>
 
-                    <g stroke="#cbd5e1" strokeWidth="3" opacity="0.3" fill="none" strokeLinecap="round">
-                      <path d="M 142 125 Q 150 140 152 170" /> 
-                      <path d="M 128 135 Q 125 155 115 180" /> 
-                      <path d="M 87 135 Q 90 155 80 180" />
-                      <path d="M 68 125 Q 60 140 58 170" />
+                    {/* 3. Volumetric Definition: Subtle shadows to maintain 3D shape despite the light */}
+                    <g stroke="#475569" strokeWidth="1" opacity="0.4" fill="none" strokeLinecap="round">
+                      <path d="M 140 120 Q 140 140 140 170" /> 
+                      <path d="M 125 130 Q 120 150 110 180" /> 
+                      <path d="M 90 130 Q 85 150 80 180" />
+                      <path d="M 60 120 Q 55 140 55 170" />
                     </g>
 
-                    {/* --- ENHANCED CROWN GROOVES --- */}
+                    {/* --- CROWN DETAILS --- */}
                     <g stroke="#1e293b" fill="none">
-                      {/* Main vertical center divide */}
                       <path d="M 100 45 L 100 130" strokeWidth="2" opacity="0.5" /> 
-                      
-                      {/* Lateral wall grooves (gives the tooth a squared 3D feel) */}
                       <path d="M 80 50 L 80 120" strokeWidth="1.5" opacity="0.3" />
                       <path d="M 120 50 L 120 120" strokeWidth="1.5" opacity="0.3" />
-
-                      {/* Top Occlusal Fissures (The "X" and curves of a real molar) */}
                       <path d="M 65 55 Q 100 65 135 55" strokeWidth="2" opacity="0.4" />
                       <path d="M 65 65 Q 100 75 135 65" strokeWidth="1.5" opacity="0.3" />
                       <path d="M 85 50 L 100 60 L 115 50" strokeWidth="1.5" opacity="0.4" />
                       <path d="M 85 65 L 100 55 L 115 65" strokeWidth="1.5" opacity="0.4" />
-
-                      {/* Cervical Line (The groove where crown meets roots) */}
                       <path d="M 60 120 Q 100 135 140 120" strokeWidth="2" opacity="0.5" />
                     </g>
                     
@@ -168,7 +174,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
               <Link
                 href="/signup"
                 className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-full text-sm font-semibold transition-all shadow-[0_0_15px_rgba(79,70,229,0.4)]"
-              >
+                >
                 Join PDG
               </Link>
             </nav>
@@ -189,16 +195,16 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                 href={link.href}
                 onClick={() => setIsOpen(false)}
                 className="block text-base font-medium text-slate-400 hover:text-indigo-400"
-              >
+                >
                 {link.name}
               </Link>
             ))}
             <Link
               href="/signup"
               className="block w-full text-center px-5 py-3 bg-indigo-600 rounded-xl font-semibold"
-            >
-              Join PDG
-            </Link>
+                >
+                Join PDG
+              </Link>
           </div>
         )}
       </header>
