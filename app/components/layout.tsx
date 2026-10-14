@@ -25,27 +25,47 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
             <Link href="/" className="flex items-center gap-3 group">
               <div className="relative p-2 bg-blue-500/10 rounded-xl border border-blue-500/20 group-hover:border-blue-400/50 transition-all duration-500 shadow-[0_0_15px_rgba(59,130,246,0.2)] group-hover:shadow-[0_0_20px_rgba(59,130,246,0.4)]">
                 
-                {/* METALLIC HEALTHY TOOTH SVG */}
+                {/* --- HIGH-DETAIL METALLIC TOOTH SVG --- */}
                 <svg 
-                  width="30" 
-                  height="30" 
+                  width="32" 
+                  height="32" 
                   viewBox="0 0 24 24" 
                   fill="none" 
                   xmlns="http://www.w3.org/2000/svg"
-                  className="drop-shadow-[0_0_5px_rgba(255,255,255,0.5)]"
+                  className="drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]"
                 >
                   <defs>
-                    <linearGradient id="toothGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                      <stop offset="0%" stopColor="#93C5FD" /> {/* Light Blue */}
-                      <stop offset="50%" stopColor="#FFFFFF" /> {/* White Polish */}
-                      <stop offset="100%" stopColor="#1E40AF" /> {/* Deep Blue */}
+                    {/* Multi-stop gradient for polished enamel look */}
+                    <linearGradient id="detailedToothGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                      <stop offset="0%" stopColor="#BFDBFE" />   {/* Soft light blue */}
+                      <stop offset="30%" stopColor="#FFFFFF" />  {/* Pure white highlight */}
+                      <stop offset="60%" stopColor="#60A5FA" />  {/* Mid blue */}
+                      <stop offset="100%" stopColor="#1E3A8A" /> {/* Deep blue base */}
+                    </linearGradient>
+                    
+                    {/* Highlight overlay for 3D effect */}
+                    <linearGradient id="shineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                      <stop offset="0%" stopColor="white" stopOpacity="0.6" />
+                      <stop offset="100%" stopColor="white" stopOpacity="0" />
                     </linearGradient>
                   </defs>
+
+                  {/* The Main Tooth Body (Anatomical shape with two roots) */}
                   <path 
-                    d="M12 2C9 2 7 4 7 7C7 9 8 11 8 13C8 16 6 18 5 20C5 21 6 22 7 22C8 22 9 21 9 20C9 18 10 17 11 17C12 17 13 18 13 20C13 21 14 22 15 22C16 22 17 21 17 20C17 18 15 16 15 13C15 11 16 9 16 7C16 4 14 2 12 2Z" 
-                    fill="url(#toothGrad)" 
+                    d="M12 2C14.5 2 17 3.5 17 7C17 9 16 11 16 13C16 16 18 18 19 20C20 22 18 23 17 23C16 23 15 22 15 20C15 18 14 17 13 17C12 17 11 18 11 20C11 22 10 23 9 23C8 23 7 22 7 20C7 18 9 16 9 13C9 11 8 9 8 7C8 3.5 10.5 2 12 2Z" 
+                    fill="url(#detailedToothGrad)" 
                   />
-                  <circle cx="10" cy="6" r="1.2" fill="white" className="animate-pulse" />
+                  
+                  {/* The Crown Detail (A subtle arc on top to define the tooth's surface) */}
+                  <path 
+                    d="M8 7C8 5 10 4 12 4C14 4 16 5 16 7" 
+                    stroke="url(#shineGrad)" 
+                    strokeWidth="1.5" 
+                    strokeLinecap="round" 
+                  />
+
+                  {/* Healthy Shine Sparkle */}
+                  <circle cx="11" cy="6" r="1" fill="white" className="animate-pulse" />
                 </svg>
               </div>
 
@@ -119,10 +139,13 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
             <div className="space-y-4">
               <div className="flex items-center gap-3">
-                {/* Footer Version of Metallic Tooth */}
+                {/* Footer Version of Detailed Metallic Tooth */}
                 <div className="p-1.5 bg-blue-500/10 rounded-lg border border-blue-500/20">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M12 2C9 2 7 4 7 7C7 9 8 11 8 13C8 16 6 18 5 20C5 21 6 22 7 22C8 22 9 21 9 20C9 18 10 17 11 17C12 17 13 18 13 20C13 21 14 22 15 22C16 22 17 21 17 20C17 18 15 16 15 13C15 11 16 9 16 7C16 4 14 2 12 2Z" fill="url(#toothGrad)" />
+                    <path 
+                      d="M12 2C14.5 2 17 3.5 17 7C17 9 16 11 16 13C16 16 18 18 19 20C20 22 18 23 17 23C16 23 15 22 15 20C15 18 14 17 13 17C12 17 11 18 11 20C11 22 10 23 9 23C8 23 7 22 7 20C7 18 9 16 9 13C9 11 8 9 8 7C8 3.5 10.5 2 12 2Z" 
+                      fill="url(#detailedToothGrad)" 
+                    />
                   </svg>
                 </div>
                 <span className="text-xl font-bold italic text-white">PDG</span>
