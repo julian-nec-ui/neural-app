@@ -18,14 +18,12 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     <div className="min-h-screen flex flex-col bg-[#0f172a] text-white font-sans">
       <style>{`
         @keyframes bounceRange {
-          0% { transform: perspective(1200px) rotateX(15deg) rotateY(0deg) translateY(10%); }
-          50% { transform: perspective(1200px) rotateX(15deg) rotateY(180deg) translateY(-10%); }
-          100% { transform: perspective(1200px) rotateX(15deg) rotateY(360deg) translateY(10%); }
+          0%, 100% { transform: perspective(800px) rotateY(-25deg) translateY(10%); }
+          50% { transform: perspective(800px) rotateY(25deg) translateY(-10%); }
         }
         @keyframes footerRise {
-          0% { transform: perspective(1200px) rotateX(15deg) rotateY(0deg) translateY(0%); }
-          50% { transform: perspective(1200px) rotateX(15deg) rotateY(180deg) translateY(-20%); }
-          100% { transform: perspective(1200px) rotateX(15deg) rotateY(360deg) translateY(0%); }
+          0%, 100% { transform: perspective(800px) rotateY(-25deg) translateY(0%); }
+          50% { transform: perspective(800px) rotateY(25deg) translateY(-20%); }
         }
         @keyframes rootPulse {
           0%, 100% { transform: scale(1); opacity: 0.9; }
@@ -39,12 +37,12 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
           100% { transform: translateX(100px); opacity: 0; }
         }
         .tooth-logo-wrap { 
-          animation: bounceRange 6s linear infinite; 
+          animation: bounceRange 4s ease-in-out infinite; 
           transform-origin: center center; 
           transform-style: preserve-3d;
         }
         .footer-tooth-wrap { 
-          animation: footerRise 6s linear infinite; 
+          animation: footerRise 4s ease-in-out infinite; 
           transform-origin: center center; 
           transform-style: preserve-3d;
         }
