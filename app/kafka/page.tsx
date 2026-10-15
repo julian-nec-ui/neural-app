@@ -1,17 +1,19 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { UserPlus, Table as TableIcon, 
+import { 
+  UserPlus, Table as TableIcon, 
   ArrowUpDown, ChevronLeft, ChevronRight, 
   Trash2, Edit3, Search 
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// --- Strict Types ---
+// --- Strict Type Definitions ---
 interface Investor {
   id: string;
   inNumber: number;
   firstName: string;
+  lastName: string; // Added Last Name
   email: string;
   phone: string;
   investSum: number;
@@ -20,6 +22,7 @@ interface Investor {
 
 interface FormData {
   firstName: string;
+  lastName: string; // Added Last Name
   email: string;
   phone: string;
   investSum: number;
@@ -33,26 +36,28 @@ interface SortConfig {
 
 // --- Constants ---
 const METALLIC_ROYAL_BLUE = `bg-linear-to-r from-[#002366] via-[#4169E1] to-[#002366]`;
-const ITEMS_PER_PAGE = 5;
+const PAGE_SIZE_OPTIONS = [5, 10, 25, 50];
 
 const InvestorsPage: React.FC = () => {
-  // --- State ---
+  // --- State Management ---
   const [investors, setInvestors] = useState<Investor[]>([]);
   const [view, setView] = useState<'table' | 'form'>('table');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [sortConfig, setSortConfig] = useState<SortConfig | null>(null);
   const [currentPage, setCurrentPage] = useState<number>(1);
+  const [itemsPerPage, setItemsPerPage] = useState<number>(5); // Dynamic pagination
+  
   const [formData, setFormData] = useState<FormData>({
     firstName: '',
+    lastName: '',
     email: '',
     phone: '',
     investSum: 0,
     inNumber: 0,
   });
 
-  // --- WebSocket Logic ---
+  // --- WebSocket Integration ---
   useEffect(() => {
-    // Replace with your actual Spring Boot WebSocket endpoint
     const socket = new WebSocket('wss://echo.websocket.events');
 
     socket.onmessage = (event) => {
@@ -62,6 +67,7 @@ const InvestorsPage: React.FC = () => {
           id: Math.random().toString(36).substring(2, 11),
           inNumber: data.inNumber || Math.floor(Math.random() * 1000),
           firstName: data.firstName || "Unknown",
+          lastName: data.lastName || "User",
           email: data.email || "N/A",
           phone: data.phone || "N/A",
           investSum: data.investSum || 0,
@@ -69,7 +75,7 @@ const InvestorsPage: React.FC = () => {
         };
         setInvestors((prev) => [newInvestor, ...prev]);
       } catch (err) {
-        console.error("WebSocket Data Error:", err);
+        console.error("WebSocket parsing error:", err);
       }
     };
 
@@ -78,10 +84,11 @@ const InvestorsPage: React.FC = () => {
 
   // --- Logic: Search, Sort, Paginate ---
   const filteredAndSortedInvestors = useMemo(() => {
-    // 1. Filter
-    const result = investors.filter(
+    // 1. Filter (including Last Name)
+    let result = investors.filter(
       (inv) =>
         inv.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        inv.lastName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         inv.email.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
@@ -90,7 +97,6 @@ const InvestorsPage: React.FC = () => {
       result.sort((a, b) => {
         const aVal = a[sortConfig.key];
         const bVal = b[sortConfig.key];
-
         if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
         if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
         return 0;
@@ -101,11 +107,11 @@ const InvestorsPage: React.FC = () => {
   }, [investors, searchQuery, sortConfig]);
 
   const paginatedInvestors = useMemo(() => {
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    return filteredAndSortedInvestors.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-  }, [filteredAndSortedInvestors, currentPage]);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredAndSortedInvestors.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredAndSortedInvestors, currentPage, itemsPerPage]);
 
-  // --- Handlers ---
+  // --- Event Handlers ---
   const handleSort = (key: keyof Investor) => {
     setSortConfig((prev) => ({
       key,
@@ -122,7 +128,7 @@ const InvestorsPage: React.FC = () => {
     };
     setInvestors((prev) => [newInvestor, ...prev]);
     setView('table');
-    setFormData({ firstName: '', email: '', phone: '', investSum: 0, inNumber: 0 });
+    setFormData({ firstName: '', lastName: '', email: '', phone: '', investSum: 0, inNumber: 0 });
   };
 
   const deleteInvestor = (id: string) => {
@@ -131,18 +137,16 @@ const InvestorsPage: React.FC = () => {
 
   return (
     <div className="min-h-screen w-full bg-[#0f172a] text-slate-200 p-4 sm:p-8 font-sans relative overflow-hidden">
-      {/* Background Elements */}
       <div className="absolute -top-20 -left-20 w-96 h-96 bg-indigo-500/10 rounded-full blur-[120px] pointer-events-none" />
       <div className="absolute -bottom-20 -right-20 w-96 h-96 bg-cyan-500/10 rounded-full blur-[120px] pointer-events-none" />
 
-      {/* --- Header --- */}
       <div className="relative z-10 max-w-7xl mx-auto mb-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
           <h1 className="text-4xl font-black italic tracking-tighter text-white">
             INVESTOR <span className="text-indigo-400">PORTFOLIO</span>
           </h1>
           <p className="text-slate-500 uppercase tracking-widest text-xs font-bold mt-1">
-            Live Stream Management
+            Real-time Portfolio Management
           </p>
         </div>
 
@@ -151,7 +155,7 @@ const InvestorsPage: React.FC = () => {
           className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all duration-300 ${
             view === 'table' 
               ? `${METALLIC_ROYAL_BLUE} text-white shadow-[0_0_20px_rgba(65,105,225,0.4)]` 
-              : "bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700"
+              : `bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700`
           }`}
         >
           {view === 'table' ? <UserPlus size={20}/> : <TableIcon size={20}/>}
@@ -159,7 +163,6 @@ const InvestorsPage: React.FC = () => {
         </button>
       </div>
 
-      {/* --- Main Content --- */}
       <div className="relative z-10 max-w-7xl mx-auto">
         <AnimatePresence mode="wait">
           {view === 'table' ? (
@@ -168,33 +171,44 @@ const InvestorsPage: React.FC = () => {
               initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
               className="space-y-6"
             >
-              {/* Filters */}
-              <div className="flex justify-between items-center bg-white/5 backdrop-blur-md border border-white/10 p-4 rounded-2xl">
+              <div className="flex flex-col sm:flex-row justify-between items-center gap-4 bg-white/5 backdrop-blur-md border border-white/10 p-4 rounded-2xl">
                 <div className="relative w-full max-w-md">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
                   <input 
                     type="text" 
-                    placeholder="Search investors..."
+                    placeholder="Search by name or email..."
                     className="w-full pl-10 pr-4 py-2 bg-slate-900/50 border border-slate-700 rounded-lg focus:border-indigo-500 outline-none transition-all text-white"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
                 </div>
-                <div className="hidden sm:block text-xs text-slate-500 font-mono">
-                  Active Records: {filteredAndSortedInvestors.length}
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2 text-xs text-slate-500 font-mono">
+                    <span className="uppercase font-bold">Show:</span>
+                    <select 
+                      value={itemsPerPage} 
+                      onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
+                      className="bg-slate-900 border border-slate-700 rounded px-2 py-1 outline-none focus:border-indigo-500 text-white cursor-pointer"
+                    >
+                      {PAGE_SIZE_OPTIONS.map(size => <option key={size} value={size}>{size}</option>)}
+                    </select>
+                  </div>
+                  <div className="text-xs text-slate-500 font-mono">
+                    Total: {filteredAndSortedInvestors.length}
+                  </div>
                 </div>
               </div>
 
-              {/* Table */}
               <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-3xl overflow-hidden shadow-2xl">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse">
-                    <thead>
-                      <tr className="bg-slate-800/50 border-b border-white/10">
+                    <thead className="bg-slate-800/50 border-b border-white/10">
+                      <tr>
                         {[
                           { label: 'Date', key: 'receivedAt' },
                           { label: 'IN #', key: 'inNumber' },
-                          { label: 'Name', key: 'firstName' },
+                          { label: 'First Name', key: 'firstName' },
+                          { label: 'Last Name', key: 'lastName' },
                           { label: 'Email', key: 'email' },
                           { label: 'Phone', key: 'phone' },
                           { label: 'Sum', key: 'investSum' },
@@ -213,20 +227,19 @@ const InvestorsPage: React.FC = () => {
                         ))}
                       </tr>
                     </thead>
-                    <tbody>
+                    <tbody className="divide-y divide-white/5">
                       <AnimatePresence initial={false}>
                         {paginatedInvestors.map((inv) => (
                           <motion.tr 
                             key={inv.id}
                             layout
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            className="border-b border-white/5 hover:bg-white/[0.03] transition-colors group"
+                            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                            className="hover:bg-white/[0.03] transition-colors group"
                           >
                             <td className="p-4 text-sm text-slate-400">{inv.receivedAt}</td>
                             <td className="p-4 text-sm font-mono text-indigo-300">#{inv.inNumber}</td>
                             <td className="p-4 text-sm font-medium text-white">{inv.firstName}</td>
+                            <td className="p-4 text-sm font-medium text-white">{inv.lastName}</td>
                             <td className="p-4 text-sm text-slate-400">{inv.email}</td>
                             <td className="p-4 text-sm text-slate-400">{inv.phone}</td>
                             <td className="p-4 text-sm font-bold text-emerald-400">${inv.investSum.toLocaleString()}</td>
@@ -243,10 +256,9 @@ const InvestorsPage: React.FC = () => {
                   </table>
                 </div>
 
-                {/* Pagination */}
                 <div className="p-4 flex items-center justify-between bg-white/5 border-t border-white/10">
-                  <p className="text-xs text-slate-500">
-                    Page {currentPage} of {Math.ceil(filteredAndSortedInvestors.length / ITEMS_PER_PAGE) || 1}
+                  <p className="text-xs text-slate-500 font-medium">
+                    Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filteredAndSortedInvestors.length)} of {filteredAndSortedInvestors.length}
                   </p>
                   <div className="flex gap-2">
                     <button 
@@ -257,7 +269,7 @@ const InvestorsPage: React.FC = () => {
                       <ChevronLeft size={20} />
                     </button>
                     <button 
-                      disabled={currentPage * ITEMS_PER_PAGE >= filteredAndSortedInvestors.length}
+                      disabled={currentPage * itemsPerPage >= filteredAndSortedInvestors.length}
                       onClick={() => setCurrentPage(p => p + 1)}
                       className="p-2 rounded-lg bg-slate-800 border border-slate-700 disabled:opacity-30 hover:bg-slate-700 transition-colors"
                     >
@@ -287,6 +299,13 @@ const InvestorsPage: React.FC = () => {
                     />
                   </div>
                   <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase">Last Name</label>
+                    <input 
+                      className="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl focus:border-indigo-500 outline-none text-white"
+                      value={formData.lastName} onChange={e => setFormData({...formData, lastName: e.target.value})} required
+                    />
+                  </div>
+                  <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase">Email</label>
                     <input 
                       type="email"
@@ -309,7 +328,7 @@ const InvestorsPage: React.FC = () => {
                       value={formData.inNumber} onChange={e => setFormData({...formData, inNumber: Number(e.target.value)})} required
                     />
                   </div>
-                  <div className="space-y-2 md:col-span-2">
+                  <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase">Investment Sum ($)</label>
                     <input 
                       type="number"
