@@ -146,18 +146,31 @@ const InvestorsPage: React.FC = () => {
           </p>
         </div>
 
+        {/* ENHANCED Register Investor Button */}
         <motion.button 
           onClick={() => setView(view === 'table' ? 'form' : 'table')}
-          whileHover={view === 'table' ? { scale: 1.05, y: -2, transition: { type: "spring", stiffness: 400, damping: 10 } } : { scale: 1.02 }}
+          whileHover={view === 'table' ? { scale: 1.05, y: -2 } : { scale: 1.02 }}
           whileTap={{ scale: 0.97 }}
-          className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all duration-300 ${
+          className={`relative group overflow-hidden flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all duration-300 ${
             view === 'table' 
-              ? `${METALLIC_ROYAL_BLUE} text-white shadow-[0_0_20px_rgba(65,105,225,0.4)] hover:shadow-[0_0_30px_rgba(65,105,225,0.6)]` 
+              ? `${METALLIC_ROYAL_BLUE} text-white border border-white/20 shadow-[0_0_20px_rgba(65,105,225,0.4)] hover:shadow-[0_0_30px_rgba(65,105,225,0.6)] hover:brightness-110` 
               : `bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700`
           }`}
         >
-          {view === 'table' ? <UserPlus size={20}/> : <TableIcon size={20}/>}
-          {view === 'table' ? "Register Investor" : "View Database"}
+          {/* Shimmer Light Effect */}
+          {view === 'table' && (
+            <motion.div 
+              initial={{ x: '-100%' }}
+              whileHover={{ x: '100%' }}
+              transition={{ duration: 0.6, ease: "easeInOut" }}
+              className="absolute inset-0 w-1/2 h-full bg-gradient-to-r from-transparent via-white/30 to-transparent -skew-x-12 pointer-events-none"
+            />
+          )}
+
+          <span className="relative z-10 flex items-center gap-2">
+            {view === 'table' ? <UserPlus size={20}/> : <TableIcon size={20}/>}
+            {view === 'table' ? "Register Investor" : "View Database"}
+          </span>
         </motion.button>
       </div>
 
