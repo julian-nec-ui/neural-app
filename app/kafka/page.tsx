@@ -10,7 +10,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 // --- Strict Type Definitions ----
 interface Investor {
-  id: number;
+  id: string; 
   firstName: string;
   lastName: string;
   email: string;
@@ -63,7 +63,7 @@ const InvestorsPage: React.FC = () => {
       try {
         const data = JSON.parse(event.data);
         const newInvestor: Investor = {
-          id: data.id,
+          id: String(data.id || Math.random().toString(36).substring(2, 11)),
           firstName: data.firstName || "Unknown",
           lastName: data.lastName || "User",
           email: data.email || "N/A",
@@ -117,17 +117,24 @@ const InvestorsPage: React.FC = () => {
 
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // FIXED: Explicitly mapping fields to avoid 'any' type casting
     const newInvestor: Investor = {
-      ...formData,
-      id: Math.random().toString(36).substring(2, 11),
+      id: String(formData.inNumber), // Using the form's ID number as the unique string ID
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      email: formData.email,
+      phone: formData.phone,
+      investSum: formData.investSum,
       receivedAt: new Date().toLocaleString(),
     };
+    
     setInvestors((prev) => [newInvestor, ...prev]);
     setView('table');
     setFormData({ firstName: '', lastName: '', email: '', phone: '', investSum: 0, inNumber: 0 });
   };
 
-  const deleteInvestor = (id: number) => {
+  const deleteInvestor = (id: string) => {
     setInvestors((prev) => prev.filter((inv) => inv.id !== id));
   };
 
@@ -146,23 +153,22 @@ const InvestorsPage: React.FC = () => {
           </p>
         </div>
 
-        {/* ENHANCED Register Investor Button */}
         <motion.button 
           onClick={() => setView(view === 'table' ? 'form' : 'table')}
           whileHover={view === 'table' ? { scale: 1.05, y: -2 } : { scale: 1.02 }}
           whileTap={{ scale: 0.97 }}
+          transition={{ type: "spring", stiffness: 400, damping: 25 }}
           className={`relative group overflow-hidden flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all duration-300 ${
             view === 'table' 
               ? `${METALLIC_ROYAL_BLUE} text-white border border-white/20 shadow-[0_0_20px_rgba(65,105,225,0.4)] hover:shadow-[0_0_30px_rgba(65,105,225,0.6)] hover:brightness-110` 
               : `bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700`
           }`}
         >
-          {/* Shimmer Light Effect */}
           {view === 'table' && (
             <motion.div 
               initial={{ x: '-100%' }}
               whileHover={{ x: '100%' }}
-              transition={{ duration: 0.6, ease: "easeInOut" }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
               className="absolute inset-0 w-1/2 h-full bg-gradient-to-r from-transparent via-white/30 to-transparent -skew-x-12 pointer-events-none"
             />
           )}
@@ -202,7 +208,7 @@ const InvestorsPage: React.FC = () => {
                       <tr>
                         {[
                           { label: 'Date', key: 'receivedAt' },
-                          { label: 'ID #', key: 'inNumber' },
+                          { label: 'ID #', key: 'id' },
                           { label: 'First Name', key: 'firstName' },
                           { label: 'Last Name', key: 'lastName' },
                           { label: 'Email', key: 'email' },
@@ -233,6 +239,7 @@ const InvestorsPage: React.FC = () => {
                             className="hover:bg-white/3 transition-colors group"
                           >
                             <td className="p-4 text-sm text-slate-400">{inv.receivedAt}</td>
+                            <td className="p-4 text-sm font-mono text-indigo-300">#{inv.id}</td>
                             <td className="p-4 text-sm font-medium text-white">{inv.firstName}</td>
                             <td className="p-4 text-sm font-medium text-white">{inv.lastName}</td>
                             <td className="p-4 text-sm text-slate-400">{inv.email}</td>
