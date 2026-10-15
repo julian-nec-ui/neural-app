@@ -10,8 +10,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 // --- Strict Type Definitions ----
 interface Investor {
-  id: string;
-  inNumber: number;
+  id: number;
   firstName: string;
   lastName: string;
   email: string;
@@ -64,8 +63,7 @@ const InvestorsPage: React.FC = () => {
       try {
         const data = JSON.parse(event.data);
         const newInvestor: Investor = {
-          id: Math.random().toString(36).substring(2, 11),
-          inNumber: data.inNumber || Math.floor(Math.random() * 1000),
+          id: data.id,
           firstName: data.firstName || "Unknown",
           lastName: data.lastName || "User",
           email: data.email || "N/A",
@@ -129,7 +127,7 @@ const InvestorsPage: React.FC = () => {
     setFormData({ firstName: '', lastName: '', email: '', phone: '', investSum: 0, inNumber: 0 });
   };
 
-  const deleteInvestor = (id: string) => {
+  const deleteInvestor = (id: number) => {
     setInvestors((prev) => prev.filter((inv) => inv.id !== id));
   };
 
@@ -222,7 +220,6 @@ const InvestorsPage: React.FC = () => {
                             className="hover:bg-white/3 transition-colors group"
                           >
                             <td className="p-4 text-sm text-slate-400">{inv.receivedAt}</td>
-                            <td className="p-4 text-sm font-mono text-indigo-300">#{inv.inNumber}</td>
                             <td className="p-4 text-sm font-medium text-white">{inv.firstName}</td>
                             <td className="p-4 text-sm font-medium text-white">{inv.lastName}</td>
                             <td className="p-4 text-sm text-slate-400">{inv.email}</td>
