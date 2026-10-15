@@ -118,9 +118,8 @@ const InvestorsPage: React.FC = () => {
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // FIXED: Explicitly mapping fields to avoid 'any' type casting
     const newInvestor: Investor = {
-      id: String(formData.inNumber), // Using the form's ID number as the unique string ID
+      id: String(formData.inNumber),
       firstName: formData.firstName,
       lastName: formData.lastName,
       email: formData.email,
@@ -153,23 +152,24 @@ const InvestorsPage: React.FC = () => {
           </p>
         </div>
 
+        {/* FIXED: Fast, Smooth, and No-Linger Hover Effect */}
         <motion.button 
           onClick={() => setView(view === 'table' ? 'form' : 'table')}
           whileHover={view === 'table' ? { scale: 1.05, y: -2 } : { scale: 1.02 }}
           whileTap={{ scale: 0.97 }}
-          transition={{ type: "spring", stiffness: 400, damping: 25 }}
-          className={`relative group overflow-hidden flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all duration-300 ${
+          transition={{ type: "tween", ease: "easeOut", duration: 0.2 }} // Tween is faster and doesn't linger like a spring
+          className={`relative group overflow-hidden flex items-center gap-2 px-6 py-3 rounded-xl font-bold ${
             view === 'table' 
               ? `${METALLIC_ROYAL_BLUE} text-white border border-white/20 shadow-[0_0_20px_rgba(65,105,225,0.4)] hover:shadow-[0_0_30px_rgba(65,105,225,0.6)] hover:brightness-110` 
-              : `bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700`
+              : `bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700 transition-colors`
           }`}
         >
           {view === 'table' && (
             <motion.div 
               initial={{ x: '-100%' }}
               whileHover={{ x: '100%' }}
-              transition={{ duration: 0.4, ease: "easeOut" }}
-              className="absolute inset-0 w-1/2 h-full bg-gradient-to-r from-transparent via-white/30 to-transparent -skew-x-12 pointer-events-none"
+              transition={{ duration: 0.3, ease: "easeOut" }}
+              className="absolute inset-0 w-1/2 h-full bg-linear-to-r from-transparent via-white/30 to-transparent -skew-x-12 pointer-events-none"
             />
           )}
 
