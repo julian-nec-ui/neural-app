@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// --- Strict Type Definitions ---
+// --- Strict Type Definitions ----
 interface Investor {
   id: string;
   inNumber: number;
