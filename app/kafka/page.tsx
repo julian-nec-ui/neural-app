@@ -252,7 +252,7 @@ const InvestorsPage: React.FC = () => {
                         <select 
                           value={itemsPerPage} 
                           onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
-                          className="appearance-none bg-linear-to-r from-slate-700 via-slate-600 to-slate-700 border border-slate-600 rounded px-2 py-1 pr-8 outline-none focus:border-indigo-500 text-white cursor-pointer transition-all duration-300 hover:bg-linear-to-r hover:from-[#003d3d] hover:via-[#008b8b] hover:to-[#003d3d] hover:border-cyan-500"
+                          className="appearance-none bg-linear-to-r from-slate-800 via-slate-700 to-slate-800 border border-slate-600 rounded px-2 py-1 pr-8 outline-none focus:border-indigo-500 text-white cursor-pointer transition-all duration-300 hover:bg-linear-to-r hover:from-[#003d3d] hover:via-[#008b8b] hover:to-[#003d3d] hover:border-cyan-500"
                         >
                           {PAGE_SIZE_OPTIONS.map(size => <option key={size} value={size} className="bg-slate-900">{size}</option>)}
                         </select>
