@@ -84,7 +84,7 @@ const InvestorsPage: React.FC = () => {
 
   // --- Logic: Search, Sort, Paginate ---
   const filteredAndSortedInvestors = useMemo(() => {
-    let result = investors.filter(
+    const result = investors.filter(
       (inv) =>
         inv.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         inv.lastName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -256,7 +256,7 @@ const InvestorsPage: React.FC = () => {
                         >
                           {PAGE_SIZE_OPTIONS.map(size => <option key={size} value={size} className="bg-slate-900">{size}</option>)}
                         </select>
-                        <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-indigo-400 pointer-events-none transition-colors group-hover:text-indigo-300" />
+                        <ChevronDown size={16} className="absolute right-2 top-1/2 -translate-y-1/2 text-cyan-400 pointer-events-none transition-colors group-hover:text-cyan-300" />
                       </div>
                     </div>
                   </div>
