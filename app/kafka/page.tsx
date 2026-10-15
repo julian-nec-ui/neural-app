@@ -148,6 +148,7 @@ const InvestorsPage: React.FC = () => {
           </p>
         </div>
 
+        {/* Hover Effect maintained here */}
         <motion.button 
           onClick={() => setView(view === 'table' ? 'form' : 'table')}
           whileHover={view === 'table' ? { scale: 1.05, y: -2, transition: { type: "spring", stiffness: 400, damping: 10 } } : { scale: 1.02 }}
@@ -219,7 +220,7 @@ const InvestorsPage: React.FC = () => {
                             key={inv.id}
                             layout
                             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                            className="hover:bg-white/[0.03] transition-colors group"
+                            className="hover:bg-white/3 transition-colors group"
                           >
                             <td className="p-4 text-sm text-slate-400">{inv.receivedAt}</td>
                             <td className="p-4 text-sm font-mono text-indigo-300">#{inv.inNumber}</td>
@@ -241,7 +242,6 @@ const InvestorsPage: React.FC = () => {
                   </table>
                 </div>
 
-                {/* --- MODIFIED FOOTER START --- */}
                 <div className="px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white/5 border-t border-white/10">
                   <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4">
                     <p className="text-xs text-slate-500 font-medium">
@@ -249,11 +249,11 @@ const InvestorsPage: React.FC = () => {
                     </p>
                     <div className="flex items-center gap-2 text-xs text-slate-500 font-mono border-l border-white/10 pl-4">
                       <span className="uppercase font-bold">Show:</span>
+                      {/* REVERTED to original style below */}
                       <select 
                         value={itemsPerPage} 
                         onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
-                        /* Added px-4 and min-w-[80px] to make selection wider */
-                        className="bg-slate-900 border border-slate-700 rounded px-4 py-1 min-w-[80px] outline-none focus:border-indigo-500 text-white cursor-pointer transition-all"
+                        className="bg-slate-900 border border-slate-700 rounded px-2 py-1 outline-none focus:border-indigo-500 text-white cursor-pointer"
                       >
                         {PAGE_SIZE_OPTIONS.map(size => <option key={size} value={size}>{size}</option>)}
                       </select>
@@ -270,7 +270,6 @@ const InvestorsPage: React.FC = () => {
                         onClick={() => setCurrentPage(p => p - 1)}
                         className="p-2.5 rounded-lg bg-slate-800 border border-slate-700 disabled:opacity-30 hover:bg-slate-700 transition-all group"
                       >
-                        {/* Increased size to 24 and added metallic indigo-200 color */}
                         <ChevronLeft size={24} className="text-indigo-200 group-hover:text-white transition-colors" />
                       </button>
                       <button 
@@ -278,13 +277,11 @@ const InvestorsPage: React.FC = () => {
                         onClick={() => setCurrentPage(p => p + 1)}
                         className="p-2.5 rounded-lg bg-slate-800 border border-slate-700 disabled:opacity-30 hover:bg-slate-700 transition-all group"
                       >
-                        {/* Increased size to 24 and added metallic indigo-200 color */}
                         <ChevronRight size={24} className="text-indigo-200 group-hover:text-white transition-colors" />
                       </button>
                     </div>
                   </div>
                 </div>
-                {/* --- MODIFIED FOOTER END --- */}
               </div>
             </motion.div>
           ) : (
