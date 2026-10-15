@@ -34,7 +34,7 @@ interface SortConfig {
 }
 
 // --- Constants ---
-const METALLIC_ROYAL_BLUE = `bg-linear-to-r from-[#002366] via-[#4169E1] to-[#002366]`;
+const METALLIC_ROYAL_BLUE = `bg-linear-to-r from-[#0C3E9C] via-[#4570F2] to-[#063895]`;
 const PAGE_SIZE_OPTIONS = [5, 10, 25, 50];
 
 const InvestorsPage: React.FC = () => {
