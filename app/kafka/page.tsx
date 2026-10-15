@@ -148,17 +148,19 @@ const InvestorsPage: React.FC = () => {
           </p>
         </div>
 
-        <button 
+        <motion.button 
           onClick={() => setView(view === 'table' ? 'form' : 'table')}
+          whileHover={view === 'table' ? { scale: 1.05, y: -2, transition: { type: "spring", stiffness: 400, damping: 10 } } : { scale: 1.02 }}
+          whileTap={{ scale: 0.97 }}
           className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all duration-300 ${
             view === 'table' 
-              ? `${METALLIC_ROYAL_BLUE} text-white shadow-[0_0_20px_rgba(65,105,225,0.4)]` 
+              ? `${METALLIC_ROYAL_BLUE} text-white shadow-[0_0_20px_rgba(65,105,225,0.4)] hover:shadow-[0_0_30px_rgba(65,105,225,0.6)]` 
               : `bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700`
           }`}
         >
           {view === 'table' ? <UserPlus size={20}/> : <TableIcon size={20}/>}
           {view === 'table' ? "Register Investor" : "View Database"}
-        </button>
+        </motion.button>
       </div>
 
       <div className="relative z-10 max-w-7xl mx-auto">
@@ -239,8 +241,8 @@ const InvestorsPage: React.FC = () => {
                   </table>
                 </div>
 
-                {/* FOOTER: Now contains Pagination, Total, and Items Per Page */}
-                <div className="p-4 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white/5 border-t border-white/10">
+                {/* --- MODIFIED FOOTER START --- */}
+                <div className="px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white/5 border-t border-white/10">
                   <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4">
                     <p className="text-xs text-slate-500 font-medium">
                       Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filteredAndSortedInvestors.length)} of {filteredAndSortedInvestors.length}
@@ -250,35 +252,39 @@ const InvestorsPage: React.FC = () => {
                       <select 
                         value={itemsPerPage} 
                         onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
-                        className="bg-slate-900 border border-slate-700 rounded px-2 py-1 outline-none focus:border-indigo-500 text-white cursor-pointer"
+                        /* Added px-4 and min-w-[80px] to make selection wider */
+                        className="bg-slate-900 border border-slate-700 rounded px-4 py-1 min-w-[80px] outline-none focus:border-indigo-500 text-white cursor-pointer transition-all"
                       >
                         {PAGE_SIZE_OPTIONS.map(size => <option key={size} value={size}>{size}</option>)}
                       </select>
                     </div>
                   </div>
                   
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-6">
                     <div className="text-xs text-slate-500 font-mono hidden md:block">
                       Total Records: {filteredAndSortedInvestors.length}
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-3">
                       <button 
                         disabled={currentPage === 1}
                         onClick={() => setCurrentPage(p => p - 1)}
-                        className="p-2 rounded-lg bg-slate-800 border border-slate-700 disabled:opacity-30 hover:bg-slate-700 transition-colors"
+                        className="p-2.5 rounded-lg bg-slate-800 border border-slate-700 disabled:opacity-30 hover:bg-slate-700 transition-all group"
                       >
-                        <ChevronLeft size={20} />
+                        {/* Increased size to 24 and added metallic indigo-200 color */}
+                        <ChevronLeft size={24} className="text-indigo-200 group-hover:text-white transition-colors" />
                       </button>
                       <button 
                         disabled={currentPage * itemsPerPage >= filteredAndSortedInvestors.length}
                         onClick={() => setCurrentPage(p => p + 1)}
-                        className="p-2 rounded-lg bg-slate-800 border border-slate-700 disabled:opacity-30 hover:bg-slate-700 transition-colors"
+                        className="p-2.5 rounded-lg bg-slate-800 border border-slate-700 disabled:opacity-30 hover:bg-slate-700 transition-all group"
                       >
-                        <ChevronRight size={20} />
+                        {/* Increased size to 24 and added metallic indigo-200 color */}
+                        <ChevronRight size={24} className="text-indigo-200 group-hover:text-white transition-colors" />
                       </button>
                     </div>
                   </div>
                 </div>
+                {/* --- MODIFIED FOOTER END --- */}
               </div>
             </motion.div>
           ) : (
