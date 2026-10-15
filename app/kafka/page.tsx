@@ -155,7 +155,7 @@ const InvestorsPage: React.FC = () => {
         {/* FIXED: Fast, Smooth, and No-Linger Hover Effect */}
         <motion.button 
           onClick={() => setView(view === 'table' ? 'form' : 'table')}
-          whileHover={view === 'table' ? { scale: 1.05, y: -2 } : { scale: 1.02 }}
+          whileHover={view === 'table' ? { scale: 1.03, y: -2 } : { scale: 1.02 }}
           whileTap={{ scale: 0.97 }}
           transition={{ type: "tween", ease: "easeOut", duration: 0.2 }} // Tween is faster and doesn't linger like a spring
           className={`relative group overflow-hidden flex items-center gap-2 px-6 py-3 rounded-xl font-bold ${
