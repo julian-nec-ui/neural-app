@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
   UserPlus, Table as TableIcon, 
   ArrowUpDown, ChevronLeft, ChevronRight, 
-  Trash2, Edit3, Search, ChevronDown // Added ChevronDown here
+  Trash2, Edit3, Search, ChevronDown 
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -248,16 +248,15 @@ const InvestorsPage: React.FC = () => {
                     </p>
                     <div className="flex items-center gap-2 text-xs text-slate-500 font-mono border-l border-white/10 pl-4">
                       <span className="uppercase font-bold">Show:</span>
-                      {/* UPDATED Items Per Page Box */}
                       <div className="relative group">
                         <select 
                           value={itemsPerPage} 
                           onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
-                          className="appearance-none bg-slate-900 border border-slate-700 rounded px-4 py-2 pr-10 outline-none focus:border-indigo-500 text-white cursor-pointer transition-all duration-300 hover:bg-gradient-to-r hover:from-slate-700 hover:via-slate-600 hover:to-slate-700 hover:border-slate-500"
+                          className="appearance-none bg-slate-900 border border-slate-700 rounded px-2 py-1 pr-8 outline-none focus:border-indigo-500 text-white cursor-pointer transition-all duration-300 hover:bg-linear-to-r hover:from-[#003d3d] hover:via-[#008b8b] hover:to-[#003d3d] hover:border-cyan-500"
                         >
                           {PAGE_SIZE_OPTIONS.map(size => <option key={size} value={size} className="bg-slate-900">{size}</option>)}
                         </select>
-                        <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-indigo-400 pointer-events-none transition-colors group-hover:text-indigo-300" />
+                        <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-indigo-400 pointer-events-none transition-colors group-hover:text-indigo-300" />
                       </div>
                     </div>
                   </div>
