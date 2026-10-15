@@ -13,7 +13,7 @@ interface Investor {
   id: string;
   inNumber: number;
   firstName: string;
-  lastName: string; // Added Last Name
+  lastName: string;
   email: string;
   phone: string;
   investSum: number;
@@ -22,7 +22,7 @@ interface Investor {
 
 interface FormData {
   firstName: string;
-  lastName: string; // Added Last Name
+  lastName: string;
   email: string;
   phone: string;
   investSum: number;
@@ -45,7 +45,7 @@ const InvestorsPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [sortConfig, setSortConfig] = useState<SortConfig | null>(null);
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const [itemsPerPage, setItemsPerPage] = useState<number>(5); // Dynamic pagination
+  const [itemsPerPage, setItemsPerPage] = useState<number>(5);
   
   const [formData, setFormData] = useState<FormData>({
     firstName: '',
@@ -84,7 +84,6 @@ const InvestorsPage: React.FC = () => {
 
   // --- Logic: Search, Sort, Paginate ---
   const filteredAndSortedInvestors = useMemo(() => {
-    // 1. Filter (including Last Name)
     let result = investors.filter(
       (inv) =>
         inv.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -92,7 +91,6 @@ const InvestorsPage: React.FC = () => {
         inv.email.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
-    // 2. Sort
     if (sortConfig) {
       result.sort((a, b) => {
         const aVal = a[sortConfig.key];
@@ -171,7 +169,7 @@ const InvestorsPage: React.FC = () => {
               initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
               className="space-y-6"
             >
-              <div className="flex flex-col sm:flex-row justify-between items-center gap-4 bg-white/5 backdrop-blur-md border border-white/10 p-4 rounded-2xl">
+              <div className="flex justify-start items-center bg-white/5 backdrop-blur-md border border-white/10 p-4 rounded-2xl">
                 <div className="relative w-full max-w-md">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
                   <input 
@@ -182,21 +180,6 @@ const InvestorsPage: React.FC = () => {
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
                 </div>
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-2 text-xs text-slate-500 font-mono">
-                    <span className="uppercase font-bold">Show:</span>
-                    <select 
-                      value={itemsPerPage} 
-                      onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
-                      className="bg-slate-900 border border-slate-700 rounded px-2 py-1 outline-none focus:border-indigo-500 text-white cursor-pointer"
-                    >
-                      {PAGE_SIZE_OPTIONS.map(size => <option key={size} value={size}>{size}</option>)}
-                    </select>
-                  </div>
-                  <div className="text-xs text-slate-500 font-mono">
-                    Total: {filteredAndSortedInvestors.length}
-                  </div>
-                </div>
               </div>
 
               <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-3xl overflow-hidden shadow-2xl">
@@ -206,7 +189,7 @@ const InvestorsPage: React.FC = () => {
                       <tr>
                         {[
                           { label: 'Date', key: 'receivedAt' },
-                          { label: 'IN #', key: 'inNumber' },
+                          { label: 'ID #', key: 'inNumber' },
                           { label: 'First Name', key: 'firstName' },
                           { label: 'Last Name', key: 'lastName' },
                           { label: 'Email', key: 'email' },
@@ -256,25 +239,44 @@ const InvestorsPage: React.FC = () => {
                   </table>
                 </div>
 
-                <div className="p-4 flex items-center justify-between bg-white/5 border-t border-white/10">
-                  <p className="text-xs text-slate-500 font-medium">
-                    Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filteredAndSortedInvestors.length)} of {filteredAndSortedInvestors.length}
-                  </p>
-                  <div className="flex gap-2">
-                    <button 
-                      disabled={currentPage === 1}
-                      onClick={() => setCurrentPage(p => p - 1)}
-                      className="p-2 rounded-lg bg-slate-800 border border-slate-700 disabled:opacity-30 hover:bg-slate-700 transition-colors"
-                    >
-                      <ChevronLeft size={20} />
-                    </button>
-                    <button 
-                      disabled={currentPage * itemsPerPage >= filteredAndSortedInvestors.length}
-                      onClick={() => setCurrentPage(p => p + 1)}
-                      className="p-2 rounded-lg bg-slate-800 border border-slate-700 disabled:opacity-30 hover:bg-slate-700 transition-colors"
-                    >
-                      <ChevronRight size={20} />
-                    </button>
+                {/* FOOTER: Now contains Pagination, Total, and Items Per Page */}
+                <div className="p-4 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white/5 border-t border-white/10">
+                  <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4">
+                    <p className="text-xs text-slate-500 font-medium">
+                      Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filteredAndSortedInvestors.length)} of {filteredAndSortedInvestors.length}
+                    </p>
+                    <div className="flex items-center gap-2 text-xs text-slate-500 font-mono border-l border-white/10 pl-4">
+                      <span className="uppercase font-bold">Show:</span>
+                      <select 
+                        value={itemsPerPage} 
+                        onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
+                        className="bg-slate-900 border border-slate-700 rounded px-2 py-1 outline-none focus:border-indigo-500 text-white cursor-pointer"
+                      >
+                        {PAGE_SIZE_OPTIONS.map(size => <option key={size} value={size}>{size}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-4">
+                    <div className="text-xs text-slate-500 font-mono hidden md:block">
+                      Total Records: {filteredAndSortedInvestors.length}
+                    </div>
+                    <div className="flex gap-2">
+                      <button 
+                        disabled={currentPage === 1}
+                        onClick={() => setCurrentPage(p => p - 1)}
+                        className="p-2 rounded-lg bg-slate-800 border border-slate-700 disabled:opacity-30 hover:bg-slate-700 transition-colors"
+                      >
+                        <ChevronLeft size={20} />
+                      </button>
+                      <button 
+                        disabled={currentPage * itemsPerPage >= filteredAndSortedInvestors.length}
+                        onClick={() => setCurrentPage(p => p + 1)}
+                        className="p-2 rounded-lg bg-slate-800 border border-slate-700 disabled:opacity-30 hover:bg-slate-700 transition-colors"
+                      >
+                        <ChevronRight size={20} />
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -321,7 +323,7 @@ const InvestorsPage: React.FC = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-500 uppercase">IN Number</label>
+                    <label className="text-xs font-bold text-slate-500 uppercase">ID Number</label>
                     <input 
                       type="number"
                       className="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl focus:border-indigo-500 outline-none text-white"
