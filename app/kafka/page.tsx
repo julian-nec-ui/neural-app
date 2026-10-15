@@ -6,11 +6,15 @@ import {
   ArrowUpDown, ChevronLeft, ChevronRight, 
   Trash2, Edit3, Search, ChevronDown 
 } from 'lucide-react';
+
+import { Client as StompClient } from "@stomp/stompjs";
+import SockJS from "sockjs-client";
 import { motion, AnimatePresence } from 'framer-motion';
+import { pre } from 'framer-motion/client';
 
 // --- Strict Type Definitions ----
 interface Investor {
-  id: string; 
+  id: number; 
   firstName: string;
   lastName: string;
   email: string;
@@ -57,27 +61,36 @@ const InvestorsPage: React.FC = () => {
 
   // --- WebSocket Integration ---
   useEffect(() => {
-    const socket = new WebSocket('wss://echo.websocket.events');
 
-    socket.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        const newInvestor: Investor = {
-          id: String(data.id || Math.random().toString(36).substring(2, 11)),
-          firstName: data.firstName || "Unknown",
-          lastName: data.lastName || "User",
-          email: data.email || "N/A",
-          phone: data.phone || "N/A",
-          investSum: data.investSum || 0,
-          receivedAt: new Date().toLocaleString(),
-        };
-        setInvestors((prev) => [newInvestor, ...prev]);
-      } catch (err) {
-        console.error("WebSocket parsing error:", err);
-      }
+    const stompClient: StompClient = new StompClient({
+      brokerURL: "ws://localhost:8081/api/ws",
+      reconnectDelay: 5000,
+      heartbeatIncoming: 4000,
+      heartbeatOutgoing: 4000
+    });
+
+    stompClient.webSocketFactory = () => new SockJS("http://localhost:8081/api/ws");
+
+    stompClient.onConnect = () => {
+      stompClient.subscribe("/topic/stompClient", (message) => {
+        const newInvestor = JSON.parse(message.body) as Investor;
+        setInvestors((prevInvestors) => {
+          if(prevInvestors.some((inv) => inv.id === newInvestor.id)) return prevInvestors;
+          return [...prevInvestors, newInvestor];
+        });
+      });
+
+      stompClient.subscribe("/topic/investorRemoved", (message) => {
+        const deletedInvestor = JSON.parse(message.body) as { id: number };
+        setInvestors((prevInvestors) => prevInvestors.filter((inv) => inv.id !== deletedInvestor.id));
+      });
     };
+    
+    stompClient.activate();
 
-    return () => socket.close();
+    return () => {
+      stompClient.deactivate();
+    }
   }, []);
 
   // --- Logic: Search, Sort, Paginate ---
@@ -119,7 +132,7 @@ const InvestorsPage: React.FC = () => {
     e.preventDefault();
     
     const newInvestor: Investor = {
-      id: String(formData.inNumber),
+      id: Number(formData.inNumber),
       firstName: formData.firstName,
       lastName: formData.lastName,
       email: formData.email,
@@ -133,7 +146,7 @@ const InvestorsPage: React.FC = () => {
     setFormData({ firstName: '', lastName: '', email: '', phone: '', investSum: 0, inNumber: 0 });
   };
 
-  const deleteInvestor = (id: string) => {
+  const deleteInvestor = (id: number) => {
     setInvestors((prev) => prev.filter((inv) => inv.id !== id));
   };
 
