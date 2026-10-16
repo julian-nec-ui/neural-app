@@ -236,13 +236,13 @@ const InvestorsPage: React.FC = () => {
                     <thead className="bg-slate-800/50 border-b border-white/10">
                       <tr>
                         {[
-                          { label: 'Date', key: 'receivedAt' },
                           { label: 'ID #', key: 'id' },
                           { label: 'First Name', key: 'firstName' },
                           { label: 'Last Name', key: 'lastName' },
                           { label: 'Email', key: 'email' },
-                          { label: 'Phone', key: 'phone' },
-                          { label: 'Sum', key: 'investSum' },
+                          { label: 'Phone', key: 'phoneNumber' },
+                          { label: 'Investment', key: 'initialInvestmentFund' },
+                          { label: 'Strategy', key: 'investingStrategy' },
                           { label: 'Actions', key: 'actions' },
                         ].map((col) => (
                           <th 
@@ -267,13 +267,14 @@ const InvestorsPage: React.FC = () => {
                             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                             className="hover:bg-white/3 transition-colors group"
                           >
-                            <td className="p-4 text-sm text-slate-400">{inv.receivedAt}</td>
+                            <td className="p-4 text-sm text-slate-400">{new Date().toLocaleString()}</td>
                             <td className="p-4 text-sm font-mono text-indigo-300">#{inv.id}</td>
                             <td className="p-4 text-sm font-medium text-white">{inv.firstName}</td>
                             <td className="p-4 text-sm font-medium text-white">{inv.lastName}</td>
                             <td className="p-4 text-sm text-slate-400">{inv.email}</td>
-                            <td className="p-4 text-sm text-slate-400">{inv.phone}</td>
-                            <td className="p-4 text-sm font-bold text-emerald-400">${inv.investSum.toLocaleString()}</td>
+                            <td className="p-4 text-sm text-slate-400">{inv.phoneNumber}</td>
+                            <td className="p-4 text-sm font-bold text-emerald-400">${inv.initialInvestmentFund.toLocaleString()}</td>
+                            <td className="p-4 text-sm font-bold text-emerald-400">${inv.investingStrategy}</td>
                             <td className="p-4 text-sm">
                               <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <button className="p-2 hover:bg-indigo-500/20 rounded-lg text-indigo-400 transition-colors"><Edit3 size={16}/></button>
