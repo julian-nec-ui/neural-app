@@ -64,9 +64,15 @@ const InvestorsPage: React.FC = () => {
     setIsRefreshing(true);
     try {
       const response = await fetch("http://localhost:8081/api/investors");
-      if (!response.ok) throw new Error("Network response was not ok");
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       const data = await response.json();
-      setInvestors(data);
+      
+      // Ensure the data is an array before updating state to prevent crashes
+      if (Array.isArray(data)) {
+        setInvestors(data);
+      } else {
+        console.error("API did not return an array of investors:", data);
+      }
     } catch (err) {
       console.error("Error fetching investors:", err);
     } finally {
@@ -251,11 +257,10 @@ const InvestorsPage: React.FC = () => {
               </div>
 
               <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-3xl overflow-hidden shadow-2xl">
-                {/* Table height reduced from 580px to 560px */}
-                <div className="overflow-x-auto h-110">
+                <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                     <thead className="bg-slate-800/50 border-b border-white/10">
-                      <tr className="bg-slate-800/90 backdrop-blur-sm sticky top-0 z-20">
+                      <tr>
                         {[
                           { label: 'ID #', key: 'id' },
                           { label: 'First Name', key: 'firstName' },
