@@ -18,9 +18,9 @@ interface Investor {
   firstName: string;
   lastName: string;
   email: string;
-  phone: string;
-  investSum: number;
-  receivedAt: string;
+  phoneNumber: string;
+  initialInvestmentFund: number;
+  investingStrategy: string;
 }
 
 interface FormData {
