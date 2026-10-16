@@ -2,9 +2,8 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
-  UserPlus, Table as TableIcon, 
-  ArrowUpDown, ChevronLeft, ChevronRight, 
-  Trash2, Edit3, Search, ChevronDown, X 
+  UserPlus, Table as TableIcon, ChevronLeft, ChevronRight, 
+  Trash2, Edit3, Search, ChevronDown, X, RotateCw 
 } from 'lucide-react';
 
 import { Client as StompClient } from "@stomp/stompjs";
@@ -49,6 +48,7 @@ const InvestorsPage: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [itemsPerPage, setItemsPerPage] = useState<number>(5);
   const [selectedInvestor, setSelectedInvestor] = useState<Investor | null>(null); 
+  const [isRefreshing, setIsRefreshing] = useState(false);
   
   const [formData, setFormData] = useState<FormData>({
     firstName: '',
@@ -59,9 +59,29 @@ const InvestorsPage: React.FC = () => {
     inNumber: 0,
   });
 
+  // --- Data Fetching Logic ---
+  const fetchInvestors = async () => {
+    setIsRefreshing(true);
+    try {
+      const response = await fetch("http://localhost:8081/api/investors");
+      if (!response.ok) throw new Error("Failed to fetch");
+      const data = await response.json();
+      setInvestors(data);
+    } catch (err) {
+      console.error("Error fetching investors:", err);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchInvestors();
+  }, []);
+
   // --- WebSocket Integration ---
   useEffect(() => {
     const stompClient: StompClient = new StompClient({
+      brokerURL: "ws://localhost:8081/api/ws",
       reconnectDelay: 5000,
       heartbeatIncoming: 4000,
       heartbeatOutgoing: 4000
@@ -165,30 +185,47 @@ const InvestorsPage: React.FC = () => {
           </p>
         </div>
 
-        <motion.button 
-          onClick={() => setView(view === 'table' ? 'form' : 'table')}
-          whileHover={view === 'table' ? { scale: 1.02, y: -2 } : { scale: 1.02 }}
-          whileTap={{ scale: 0.97 }}
-          transition={{ type: "tween", ease: "easeOut", duration: 0.2 }}
-          className={`relative group overflow-hidden flex items-center gap-2 px-6 py-3 rounded-xl font-bold ${
-            view === 'table' 
-              ? `${METALLIC_ROYAL_BLUE} text-white border border-white/20 shadow-[0_0_20px_rgba(65,105,225,0.4)] hover:shadow-[0_0_30px_rgba(65,105,225,0.6)] hover:brightness-110` 
-              : `bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700 transition-colors`
-          }`}
-        >
-          {view === 'table' && (
+        <div className="flex items-center gap-3">
+          <motion.button 
+            onClick={fetchInvestors}
+            disabled={isRefreshing}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            className={`relative group p-3 rounded-xl font-bold border border-white/20 shadow-[0_0_15px_rgba(65,105,225,0.3)] transition-all ${METALLIC_ROYAL_BLUE} text-white hover:brightness-110 disabled:opacity-70`}
+          >
             <motion.div 
-              initial={{ x: '-100%' }}
-              whileHover={{ x: '100%' }}
-              transition={{ duration: 0.3, ease: "easeOut" }}
-              className="absolute inset-0 w-1/2 h-full bg-linear-to-r from-transparent via-white/30 to-transparent -skew-x-12 pointer-events-none"
-            />
-          )}
-          <span className="relative z-10 flex items-center gap-2">
-            {view === 'table' ? <UserPlus size={20}/> : <TableIcon size={20}/>}
-            {view === 'table' ? "Register Investor" : "View Database"}
-          </span>
-        </motion.button>
+              animate={isRefreshing ? { rotate: 360 } : { rotate: 0 }}
+              transition={{ repeat: isRefreshing ? Infinity : 0, duration: 1, ease: "linear" }}
+            >
+              <RotateCw size={20} />
+            </motion.div>
+          </motion.button>
+
+          <motion.button 
+            onClick={() => setView(view === 'table' ? 'form' : 'table')}
+            whileHover={view === 'table' ? { scale: 1.02, y: -2 } : { scale: 1.02 }}
+            whileTap={{ scale: 0.97 }}
+            transition={{ type: "tween", ease: "easeOut", duration: 0.2 }}
+            className={`relative group overflow-hidden flex items-center gap-2 px-6 py-3 rounded-xl font-bold ${
+              view === 'table' 
+                ? `${METALLIC_ROYAL_BLUE} text-white border border-white/20 shadow-[0_0_20px_rgba(65,105,225,0.4)] hover:shadow-[0_0_30px_rgba(65,105,225,0.6)] hover:brightness-110` 
+                : `bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700 transition-colors`
+            }`}
+          >
+            {view === 'table' && (
+              <motion.div 
+                initial={{ x: '-100%' }}
+                whileHover={{ x: '100%' }}
+                transition={{ duration: 0.3, ease: "easeOut" }}
+                className="absolute inset-0 w-1/2 h-full bg-linear-to-r from-transparent via-white/30 to-transparent -skew-x-12 pointer-events-none"
+              />
+            )}
+            <span className="relative z-10 flex items-center gap-2">
+              {view === 'table' ? <UserPlus size={20}/> : <TableIcon size={20}/>}
+              {view === 'table' ? "Register Investor" : "View Database"}
+            </span>
+          </motion.button>
+        </div>
       </div>
 
       <div className="relative z-10 max-w-7xl mx-auto">
@@ -238,7 +275,15 @@ const InvestorsPage: React.FC = () => {
                           >
                             <div className="flex items-center gap-2">
                               {col.label}
-                              {sortConfig?.key === col.key && <ArrowUpDown size={12} className="text-indigo-400" />}
+                              {sortConfig?.key === col.key && (
+                                <motion.div 
+                                  animate={{ rotate: sortConfig.direction === 'asc' ? 0 : 180 }}
+                                  transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                                  className="text-indigo-400"
+                                >
+                                  <ChevronDown size={16} />
+                                </motion.div>
+                              )}
                             </div>
                           </th>
                         ))}
@@ -368,7 +413,7 @@ const InvestorsPage: React.FC = () => {
                     <label className="text-xs font-bold text-slate-500 uppercase">ID Number</label>
                     <input 
                       type="number"
-                      className="w-//full p-3 bg-slate-900 border border-slate-700 rounded-xl focus:border-indigo-500 outline-none text-white"
+                      className="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl focus:border-indigo-500 outline-none text-white"
                       value={formData.inNumber} onChange={e => setFormData({...formData, inNumber: Number(e.target.value)})} required
                     />
                   </div>
@@ -477,11 +522,10 @@ const InvestorsPage: React.FC = () => {
         </AnimatePresence>
       </div>
 
-      {/* --- METALLIC EDIT MODAL --- */}
       <AnimatePresence>
         {selectedInvestor && (
           <div 
-            className="fixed inset-0 z-100 flex items-center justify-center p-4 backdrop-blur-md bg-black/60"
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 backdrop-blur-md bg-black/60"
             onClick={() => setSelectedInvestor(null)}
           >
             <motion.div 
