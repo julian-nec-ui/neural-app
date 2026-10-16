@@ -75,7 +75,9 @@ const InvestorsPage: React.FC = () => {
       stompClient.subscribe("/topic/investorCreated", (message) => {
         const newInvestor = JSON.parse(message.body) as Investor;
         setInvestors((prevInvestors) => {
-          if(prevInvestors.some((inv) => inv.id === newInvestor.id)) return prevInvestors;
+          if(prevInvestors.some((inv) => inv.id === newInvestor.id)) {
+            return prevInvestors;
+          }
           return [...prevInvestors, newInvestor];
         });
       });
@@ -92,6 +94,20 @@ const InvestorsPage: React.FC = () => {
       stompClient.deactivate();
     }
   }, []);
+
+  // useEffect(() => {
+  //   const fetchInvestors = async () => {
+  //     try {
+  //       const response = await fetch("http://localhost:8081/api/investors");
+  //       const data = await response.json();
+  //       setInvestors(data);
+  //     } catch (err) {
+  //       console.error("Error fetching investors", err);
+  //     }
+  //   };
+
+  //   fetchInvestors();
+  // }, []);
 
   // --- Logic: Search, Sort, Paginate ---
   const filteredAndSortedInvestors = useMemo(() => {
