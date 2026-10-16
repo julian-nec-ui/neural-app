@@ -252,7 +252,7 @@ const InvestorsPage: React.FC = () => {
 
               <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-3xl overflow-hidden shadow-2xl">
                 {/* Table height reduced from 580px to 560px */}
-                <div className="overflow-x-auto h-135">
+                <div className="overflow-x-auto h-125">
                   <table className="w-full text-left border-collapse">
                     <thead className="bg-slate-800/50 border-b border-white/10">
                       <tr className="bg-slate-800/90 backdrop-blur-sm sticky top-0 z-20">
