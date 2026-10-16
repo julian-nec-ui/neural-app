@@ -196,7 +196,7 @@ const InvestorsPage: React.FC = () => {
             whileTap={{ scale: 0.95 }}
             className={`h-12 w-12 flex items-center justify-center rounded-xl font-bold transition-all duration-300 border border-slate-700 ${
               isRefreshing 
-                ? `bg-slate-800 text-slate-500 cursor-not-allowed` 
+                ? `bg-slate-800 text-slate-500` 
                 : `bg-slate-800 text-white hover:bg-slate-700 hover:border-indigo-500`
             }`}
             title="Refresh Data"
