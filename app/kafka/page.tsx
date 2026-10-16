@@ -267,7 +267,6 @@ const InvestorsPage: React.FC = () => {
                             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                             className="hover:bg-white/3 transition-colors group"
                           >
-                            <td className="p-4 text-sm text-slate-400">{new Date().toLocaleString()}</td>
                             <td className="p-4 text-sm font-mono text-indigo-300">#{inv.id}</td>
                             <td className="p-4 text-sm font-medium text-white">{inv.firstName}</td>
                             <td className="p-4 text-sm font-medium text-white">{inv.lastName}</td>
