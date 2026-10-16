@@ -63,6 +63,9 @@ const InvestorsPage: React.FC = () => {
   const fetchInvestors = useCallback(async () => {
     setIsRefreshing(true);
     try {
+      // Artificial delay of 500ms to make the loading animation visible
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
       const response = await fetch("http://localhost:8081/api/investors");
       if (!response.ok) throw new Error("Network response was not ok");
       const data = await response.json();
@@ -203,11 +206,7 @@ const InvestorsPage: React.FC = () => {
 
           <motion.button 
             onClick={() => setView(view === 'table' ? 'form' : 'table')}
-            // FIXED: Object shape is now identical for both cases, removing the type error
-            whileHover={{ 
-              scale: 1.02, 
-              y: view === 'table' ? -2 : 0 
-            }}
+            whileHover={view === 'table' ? { scale: 1.02, y: -2 } : { scale: 1.02 }}
             whileTap={{ scale: 0.97 }}
             transition={{ type: "tween", ease: "easeOut", duration: 0.2 }}
             className={`relative group overflow-hidden flex items-center gap-2 px-6 py-3 rounded-xl font-bold ${
@@ -255,7 +254,7 @@ const InvestorsPage: React.FC = () => {
               </div>
 
               <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-3xl overflow-hidden shadow-2xl">
-                <div className="overflow-x-auto h-[560px]">
+                <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                     <thead className="bg-slate-800/50 border-b border-white/10">
                       <tr className="bg-slate-800/90 backdrop-blur-sm sticky top-0 z-20">
