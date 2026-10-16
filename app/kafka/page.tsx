@@ -59,7 +59,7 @@ const InvestorsPage: React.FC = () => {
     inNumber: 0,
   });
 
-  // --- API Fetch Logic (Wrapped in useCallback to prevent re-renders) ---
+  // --- API Fetch Logic ---
   const fetchInvestors = useCallback(async () => {
     setIsRefreshing(true);
     try {
@@ -86,9 +86,6 @@ const InvestorsPage: React.FC = () => {
     stompClient.webSocketFactory = () => new SockJS("http://localhost:8081/api/ws");
 
     stompClient.onConnect = () => {
-      console.log('Connected to STOMP');
-      
-      // FIXED: Call the initial fetch inside the callback, not synchronously in useEffect
       fetchInvestors();
 
       stompClient.subscribe("/topic/investorCreated", (message) => {
@@ -116,7 +113,7 @@ const InvestorsPage: React.FC = () => {
         stompClient.deactivate();
       }
     };
-  }, [fetchInvestors]); // Dependency on the stable useCallback function
+  }, [fetchInvestors]);
 
   // --- Logic: Search, Sort, Paginate ---
   const filteredAndSortedInvestors = useMemo(() => {
@@ -194,7 +191,8 @@ const InvestorsPage: React.FC = () => {
             disabled={isRefreshing}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            className={`p-3 rounded-xl font-bold transition-all duration-300 border border-slate-700 ${
+            // Fixed height and width to match the register button's height (~48px) and keep it square
+            className={`h-12 w-12 flex items-center justify-center rounded-xl font-bold transition-all duration-300 border border-slate-700 ${
               isRefreshing 
                 ? `bg-slate-800 text-slate-500 cursor-not-allowed` 
                 : `bg-slate-800 text-white hover:bg-slate-700 hover:border-indigo-500`
