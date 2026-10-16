@@ -144,7 +144,7 @@ const InvestorsPage: React.FC = () => {
     return filteredAndSortedInvestors.slice(startIndex, startIndex + itemsPerPage);
   }, [filteredAndSortedInvestors, currentPage, itemsPerPage]);
 
-  // --- Event Handlers ---x
+  // --- Event Handlers ---
   const handleSort = (key: keyof Investor) => {
     setSortConfig((prev) => ({
       key,
@@ -282,28 +282,42 @@ const InvestorsPage: React.FC = () => {
                     </thead>
                     <tbody className="divide-y divide-white/5">
                       <AnimatePresence initial={false}>
-                        {paginatedInvestors.map((inv) => (
-                          <motion.tr 
-                            key={inv.id}
-                            layout
-                            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                            className="h-14 hover:bg-white/5 transition-colors group"
-                          >
-                            <td className="p-4 text-sm font-mono text-indigo-300">#{inv.id}</td>
-                            <td className="p-4 text-sm font-medium text-white">{inv.firstName}</td>
-                            <td className="p-4 text-sm font-medium text-white">{inv.lastName}</td>
-                            <td className="p-4 text-sm text-slate-400">{inv.email}</td>
-                            <td className="p-4 text-sm text-slate-400">{inv.phoneNumber}</td>
-                            <td className="p-4 text-sm font-bold text-emerald-400">${inv.initialInvestmentFund.toLocaleString()}</td>
-                            <td className="p-4 text-sm font-bold text-emerald-400">{inv.investingStrategy}</td>
-                            <td className="p-4 text-sm">
-                              <div className="flex gap-2 transition-opacity">
-                                <button className="p-2 hover:bg-indigo-500/20 rounded-lg text-indigo-400 transition-colors"><Edit3 size={16}/></button>
-                                <button onClick={() => deleteInvestor(inv.id)} className="p-2 hover:bg-red-500/20 rounded-lg text-red-400 transition-colors"><Trash2 size={16}/></button>
-                              </div>
-                            </td>
-                          </motion.tr>
-                        ))}
+                        {paginatedInvestors.map((inv, index) => {
+                          const isLastRow = index === paginatedInvestors.length - 1;
+                          return (
+                            <motion.tr 
+                              key={inv.id}
+                              layout
+                              initial={{ opacity: 0, x: isLastRow ? 50 : 0 }} 
+                              animate={{ opacity: 1, x: 0 }} 
+                              exit={{ opacity: 0 }}
+                              transition={{ 
+                                duration: isLastRow ? 0.8 : 0.3, 
+                                ease: "easeOut",
+                                delay: isLastRow ? 0.1 : 0 
+                              }}
+                              className={`h-14 hover:bg-white/5 transition-colors group ${
+                                isLastRow 
+                                ? "bg-linear-to-r from-emerald-500/10 via-emerald-400/5 to-emerald-500/10 border-l-4 border-emerald-500" 
+                                : ""
+                              }`}
+                            >
+                              <td className="p-4 text-sm font-mono text-indigo-300">#{inv.id}</td>
+                              <td className="p-4 text-sm font-medium text-white">{inv.firstName}</td>
+                              <td className="p-4 text-sm font-medium text-white">{inv.lastName}</td>
+                              <td className="p-4 text-sm text-slate-400">{inv.email}</td>
+                              <td className="p-4 text-sm text-slate-400">{inv.phoneNumber}</td>
+                              <td className="p-4 text-sm font-bold text-emerald-400">${inv.initialInvestmentFund.toLocaleString()}</td>
+                              <td className="p-4 text-sm font-bold text-emerald-400">{inv.investingStrategy}</td>
+                              <td className="p-4 text-sm">
+                                <div className="flex gap-2 transition-opacity">
+                                  <button className="p-2 hover:bg-indigo-500/20 rounded-lg text-indigo-400 transition-colors"><Edit3 size={16}/></button>
+                                  <button onClick={() => deleteInvestor(inv.id)} className="p-2 hover:bg-red-500/20 rounded-lg text-red-400 transition-colors"><Trash2 size={16}/></button>
+                                </div>
+                              </td>
+                            </motion.tr>
+                          );
+                        })}
                       </AnimatePresence>
 
                       {/* Filler rows to maintain height */}
