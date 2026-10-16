@@ -273,8 +273,8 @@ const InvestorsPage: React.FC = () => {
                             <td className="p-4 text-sm font-medium text-white">{inv.lastName}</td>
                             <td className="p-4 text-sm text-slate-400">{inv.email}</td>
                             <td className="p-4 text-sm text-slate-400">{inv.phoneNumber}</td>
-                            <td className="p-4 text-sm font-bold text-emerald-400">${inv.initialInvestmentFund.toLocaleString()}</td>
-                            <td className="p-4 text-sm font-bold text-emerald-400">${inv.investingStrategy}</td>
+                            <td className="p-4 text-sm font-bold text-emerald-400">`${inv.initialInvestmentFund.toLocaleString()}`</td>
+                            <td className="p-4 text-sm font-bold text-emerald-400">`${inv.investingStrategy}`</td>
                             <td className="p-4 text-sm">
                               <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <button className="p-2 hover:bg-indigo-500/20 rounded-lg text-indigo-400 transition-colors"><Edit3 size={16}/></button>
