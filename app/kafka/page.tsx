@@ -74,7 +74,7 @@ const InvestorsPage: React.FC = () => {
     stompClient.onConnect = () => {
       stompClient.subscribe("/topic/investorCreated", (message) => {
         const newInvestor = JSON.parse(message.body) as Investor;
-        console.log("==== ",newInvestor, " ====");
+        console.log("==== ",newInvestor, " ===v=");
         setInvestors((prevInvestors) => {
           if(prevInvestors.some((inv) => inv.id === newInvestor.id)) {
             return prevInvestors;
