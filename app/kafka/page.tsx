@@ -48,7 +48,7 @@ const InvestorsPage: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [itemsPerPage, setItemsPerPage] = useState<number>(5);
   const [selectedInvestor, setSelectedInvestor] = useState<Investor | null>(null); 
-  const [isRefreshing, setIsRefreshing] = useState(false); // State for spin animation
+  const [isRefreshing, setIsRefreshing] = useState(false);
   
   const [formData, setFormData] = useState<FormData>({
     firstName: '',
@@ -74,7 +74,6 @@ const InvestorsPage: React.FC = () => {
     }
   };
 
-  // Initial load
   useEffect(() => {
     fetchInvestors();
   }, []);
@@ -187,7 +186,6 @@ const InvestorsPage: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-3">
-          {/* REFRESH BUTTON */}
           <motion.button 
             onClick={fetchInvestors}
             disabled={isRefreshing}
@@ -205,7 +203,6 @@ const InvestorsPage: React.FC = () => {
             </motion.div>
           </motion.button>
 
-          {/* REGISTER BUTTON */}
           <motion.button 
             onClick={() => setView(view === 'table' ? 'form' : 'table')}
             whileHover={view === 'table' ? { scale: 1.02, y: -2 } : { scale: 1.02 }}
@@ -371,81 +368,6 @@ const InvestorsPage: React.FC = () => {
                     </div>
                   </div>
                 </div>
-              </div>
-            </motion.div>
-          ) : (
-            <motion.div 
-              key="form-view"
-              initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
-              className="max-w-2xl mx-auto"
-            >
-              <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-3xl p-8 shadow-2xl">
-                <div className="mb-8">
-                  <h2 className="text-2xl font-bold text-white">New Investor Entry</h2>
-                  <p className="text-slate-400 text-sm">Register a new client in the system.</p>
-                </div>
-                <form onSubmit={handleCreate} className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-500 uppercase">First Name</label>
-                    <input 
-                      className="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl focus:border-indigo-500 outline-none text-white"
-                      value={formData.firstName} onChange={e => setFormData({...formData, firstName: e.target.value})} required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-500 uppercase">Last Name</label>
-                    <input 
-                      className="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl focus:border-indigo-500 outline-none text-white"
-                      value={formData.lastName} onChange={e => setFormData({...formData, lastName: e.target.value})} required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-500 uppercase">Email</label>
-                    <input 
-                      type="email"
-                      className="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl focus:border-indigo-500 outline-none text-white"
-                      value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-500 uppercase">Phone</label>
-                    <input 
-                      className="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl focus:border-indigo-500 outline-none text-white"
-                      value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-500 uppercase">ID Number</label>
-                    <input 
-                      type="number"
-                      className="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl focus:border-indigo-500 outline-none text-white"
-                      value={formData.inNumber} onChange={e => setFormData({...formData, inNumber: Number(e.target.value)})} required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-500 uppercase">Investment Sum ($)</label>
-                    <input 
-                      type="number"
-                      className="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl focus:border-indigo-500 outline-none text-white"
-                      value={formData.investSum} onChange={e => setFormData({...formData, investSum: Number(e.target.value)})} required
-                    />
-                  </div>
-                  <div className="md:col-span-2 flex gap-4 mt-4">
-                    <button 
-                      type="submit" 
-                      className={`flex-1 py-3 rounded-xl font-bold text-white transition-all ${METALLIC_ROYAL_BLUE} hover:shadow-[0_0_20px_rgba(65,105,225,0.4)]`}
-                    >
-                      Create Record
-                    </button>
-                    <button 
-                      type="button" 
-                      onClick={() => setView('table')}
-                      className="px-6 py-3 rounded-xl font-bold bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700 transition-colors"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </form>
               </div>
             </motion.div>
           ) : (
