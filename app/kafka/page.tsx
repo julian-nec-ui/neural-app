@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   UserPlus, Table as TableIcon, ChevronLeft, ChevronRight, 
-  Trash2, Edit3, Search, ChevronDown, X, RotateCw 
+  Trash2, Edit3, Search, ChevronDown, X 
 } from 'lucide-react';
 
 import { Client as StompClient } from "@stomp/stompjs";
@@ -48,7 +48,6 @@ const InvestorsPage: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [itemsPerPage, setItemsPerPage] = useState<number>(5);
   const [selectedInvestor, setSelectedInvestor] = useState<Investor | null>(null); 
-  const [isRefreshing, setIsRefreshing] = useState(false);
   
   const [formData, setFormData] = useState<FormData>({
     firstName: '',
@@ -58,25 +57,6 @@ const InvestorsPage: React.FC = () => {
     investSum: 0,
     inNumber: 0,
   });
-
-  // --- Data Fetching Logic ---
-  const fetchInvestors = async () => {
-    setIsRefreshing(true);
-    try {
-      const response = await fetch("http://localhost:8081/api/investors");
-      if (!response.ok) throw new Error("Failed to fetch");
-      const data = await response.json();
-      setInvestors(data);
-    } catch (err) {
-      console.error("Error fetching investors:", err);
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchInvestors();
-  }, []);
 
   // --- WebSocket Integration ---
   useEffect(() => {
@@ -185,49 +165,30 @@ const InvestorsPage: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <motion.button 
-            onClick={fetchInvestors}
-            disabled={isRefreshing}
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            className={`relative group p-3 rounded-xl font-bold border border-white/20 shadow-[0_0_15px_rgba(65,105,225,0.3)] transition-all ${
-              METALLIC_ROYAL_BLUE
-            } text-white hover:brightness-110 disabled:opacity-70`}
-          >
+        <motion.button 
+          onClick={() => setView(view === 'table' ? 'form' : 'table')}
+          whileHover={view === 'table' ? { scale: 1.02, y: -2 } : { scale: 1.02 }}
+          whileTap={{ scale: 0.97 }}
+          transition={{ type: "tween", ease: "easeOut", duration: 0.2 }}
+          className={`relative group overflow-hidden flex items-center gap-2 px-6 py-3 rounded-xl font-bold ${
+            view === 'table' 
+              ? `${METALLIC_ROYAL_BLUE} text-white border border-white/20 shadow-[0_0_20px_rgba(65,105,225,0.4)] hover:shadow-[0_0_30px_rgba(65,105,225,0.6)] hover:brightness-110` 
+              : `bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700 transition-colors`
+          }`}
+        >
+          {view === 'table' && (
             <motion.div 
-              animate={isRefreshing ? { rotate: 360 } : { rotate: 0 }}
-              transition={{ repeat: isRefreshing ? Infinity : 0, duration: 1, ease: "linear" }}
-            >
-              <RotateCw size={20} />
-            </motion.div>
-          </motion.button>
-
-          <motion.button 
-            onClick={() => setView(view === 'table' ? 'form' : 'table')}
-            whileHover={view === 'table' ? { scale: 1.02, y: -2 } : { scale: 1.02 }}
-            whileTap={{ scale: 0.97 }}
-            transition={{ type: "tween", ease: "easeOut", duration: 0.2 }}
-            className={`relative group overflow-hidden flex items-center gap-2 px-6 py-3 rounded-xl font-bold ${
-              view === 'table' 
-                ? `${METALLIC_ROYAL_BLUE} text-white border border-white/20 shadow-[0_0_20px_rgba(65,105,225,0.4)] hover:shadow-[0_0_30px_rgba(65,105,225,0.6)] hover:brightness-110` 
-                : `bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700 transition-colors`
-            }`}
-          >
-            {view === 'table' && (
-              <motion.div 
-                initial={{ x: '-100%' }}
-                whileHover={{ x: '100%' }}
-                transition={{ duration: 0.3, ease: "easeOut" }}
-                className="absolute inset-0 w-1/2 h-full bg-linear-to-r from-transparent via-white/30 to-transparent -skew-x-12 pointer-events-none"
-              />
-            )}
-            <span className="relative z-10 flex items-center gap-2">
-              {view === 'table' ? <UserPlus size={20}/> : <TableIcon size={20}/>}
-              {view === 'table' ? "Register Investor" : "View Database"}
-            </span>
-          </motion.button>
-        </div>
+              initial={{ x: '-100%' }}
+              whileHover={{ x: '100%' }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
+              className="absolute inset-0 w-1/2 h-full bg-linear-to-r from-transparent via-white/30 to-transparent -skew-x-12 pointer-events-none"
+            />
+          )}
+          <span className="relative z-10 flex items-center gap-2">
+            {view === 'table' ? <UserPlus size={20}/> : <TableIcon size={20}/>}
+            {view === 'table' ? "Register Investor" : "View Database"}
+          </span>
+        </motion.button>
       </div>
 
       <div className="relative z-10 max-w-7xl mx-auto">
@@ -261,7 +222,7 @@ const InvestorsPage: React.FC = () => {
                       <tr>
                         {[
                           { label: 'ID #', key: 'id' },
-                          { label: 'Date & Time', key: 'date' }, 
+                          { label: 'Date', key: 'date' }, 
                           { label: 'First Name', key: 'firstName' },
                           { label: 'Last Name', key: 'lastName' },
                           { label: 'Email', key: 'email' },
@@ -520,81 +481,6 @@ const InvestorsPage: React.FC = () => {
                 </form>
               </div>
             </motion.div>
-          ) : (
-            <motion.div 
-              key="form-view"
-              initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
-              className="max-w-2xl mx-auto"
-            >
-              <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-3xl p-8 shadow-2xl">
-                <div className="mb-8">
-                  <h2 className="text-2xl font-bold text-white">New Investor Entry</h2>
-                  <p className="text-slate-400 text-sm">Register a new client in the system.</p>
-                </div>
-                <form onSubmit={handleCreate} className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-500 uppercase">First Name</label>
-                    <input 
-                      className="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl focus:border-indigo-500 outline-none text-white"
-                      value={formData.firstName} onChange={e => setFormData({...formData, firstName: e.target.value})} required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-500 uppercase">Last Name</label>
-                    <input 
-                      className="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl focus:border-indigo-500 outline-none text-white"
-                      value={formData.lastName} onChange={e => setFormData({...formData, lastName: e.target.value})} required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-500 uppercase">Email</label>
-                    <input 
-                      type="email"
-                      className="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl focus:border-indigo-500 outline-none text-white"
-                      value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-500 uppercase">Phone</label>
-                    <input 
-                      className="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl focus:border-indigo-500 outline-none text-white"
-                      value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-500 uppercase">ID Number</label>
-                    <input 
-                      type="number"
-                      className="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl focus:border-indigo-500 outline-none text-white"
-                      value={formData.inNumber} onChange={e => setFormData({...formData, inNumber: Number(e.target.value)})} required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-500 uppercase">Investment Sum ($)</label>
-                    <input 
-                      type="number"
-                      className="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl focus:border-indigo-500 outline-none text-white"
-                      value={formData.investSum} onChange={e => setFormData({...formData, investSum: Number(e.target.value)})} required
-                    />
-                  </div>
-                  <div className="md:col-span-2 flex gap-4 mt-4">
-                    <button 
-                      type="submit" 
-                      className={`flex-1 py-3 rounded-xl font-bold text-white transition-all ${METALLIC_ROYAL_BLUE} hover:shadow-[0_0_20px_rgba(65,105,225,0.4)]`}
-                    >
-                      Create Record
-                    </button>
-                    <button 
-                      type="button" 
-                      onClick={() => setView('table')}
-                      className="px-6 py-3 rounded-xl font-bold bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700 transition-colors"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </form>
-              </div>
-            </motion.div>
           )}
         </AnimatePresence>
       </div>
@@ -603,7 +489,7 @@ const InvestorsPage: React.FC = () => {
       <AnimatePresence>
         {selectedInvestor && (
           <div 
-            className="fixed inset-0 z-100 flex items-center justify-center p-4 backdrop-blur-md bg-black/60"
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 backdrop-blur-md bg-black/60"
             onClick={() => setSelectedInvestor(null)}
           >
             <motion.div 
