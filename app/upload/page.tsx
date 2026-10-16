@@ -12,7 +12,7 @@ import {
   FileUp,
 } from "lucide-react";
 
-// Define types for better stability
+// Define types for better stability...
 interface FileStatus {
   progress: number;
   status: "idle" | "uploading" | "success" | "error";
