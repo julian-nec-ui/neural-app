@@ -72,7 +72,7 @@ const InvestorsPage: React.FC = () => {
     stompClient.webSocketFactory = () => new SockJS("http://localhost:8081/api/ws");
 
     stompClient.onConnect = () => {
-      stompClient.subscribe("/topic/stompClient", (message) => {
+      stompClient.subscribe("/topic/investorCreated", (message) => {
         const newInvestor = JSON.parse(message.body) as Investor;
         setInvestors((prevInvestors) => {
           if(prevInvestors.some((inv) => inv.id === newInvestor.id)) return prevInvestors;
