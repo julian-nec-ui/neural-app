@@ -10,7 +10,6 @@ import {
 import { Client as StompClient } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 import { motion, AnimatePresence } from 'framer-motion';
-import { pre } from 'framer-motion/client';
 
 // --- Strict Type Definitions ----
 interface Investor {
@@ -61,7 +60,6 @@ const InvestorsPage: React.FC = () => {
 
   // --- WebSocket Integration ---
   useEffect(() => {
-
     const stompClient: StompClient = new StompClient({
       brokerURL: "ws://localhost:8081/api/ws",
       reconnectDelay: 5000,
@@ -74,7 +72,6 @@ const InvestorsPage: React.FC = () => {
     stompClient.onConnect = () => {
       stompClient.subscribe("/topic/investorCreated", (message) => {
         const newInvestor = JSON.parse(message.body) as Investor;
-        console.log("==== ",newInvestor, " ===v=");
         setInvestors((prevInvestors) => {
           if(prevInvestors.some((inv) => inv.id === newInvestor.id)) {
             return prevInvestors;
@@ -95,20 +92,6 @@ const InvestorsPage: React.FC = () => {
       stompClient.deactivate();
     };
   }, []);
-
-  // useEffect(() => {
-  //   const fetchInvestors = async () => {
-  //     try {
-  //       const response = await fetch("http://localhost:8081/api/investors");
-  //       const data = await response.json();
-  //       setInvestors(data);
-  //     } catch (err) {
-  //       console.error("Error fetching investors", err);
-  //     }
-  //   };
-
-  //   fetchInvestors();
-  // }, []);
 
   // --- Logic: Search, Sort, Paginate ---
   const filteredAndSortedInvestors = useMemo(() => {
@@ -182,12 +165,11 @@ const InvestorsPage: React.FC = () => {
           </p>
         </div>
 
-        {/* FIXED: Fast, Smooth, and No-Linger Hover Effect */}
         <motion.button 
           onClick={() => setView(view === 'table' ? 'form' : 'table')}
           whileHover={view === 'table' ? { scale: 1.02, y: -2 } : { scale: 1.02 }}
           whileTap={{ scale: 0.97 }}
-          transition={{ type: "tween", ease: "easeOut", duration: 0.2 }} // Tween is faster and doesn't linger like a spring
+          transition={{ type: "tween", ease: "easeOut", duration: 0.2 }}
           className={`relative group overflow-hidden flex items-center gap-2 px-6 py-3 rounded-xl font-bold ${
             view === 'table' 
               ? `${METALLIC_ROYAL_BLUE} text-white border border-white/20 shadow-[0_0_20px_rgba(65,105,225,0.4)] hover:shadow-[0_0_30px_rgba(65,105,225,0.6)] hover:brightness-110` 
@@ -226,7 +208,10 @@ const InvestorsPage: React.FC = () => {
                     placeholder="Search by name or email..."
                     className="w-full pl-10 pr-4 py-2 bg-slate-900/50 border border-slate-700 rounded-lg focus:border-indigo-500 outline-none transition-all text-white"
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      setCurrentPage(1); // Fix: Reset page to 1 when searching
+                    }}
                   />
                 </div>
               </div>
@@ -238,6 +223,7 @@ const InvestorsPage: React.FC = () => {
                       <tr>
                         {[
                           { label: 'ID #', key: 'id' },
+                          { label: 'Date', key: 'date' }, // Added Date Column
                           { label: 'First Name', key: 'firstName' },
                           { label: 'Last Name', key: 'lastName' },
                           { label: 'Email', key: 'email' },
@@ -248,7 +234,7 @@ const InvestorsPage: React.FC = () => {
                         ].map((col) => (
                           <th 
                             key={col.key} 
-                            onClick={() => col.key !== 'actions' && handleSort(col.key as keyof Investor)}
+                            onClick={() => col.key !== 'actions' && col.key !== 'date' && handleSort(col.key as keyof Investor)}
                             className="p-4 text-xs font-bold uppercase tracking-wider text-slate-400 cursor-pointer hover:text-indigo-400 transition-colors"
                           >
                             <div className="flex items-center gap-2">
@@ -269,14 +255,15 @@ const InvestorsPage: React.FC = () => {
                             className="hover:bg-white/3 transition-colors group"
                           >
                             <td className="p-4 text-sm font-mono text-indigo-300">#{inv.id}</td>
+                            <td className="p-4 text-sm text-slate-400">{new Date().toLocaleDateString()}</td>
                             <td className="p-4 text-sm font-medium text-white">{inv.firstName}</td>
                             <td className="p-4 text-sm font-medium text-white">{inv.lastName}</td>
                             <td className="p-4 text-sm text-slate-400">{inv.email}</td>
                             <td className="p-4 text-sm text-slate-400">{inv.phoneNumber}</td>
                             <td className="p-4 text-sm font-bold text-emerald-400">${inv.initialInvestmentFund.toLocaleString()}</td>
-                            <td className="p-4 text-sm font-bold text-emerald-400">${inv.investingStrategy}</td>
+                            <td className="p-4 text-sm font-bold text-emerald-400">{inv.investingStrategy}</td>
                             <td className="p-4 text-sm">
-                              <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <div className="flex gap-2 transition-opacity">
                                 <button className="p-2 hover:bg-indigo-500/20 rounded-lg text-indigo-400 transition-colors"><Edit3 size={16}/></button>
                                 <button onClick={() => deleteInvestor(inv.id)} className="p-2 hover:bg-red-500/20 rounded-lg text-red-400 transition-colors"><Trash2 size={16}/></button>
                               </div>
