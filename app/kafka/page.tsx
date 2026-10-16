@@ -63,7 +63,6 @@ const InvestorsPage: React.FC = () => {
   const fetchInvestors = useCallback(async () => {
     setIsRefreshing(true);
     try {
-      // Artificial delay of 500ms to make the loading animation visible
       await new Promise((resolve) => setTimeout(resolve, 500));
 
       const response = await fetch("http://localhost:8081/api/investors");
@@ -288,7 +287,7 @@ const InvestorsPage: React.FC = () => {
                             key={inv.id}
                             layout
                             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                            className="hover:bg-white/3 transition-colors group"
+                            className="h-14 hover:bg-white/5 transition-colors group"
                           >
                             <td className="p-4 text-sm font-mono text-indigo-300">#{inv.id}</td>
                             <td className="p-4 text-sm font-medium text-white">{inv.firstName}</td>
@@ -306,9 +305,10 @@ const InvestorsPage: React.FC = () => {
                           </motion.tr>
                         ))}
                       </AnimatePresence>
-                      {/* Filler rows: keep table height constant regardless of record count on this page */}
+
+                      {/* Filler rows to maintain height */}
                       {Array.from({ length: Math.max(0, itemsPerPage - paginatedInvestors.length) }).map((_, i) => (
-                        <tr key={`empty-row-${i}`} className="opacity-0 pointer-events-none">
+                        <tr key={`empty-row-${i}`} className="h-14 border-b border-white/5">
                           {Array.from({ length: 8 }).map((__, j) => (
                             <td key={j} className="p-4" />
                           ))}
