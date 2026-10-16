@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { 
   UserPlus, Table as TableIcon, 
   ArrowUpDown, ChevronLeft, ChevronRight, 
-  Trash2, Edit3, Search, ChevronDown 
+  Trash2, Edit3, Search, RotateCw, ChevronDown 
 } from 'lucide-react';
 
 import { Client as StompClient } from "@stomp/stompjs";
@@ -13,7 +13,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 // --- Strict Type Definitions ---
 interface Investor {
-  id: number; 
+  id: number;
   firstName: string;
   lastName: string;
   email: string;
@@ -48,6 +48,7 @@ const InvestorsPage: React.FC = () => {
   const [sortConfig, setSortConfig] = useState<SortConfig | null>(null);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [itemsPerPage, setItemsPerPage] = useState<number>(5);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   
   const [formData, setFormData] = useState<FormData>({
     firstName: '',
@@ -58,7 +59,22 @@ const InvestorsPage: React.FC = () => {
     inNumber: 0,
   });
 
-  // --- WebSocket Integration (STOMP) ---
+  // --- API Fetch Logic (Wrapped in useCallback to prevent re-renders) ---
+  const fetchInvestors = useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      const response = await fetch("http://localhost:8081/api/investors");
+      if (!response.ok) throw new Error("Network response was not ok");
+      const data = await response.json();
+      setInvestors(data);
+    } catch (err) {
+      console.error("Error fetching investors:", err);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, []);
+
+  // --- WebSocket Integration ---
   useEffect(() => {
     const stompClient: StompClient = new StompClient({
       brokerURL: "ws://localhost:8081/api/ws",
@@ -70,14 +86,21 @@ const InvestorsPage: React.FC = () => {
     stompClient.webSocketFactory = () => new SockJS("http://localhost:8081/api/ws");
 
     stompClient.onConnect = () => {
+      console.log('Connected to STOMP');
+      
+      // FIXED: Call the initial fetch inside the callback, not synchronously in useEffect
+      fetchInvestors();
+
       stompClient.subscribe("/topic/investorCreated", (message) => {
-        const newInvestor = JSON.parse(message.body) as Investor;
-        setInvestors((prevInvestors) => {
-          if(prevInvestors.some((inv) => inv.id === newInvestor.id)) {
-            return prevInvestors;
-          }
-          return [...prevInvestors, newInvestor];
-        });
+        try {
+          const newInvestor = JSON.parse(message.body) as Investor;
+          setInvestors((prevInvestors) => {
+            if(prevInvestors.some((inv) => inv.id === newInvestor.id)) {
+              return prevInvestors;
+            }
+            return [...prevInvestors, newInvestor];
+          });
+        } catch (e) { console.error(e); }
       });
 
       stompClient.subscribe("/topic/investorRemoved", (message) => {
@@ -89,9 +112,11 @@ const InvestorsPage: React.FC = () => {
     stompClient.activate();
 
     return () => {
-      stompClient.deactivate();
+      if (stompClient.active) {
+        stompClient.deactivate();
+      }
     };
-  }, []);
+  }, [fetchInvestors]); // Dependency on the stable useCallback function
 
   // --- Logic: Search, Sort, Paginate ---
   const filteredAndSortedInvestors = useMemo(() => {
@@ -163,31 +188,48 @@ const InvestorsPage: React.FC = () => {
           </p>
         </div>
 
-        <motion.button 
-          onClick={() => setView(view === 'table' ? 'form' : 'table')}
-          whileHover={view === 'table' ? { scale: 1.02, y: -2 } : { scale: 1.02 }}
-          whileTap={{ scale: 0.97 }}
-          transition={{ type: "tween", ease: "easeOut", duration: 0.2 }}
-          className={`relative group overflow-hidden flex items-center gap-2 px-6 py-3 rounded-xl font-bold ${
-            view === 'table' 
-              ? `${METALLIC_ROYAL_BLUE} text-white border border-white/20 shadow-[0_0_20px_rgba(65,105,225,0.4)] hover:shadow-[0_0_30px_rgba(65,105,225,0.6)] hover:brightness-110` 
-              : `bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700 transition-colors`
-          }`}
-        >
-          {view === 'table' && (
-            <motion.div 
-              initial={{ x: '-100%' }}
-              whileHover={{ x: '100%' }}
-              transition={{ duration: 0.3, ease: "easeOut" }}
-              className="absolute inset-0 w-1/2 h-full bg-linear-to-r from-transparent via-white/30 to-transparent -skew-x-12 pointer-events-none"
-            />
-          )}
+        <div className="flex items-center gap-3">
+          <motion.button 
+            onClick={fetchInvestors}
+            disabled={isRefreshing}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className={`p-3 rounded-xl font-bold transition-all duration-300 border border-slate-700 ${
+              isRefreshing 
+                ? `bg-slate-800 text-slate-500 cursor-not-allowed` 
+                : `bg-slate-800 text-white hover:bg-slate-700 hover:border-indigo-500`
+            }`}
+            title="Refresh Data"
+          >
+            <RotateCw size={20} className={`transition-all duration-500 ${isRefreshing ? "animate-spin" : ""}`} />
+          </motion.button>
 
-          <span className="relative z-10 flex items-center gap-2">
-            {view === 'table' ? <UserPlus size={20}/> : <TableIcon size={20}/>}
-            {view === 'table' ? "Register Investor" : "View Database"}
-          </span>
-        </motion.button>
+          <motion.button 
+            onClick={() => setView(view === 'table' ? 'form' : 'table')}
+            whileHover={view === 'table' ? { scale: 1.02, y: -2 } : { scale: 1.02 }}
+            whileTap={{ scale: 0.97 }}
+            transition={{ type: "tween", ease: "easeOut", duration: 0.2 }}
+            className={`relative group overflow-hidden flex items-center gap-2 px-6 py-3 rounded-xl font-bold ${
+              view === 'table' 
+                ? `${METALLIC_ROYAL_BLUE} text-white border border-white/20 shadow-[0_0_20px_rgba(65,105,225,0.4)] hover:shadow-[0_0_30px_rgba(65,105,225,0.6)] hover:brightness-110` 
+                : `bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700 transition-colors`
+            }`}
+          >
+            {view === 'table' && (
+              <motion.div 
+                initial={{ x: '-100%' }}
+                whileHover={{ x: '100%' }}
+                transition={{ duration: 0.3, ease: "easeOut" }}
+                className="absolute inset-0 w-1/2 h-full bg-linear-to-r from-transparent via-white/30 to-transparent -skew-x-12 pointer-events-none"
+              />
+            )}
+
+            <span className="relative z-10 flex items-center gap-2">
+              {view === 'table' ? <UserPlus size={20}/> : <TableIcon size={20}/>}
+              {view === 'table' ? "Register Investor" : "View Database"}
+            </span>
+          </motion.button>
+        </div>
       </div>
 
       <div className="relative z-10 max-w-7xl mx-auto">
@@ -212,7 +254,7 @@ const InvestorsPage: React.FC = () => {
               </div>
 
               <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-3xl overflow-hidden shadow-2xl">
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto min-h-112.5">
                   <table className="w-full text-left border-collapse">
                     <thead className="bg-slate-800/50 border-b border-white/10">
                       <tr>
@@ -268,7 +310,6 @@ const InvestorsPage: React.FC = () => {
                   </table>
                 </div>
 
-                {/* TABLE FOOTER: Moved itemsPerPage and Total here */}
                 <div className="px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-6 bg-white/5 border-t border-white/10">
                   <div className="flex flex-wrap items-center justify-center sm:justify-start gap-6">
                     <p className="text-xs text-slate-500 font-medium">
