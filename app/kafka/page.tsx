@@ -191,7 +191,6 @@ const InvestorsPage: React.FC = () => {
             disabled={isRefreshing}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            // Fixed height and width to match the register button's height (~48px) and keep it square
             className={`h-12 w-12 flex items-center justify-center rounded-xl font-bold transition-all duration-300 border border-slate-700 ${
               isRefreshing 
                 ? `bg-slate-800 text-slate-500 cursor-not-allowed` 
@@ -252,7 +251,8 @@ const InvestorsPage: React.FC = () => {
               </div>
 
               <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-3xl overflow-hidden shadow-2xl">
-                <div className="overflow-x-auto min-h-112.5">
+                {/* Fixed Height applied here to prevent layout shift */}
+                <div className="overflow-x-auto min-h-125">
                   <table className="w-full text-left border-collapse">
                     <thead className="bg-slate-800/50 border-b border-white/10">
                       <tr>
