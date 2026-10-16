@@ -289,18 +289,23 @@ const InvestorsPage: React.FC = () => {
                               key={inv.id}
                               layout
                               initial={{ opacity: 0, x: isLastRow ? 50 : 0 }} 
-                              animate={{ opacity: 1, x: 0 }} 
+                              animate={{ 
+                                opacity: 1, 
+                                x: 0,
+                                backgroundColor: isLastRow 
+                                  ? ["rgba(16, 185, 129, 0.15)", "rgba(16, 185, 129, 0.15)", "rgba(0,0,0,0)"] 
+                                  : "transparent",
+                                borderLeftColor: isLastRow 
+                                  ? ["#10b981", "#10b981", "transparent"] 
+                                  : "transparent"
+                              }} 
                               exit={{ opacity: 0 }}
                               transition={{ 
-                                duration: isLastRow ? 0.8 : 0.3, 
+                                duration: isLastRow ? 1.2 : 0.3, 
                                 ease: "easeOut",
                                 delay: isLastRow ? 0.1 : 0 
                               }}
-                              className={`h-14 hover:bg-white/5 transition-colors group ${
-                                isLastRow 
-                                ? "bg-linear-to-r from-emerald-500/10 via-emerald-400/5 to-emerald-500/10 border-l-4 border-emerald-500" 
-                                : ""
-                              }`}
+                              className={`h-14 hover:bg-white/5 transition-colors group border-l-4 border-transparent`}
                             >
                               <td className="p-4 text-sm font-mono text-indigo-300">#{inv.id}</td>
                               <td className="p-4 text-sm font-medium text-white">{inv.firstName}</td>
