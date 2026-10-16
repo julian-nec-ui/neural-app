@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
-  UserPlus, Table as TableIcon, ChevronLeft, ChevronRight, 
+  UserPlus, Table as TableIcon, 
+  ArrowUpDown, ChevronLeft, ChevronRight, 
   Trash2, Edit3, Search, ChevronDown, X 
 } from 'lucide-react';
 
@@ -61,7 +62,6 @@ const InvestorsPage: React.FC = () => {
   // --- WebSocket Integration ---
   useEffect(() => {
     const stompClient: StompClient = new StompClient({
-      brokerURL: "ws://localhost:8081/api/ws",
       reconnectDelay: 5000,
       heartbeatIncoming: 4000,
       heartbeatOutgoing: 4000
@@ -222,7 +222,7 @@ const InvestorsPage: React.FC = () => {
                       <tr>
                         {[
                           { label: 'ID #', key: 'id' },
-                          { label: 'Date', key: 'date' }, 
+                          { label: 'Date & Time', key: 'date' }, 
                           { label: 'First Name', key: 'firstName' },
                           { label: 'Last Name', key: 'lastName' },
                           { label: 'Email', key: 'email' },
@@ -238,15 +238,7 @@ const InvestorsPage: React.FC = () => {
                           >
                             <div className="flex items-center gap-2">
                               {col.label}
-                              {sortConfig?.key === col.key && (
-                                <motion.div 
-                                  animate={{ rotate: sortConfig.direction === 'asc' ? 0 : 180 }}
-                                  transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                                  className="text-indigo-400"
-                                >
-                                  <ChevronDown size={16} />
-                                </motion.div>
-                              )}
+                              {sortConfig?.key === col.key && <ArrowUpDown size={12} className="text-indigo-400" />}
                             </div>
                           </th>
                         ))}
@@ -376,7 +368,7 @@ const InvestorsPage: React.FC = () => {
                     <label className="text-xs font-bold text-slate-500 uppercase">ID Number</label>
                     <input 
                       type="number"
-                      className="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl focus:border-indigo-500 outline-none text-white"
+                      className="w-//full p-3 bg-slate-900 border border-slate-700 rounded-xl focus:border-indigo-500 outline-none text-white"
                       value={formData.inNumber} onChange={e => setFormData({...formData, inNumber: Number(e.target.value)})} required
                     />
                   </div>
@@ -489,7 +481,7 @@ const InvestorsPage: React.FC = () => {
       <AnimatePresence>
         {selectedInvestor && (
           <div 
-            className="fixed inset-0 z-[100] flex items-center justify-center p-4 backdrop-blur-md bg-black/60"
+            className="fixed inset-0 z-100 flex items-center justify-center p-4 backdrop-blur-md bg-black/60"
             onClick={() => setSelectedInvestor(null)}
           >
             <motion.div 
