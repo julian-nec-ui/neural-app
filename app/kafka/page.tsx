@@ -306,6 +306,14 @@ const InvestorsPage: React.FC = () => {
                           </motion.tr>
                         ))}
                       </AnimatePresence>
+                      {/* Filler rows: keep table height constant regardless of record count on this page */}
+                      {Array.from({ length: Math.max(0, itemsPerPage - paginatedInvestors.length) }).map((_, i) => (
+                        <tr key={`empty-row-${i}`} className="opacity-0 pointer-events-none">
+                          {Array.from({ length: 8 }).map((__, j) => (
+                            <td key={j} className="p-4" />
+                          ))}
+                        </tr>
+                      ))}
                     </tbody>
                   </table>
                 </div>
