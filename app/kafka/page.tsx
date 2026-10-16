@@ -603,7 +603,7 @@ const InvestorsPage: React.FC = () => {
       <AnimatePresence>
         {selectedInvestor && (
           <div 
-            className="fixed inset-0 z-[100] flex items-center justify-center p-4 backdrop-blur-md bg-black/60"
+            className="fixed inset-0 z-100 flex items-center justify-center p-4 backdrop-blur-md bg-black/60"
             onClick={() => setSelectedInvestor(null)}
           >
             <motion.div 

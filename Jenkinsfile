@@ -10,7 +10,6 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                // Pulls the latest code from the GitHub repository
                 checkout scm
             }
         }
@@ -24,43 +23,42 @@ pipeline {
                   string(credentialsId: 'NEXT_PUBLIC_VERIFIED_SENDER', variable: 'NEXT_PUBLIC_VERIFIED_SENDER')
                 ]) {
                 
-                script {
-                    // 1. Remove old containers to prevent port conflicts
-                    if(isUnix()) {
-                        sh 'docker rm -f file-gallery || echo no ghost container .+.+.+.'
-                    } else {
-                        bat 'docker rm -f file-gallery || echo no ghost container .+.+.+.'
+                    script {
+                        // 1. Remove old containers to prevent port conflicts
+                        if(isUnix()) {
+                            sh 'docker rm -f file-gallery || echo no ghost container'
+                        } else {
+                            bat 'docker rm -f file-gallery || echo no ghost container'
+                        }
                     }
-                  }
-                
 
-                // 1. Remove old containers to prevent port conflicts
-                script {
-                    if(isUnix()) {
-                      sh 'docker-compose -f docker-compose.yml down || echo no containers to stop +.+.+.'
-                    } else {
-                      bat 'docker-compose -f docker-compose.yml down || echo no containers to stop +.+.+.'
+                    script {
+                        if(isUnix()) {
+                            sh 'docker-compose -f docker-compose.yml down || echo no containers to stop'
+                        } else {
+                            bat 'docker-compose -f docker-compose.yml down || echo no containers to stop'
+                        }
                     }
-                }
-                
-                // 2. Build and launch the UI in detached mode
-                // --build ensures that any changes to the Dockerfile or code are applied
-                script {
-                    if(isUnix()) {
-                      sh "echo 'RESEND_API_KEY=${RESEND_API_KEY}' > .env.local"
-                      sh "echo 'NEXT_PUBLIC_VERIFIED_SENDER=${NEXT_PUBLIC_VERIFIED_SENDER}' >> .env.local"
-                      sh 'docker-compose -f docker-compose.yml up --build -d'
-                      sh 'rm .env.local'
-                    } else {
-                        bat "echo 'RESEND_API_KEY=${RESEND_API_KEY}' > .env.local"
-                        bat "echo 'NEXT_PUBLIC_VERIFIED_SENDER=${NEXT_PUBLIC_VERIFIED_SENDER}' >> .env.local"
-                        bat 'docker-compose -f docker-compose.yml up --build -d'
-                        bat 'rm .env.local'
+                    
+                    script {
+                        if(isUnix()) {
+                            // ✅ FIXED: Using single quotes to prevent Groovy Interpolation
+                            // Use $VARIABLE for Linux shell
+                            sh 'echo "RESEND_API_KEY=$RESEND_API_KEY" > .env.local'
+                            sh 'echo "NEXT_PUBLIC_VERIFIED_SENDER=$NEXT_PUBLIC_VERIFIED_SENDER" >> .env.local'
+                            sh 'docker-compose -f docker-compose.yml up --build -d'
+                            sh 'rm .env.local'
+                        } else {
+                            // ✅ FIXED: Using single quotes and %VARIABLE% for Windows CMD
+                            bat 'echo RESEND_API_KEY=%RESEND_API_KEY% > .env.local'
+                            bat 'echo NEXT_PUBLIC_VERIFIED_SENDER=%NEXT_PUBLIC_VERIFIED_SENDER% >> .env.local'
+                            bat 'docker-compose -f docker-compose.yml up --build -d'
+                            bat 'del .env.local'
+                        }
                     }
+                    
+                    echo '✅ UI is now live at http://localhost:3000'
                 }
-                
-                echo '✅ UI is now live at http://localhost:3000'
-              }
             }
         }
     }
