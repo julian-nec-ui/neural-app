@@ -4,23 +4,26 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
   UserPlus, Table as TableIcon, 
   ArrowUpDown, ChevronLeft, ChevronRight, 
-  Trash2, Edit3, Search 
+  Trash2, Edit3, Search, ChevronDown 
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
 
-// --- Strict Type Definitions ---
+import { Client as StompClient } from "@stomp/stompjs";
+import SockJS from "sockjs-client";
+import { motion, AnimatePresence } from 'framer-motion';
+import { pre } from 'framer-motion/client';
+
+// --- Strict Type Definitions ----
 interface Investor {
-  id: string;
-  inNumber: number;
+  id: number; 
   firstName: string;
   lastName: string;
   email: string;
-  phone: string;
-  investSum: number;
-  receivedAt: string;
+  phoneNumber: string;
+  initialInvestmentFund: number;
+  investingStrategy: string;
 }
 
-interface InvestorFormData {
+interface FormData {
   firstName: string;
   lastName: string;
   email: string;
@@ -35,7 +38,7 @@ interface SortConfig {
 }
 
 // --- Constants ---
-const METALLIC_ROYAL_BLUE = `bg-linear-to-r from-[#002366] via-[#4169E1] to-[#002366]`;
+const METALLIC_ROYAL_BLUE = `bg-linear-to-r from-[#0C3E9C] via-[#4570F2] to-[#063895]`;
 const PAGE_SIZE_OPTIONS = [5, 10, 25, 50];
 
 const InvestorsPage: React.FC = () => {
@@ -47,7 +50,7 @@ const InvestorsPage: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [itemsPerPage, setItemsPerPage] = useState<number>(5);
   
-  const [formData, setFormData] = useState<InvestorFormData>({
+  const [formData, setFormData] = useState<FormData>({
     firstName: '',
     lastName: '',
     email: '',
@@ -58,34 +61,57 @@ const InvestorsPage: React.FC = () => {
 
   // --- WebSocket Integration ---
   useEffect(() => {
-    // Using a public echo server for demonstration; replace with your Spring Boot endpoint
-    const socket = new WebSocket('wss://echo.websocket.events');
 
-    socket.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        const newInvestor: Investor = {
-          id: Math.random().toString(36).substring(2, 11),
-          inNumber: data.inNumber || Math.floor(Math.random() * 1000),
-          firstName: data.firstName || "Unknown",
-          lastName: data.lastName || "User",
-          email: data.email || "N/A",
-          phone: data.phone || "N/A",
-          investSum: data.investSum || 0,
-          receivedAt: new Date().toLocaleString(),
-        };
-        setInvestors((prev) => [newInvestor, ...prev]);
-      } catch (err) {
-        console.error("WebSocket parsing error:", err);
-      }
+    const stompClient: StompClient = new StompClient({
+      brokerURL: "ws://localhost:8081/api/ws",
+      reconnectDelay: 5000,
+      heartbeatIncoming: 4000,
+      heartbeatOutgoing: 4000
+    });
+
+    stompClient.webSocketFactory = () => new SockJS("http://localhost:8081/api/ws");
+
+    stompClient.onConnect = () => {
+      stompClient.subscribe("/topic/investorCreated", (message) => {
+        const newInvestor = JSON.parse(message.body) as Investor;
+        console.log("==== ",newInvestor, " ====");
+        setInvestors((prevInvestors) => {
+          if(prevInvestors.some((inv) => inv.id === newInvestor.id)) {
+            return prevInvestors;
+          }
+          return [...prevInvestors, newInvestor];
+        });
+      });
+
+      stompClient.subscribe("/topic/investorRemoved", (message) => {
+        const deletedInvestor = JSON.parse(message.body) as { id: number };
+        setInvestors((prevInvestors) => prevInvestors.filter((inv) => inv.id !== deletedInvestor.id));
+      });
     };
+    
+    stompClient.activate();
 
-    return () => socket.close();
+    return () => {
+      stompClient.deactivate();
+    };
   }, []);
+
+  // useEffect(() => {
+  //   const fetchInvestors = async () => {
+  //     try {
+  //       const response = await fetch("http://localhost:8081/api/investors");
+  //       const data = await response.json();
+  //       setInvestors(data);
+  //     } catch (err) {
+  //       console.error("Error fetching investors", err);
+  //     }
+  //   };
+
+  //   fetchInvestors();
+  // }, []);
 
   // --- Logic: Search, Sort, Paginate ---
   const filteredAndSortedInvestors = useMemo(() => {
-    // 1. Filter
     const result = investors.filter(
       (inv) =>
         inv.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -93,7 +119,6 @@ const InvestorsPage: React.FC = () => {
         inv.email.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
-    // 2. Sort
     if (sortConfig) {
       result.sort((a, b) => {
         const aVal = a[sortConfig.key];
@@ -122,27 +147,31 @@ const InvestorsPage: React.FC = () => {
 
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
+    
     const newInvestor: Investor = {
-      ...formData,
-      id: Math.random().toString(36).substring(2, 11),
-      receivedAt: new Date().toLocaleString(),
+      id: Number(formData.inNumber),
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      email: formData.email,
+      phoneNumber: formData.phone,
+      initialInvestmentFund: formData.investSum,
+      investingStrategy: 'Long Term Balanced'
     };
+    
     setInvestors((prev) => [newInvestor, ...prev]);
     setView('table');
     setFormData({ firstName: '', lastName: '', email: '', phone: '', investSum: 0, inNumber: 0 });
   };
 
-  const deleteInvestor = (id: string) => {
+  const deleteInvestor = (id: number) => {
     setInvestors((prev) => prev.filter((inv) => inv.id !== id));
   };
 
   return (
     <div className="min-h-screen w-full bg-[#0f172a] text-slate-200 p-4 sm:p-8 font-sans relative overflow-hidden">
-      {/* Ambient Background Glows */}
       <div className="absolute -top-20 -left-20 w-96 h-96 bg-indigo-500/10 rounded-full blur-[120px] pointer-events-none" />
       <div className="absolute -bottom-20 -right-20 w-96 h-96 bg-cyan-500/10 rounded-full blur-[120px] pointer-events-none" />
 
-      {/* Header Section */}
       <div className="relative z-10 max-w-7xl mx-auto mb-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
           <h1 className="text-4xl font-black italic tracking-tighter text-white">
@@ -153,20 +182,34 @@ const InvestorsPage: React.FC = () => {
           </p>
         </div>
 
-        <button 
+        {/* FIXED: Fast, Smooth, and No-Linger Hover Effect */}
+        <motion.button 
           onClick={() => setView(view === 'table' ? 'form' : 'table')}
-          className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all duration-300 ${
+          whileHover={view === 'table' ? { scale: 1.02, y: -2 } : { scale: 1.02 }}
+          whileTap={{ scale: 0.97 }}
+          transition={{ type: "tween", ease: "easeOut", duration: 0.2 }} // Tween is faster and doesn't linger like a spring
+          className={`relative group overflow-hidden flex items-center gap-2 px-6 py-3 rounded-xl font-bold ${
             view === 'table' 
-              ? `${METALLIC_ROYAL_BLUE} text-white shadow-[0_0_20px_rgba(65,105,225,0.4)]` 
-              : `bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700`
+              ? `${METALLIC_ROYAL_BLUE} text-white border border-white/20 shadow-[0_0_20px_rgba(65,105,225,0.4)] hover:shadow-[0_0_30px_rgba(65,105,225,0.6)] hover:brightness-110` 
+              : `bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700 transition-colors`
           }`}
         >
-          {view === 'table' ? <UserPlus size={20}/> : <TableIcon size={20}/>}
-          {view === 'table' ? "Register Investor" : "View Database"}
-        </button>
+          {view === 'table' && (
+            <motion.div 
+              initial={{ x: '-100%' }}
+              whileHover={{ x: '100%' }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
+              className="absolute inset-0 w-1/2 h-full bg-linear-to-r from-transparent via-white/30 to-transparent -skew-x-12 pointer-events-none"
+            />
+          )}
+
+          <span className="relative z-10 flex items-center gap-2">
+            {view === 'table' ? <UserPlus size={20}/> : <TableIcon size={20}/>}
+            {view === 'table' ? "Register Investor" : "View Database"}
+          </span>
+        </motion.button>
       </div>
 
-      {/* Main Content Area */}
       <div className="relative z-10 max-w-7xl mx-auto">
         <AnimatePresence mode="wait">
           {view === 'table' ? (
@@ -175,7 +218,6 @@ const InvestorsPage: React.FC = () => {
               initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
               className="space-y-6"
             >
-              {/* Search Bar Area */}
               <div className="flex justify-start items-center bg-white/5 backdrop-blur-md border border-white/10 p-4 rounded-2xl">
                 <div className="relative w-full max-w-md">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
@@ -189,20 +231,19 @@ const InvestorsPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* The Table Card */}
               <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-3xl overflow-hidden shadow-2xl">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                     <thead className="bg-slate-800/50 border-b border-white/10">
                       <tr>
                         {[
-                          { label: 'Date', key: 'receivedAt' },
-                          { label: 'ID #', key: 'inNumber' },
+                          { label: 'ID #', key: 'id' },
                           { label: 'First Name', key: 'firstName' },
                           { label: 'Last Name', key: 'lastName' },
                           { label: 'Email', key: 'email' },
-                          { label: 'Phone', key: 'phone' },
-                          { label: 'Sum', key: 'investSum' },
+                          { label: 'Phone', key: 'phoneNumber' },
+                          { label: 'Investment', key: 'initialInvestmentFund' },
+                          { label: 'Strategy', key: 'investingStrategy' },
                           { label: 'Actions', key: 'actions' },
                         ].map((col) => (
                           <th 
@@ -225,15 +266,15 @@ const InvestorsPage: React.FC = () => {
                             key={inv.id}
                             layout
                             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                            className="hover:bg-white/[0.03] transition-colors group"
+                            className="hover:bg-white/3 transition-colors group"
                           >
-                            <td className="p-4 text-sm text-slate-400">{inv.receivedAt}</td>
-                            <td className="p-4 text-sm font-mono text-indigo-300">#{inv.inNumber}</td>
+                            <td className="p-4 text-sm font-mono text-indigo-300">#{inv.id}</td>
                             <td className="p-4 text-sm font-medium text-white">{inv.firstName}</td>
                             <td className="p-4 text-sm font-medium text-white">{inv.lastName}</td>
                             <td className="p-4 text-sm text-slate-400">{inv.email}</td>
-                            <td className="p-4 text-sm text-slate-400">{inv.phone}</td>
-                            <td className="p-4 text-sm font-bold text-emerald-400">${inv.investSum.toLocaleString()}</td>
+                            <td className="p-4 text-sm text-slate-400">{inv.phoneNumber}</td>
+                            <td className="p-4 text-sm font-bold text-emerald-400">${inv.initialInvestmentFund.toLocaleString()}</td>
+                            <td className="p-4 text-sm font-bold text-emerald-400">${inv.investingStrategy}</td>
                             <td className="p-4 text-sm">
                               <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <button className="p-2 hover:bg-indigo-500/20 rounded-lg text-indigo-400 transition-colors"><Edit3 size={16}/></button>
@@ -247,42 +288,44 @@ const InvestorsPage: React.FC = () => {
                   </table>
                 </div>
 
-                {/* Table Footer: Pagination, Total, and Page Size */}
-                <div className="p-4 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white/5 border-t border-white/10">
+                <div className="px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white/5 border-t border-white/10">
                   <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4">
                     <p className="text-xs text-slate-500 font-medium">
                       Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filteredAndSortedInvestors.length)} of {filteredAndSortedInvestors.length}
                     </p>
                     <div className="flex items-center gap-2 text-xs text-slate-500 font-mono border-l border-white/10 pl-4">
                       <span className="uppercase font-bold">Show:</span>
-                      <select 
-                        value={itemsPerPage} 
-                        onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
-                        className="bg-slate-900 border border-slate-700 rounded px-2 py-1 outline-none focus:border-indigo-500 text-white cursor-pointer"
-                      >
-                        {PAGE_SIZE_OPTIONS.map(size => <option key={size} value={size}>{size}</option>)}
-                      </select>
+                      <div className="relative group">
+                        <select 
+                          value={itemsPerPage} 
+                          onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
+                          className="appearance-none bg-linear-to-r from-slate-800 via-slate-700 to-slate-800 border border-slate-600 rounded px-2 py-1 pr-8 outline-none focus:border-indigo-500 text-white cursor-pointer transition-all duration-300 hover:bg-linear-to-r hover:from-[#003d3d] hover:via-[#008b8b] hover:to-[#003d3d] hover:border-cyan-500"
+                        >
+                          {PAGE_SIZE_OPTIONS.map(size => <option key={size} value={size} className="bg-slate-900">{size}</option>)}
+                        </select>
+                        <ChevronDown size={16} className="absolute right-2 top-1/2 -translate-y-1/2 text-cyan-400 pointer-events-none transition-colors group-hover:text-cyan-300" />
+                      </div>
                     </div>
                   </div>
                   
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-6">
                     <div className="text-xs text-slate-500 font-mono hidden md:block">
                       Total Records: {filteredAndSortedInvestors.length}
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-3">
                       <button 
                         disabled={currentPage === 1}
                         onClick={() => setCurrentPage(p => p - 1)}
-                        className="p-2 rounded-lg bg-slate-800 border border-slate-700 disabled:opacity-30 hover:bg-slate-700 transition-colors"
+                        className="p-2.5 rounded-lg bg-slate-800 border border-slate-700 disabled:opacity-30 hover:bg-slate-700 transition-all group"
                       >
-                        <ChevronLeft size={20} />
+                        <ChevronLeft size={24} className="text-indigo-200 group-hover:text-white transition-colors" />
                       </button>
                       <button 
                         disabled={currentPage * itemsPerPage >= filteredAndSortedInvestors.length}
                         onClick={() => setCurrentPage(p => p + 1)}
-                        className="p-2 rounded-lg bg-slate-800 border border-slate-700 disabled:opacity-30 hover:bg-slate-700 transition-colors"
+                        className="p-2.5 rounded-lg bg-slate-800 border border-slate-700 disabled:opacity-30 hover:bg-slate-700 transition-all group"
                       >
-                        <ChevronRight size={20} />
+                        <ChevronRight size={24} className="text-indigo-200 group-hover:text-white transition-colors" />
                       </button>
                     </div>
                   </div>
