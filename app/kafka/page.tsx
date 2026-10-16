@@ -251,11 +251,15 @@ const InvestorsPage: React.FC = () => {
               </div>
 
               <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-3xl overflow-hidden shadow-2xl">
-                {/* Fixed Height applied here to prevent layout shift */}
-                <div className="overflow-x-auto min-h-125">
+                {/* 
+                   FIXED HEIGHT SOLUTION:
+                   We set a fixed height on the wrapper and allow internal scrolling.
+                   This ensures the footer never moves.
+                */}
+                <div className="overflow-y-auto h-150">
                   <table className="w-full text-left border-collapse">
-                    <thead className="bg-slate-800/50 border-b border-white/10">
-                      <tr>
+                    <thead className="bg-slate-800/50 border-b border-white/10 sticky top-0 z-20">
+                      <tr className="bg-slate-800/90 backdrop-blur-sm">
                         {[
                           { label: 'ID #', key: 'id' },
                           { label: 'First Name', key: 'firstName' },
@@ -389,7 +393,7 @@ const InvestorsPage: React.FC = () => {
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase">Phone</label>
                     <input 
-                      className="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl focus:border-indigo-500 outline-none text-white"
+                      className="w-//full p-3 bg-slate-900 border border-slate-700 rounded-xl focus:border-indigo-500 outline-none text-white"
                       value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} required
                     />
                   </div>
