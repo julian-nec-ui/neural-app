@@ -144,7 +144,7 @@ const InvestorsPage: React.FC = () => {
     return filteredAndSortedInvestors.slice(startIndex, startIndex + itemsPerPage);
   }, [filteredAndSortedInvestors, currentPage, itemsPerPage]);
 
-  // --- Event Handlers ---
+  // --- Event Handlers ---x
   const handleSort = (key: keyof Investor) => {
     setSortConfig((prev) => ({
       key,
