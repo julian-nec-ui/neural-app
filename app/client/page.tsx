@@ -154,7 +154,7 @@ export default function ClientPage() {
       brokerURL: "ws://localhost:8081/api/ws",
       reconnectDelay: 5000,
       heartbeatIncoming: 4000,
-      heartbeatOutgoing: 4000,
+      heartbeatOutgoing: 4000
     });
 
     stompClient.webSocketFactory = () => new SockJS("http://localhost:8081/api/ws");

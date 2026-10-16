@@ -92,7 +92,7 @@ const InvestorsPage: React.FC = () => {
 
     return () => {
       stompClient.deactivate();
-    }
+    };
   }, []);
 
   // useEffect(() => {
@@ -152,9 +152,9 @@ const InvestorsPage: React.FC = () => {
       firstName: formData.firstName,
       lastName: formData.lastName,
       email: formData.email,
-      phone: formData.phone,
-      investSum: formData.investSum,
-      receivedAt: new Date().toLocaleString(),
+      phoneNumber: formData.phone,
+      initialInvestmentFund: formData.investSum,
+      investingStrategy: 'Long Term Balanced'
     };
     
     setInvestors((prev) => [newInvestor, ...prev]);
