@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { 
   UserPlus, Table as TableIcon, 
-  ArrowUpDown, ChevronLeft, ChevronRight, 
+  ChevronLeft, ChevronRight, 
   Trash2, Edit3, Search, RotateCw, ChevronDown 
 } from 'lucide-react';
 
@@ -274,7 +274,15 @@ const InvestorsPage: React.FC = () => {
                           >
                             <div className="flex items-center gap-2">
                               {col.label}
-                              {sortConfig?.key === col.key && <ArrowUpDown size={12} className="text-indigo-400" />}
+                              {sortConfig?.key === col.key && (
+                                <motion.div 
+                                  animate={{ rotate: sortConfig.direction === 'asc' ? 180 : 0 }}
+                                  transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                                  className="text-slate-300 drop-shadow-[0_0_3px_rgba(255,255,255,0.4)]"
+                                >
+                                  <ChevronDown size={14} />
+                                </motion.div>
+                              )}
                             </div>
                           </th>
                         ))}
