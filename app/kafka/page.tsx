@@ -275,7 +275,7 @@ const InvestorsPage: React.FC = () => {
                             <div className="flex items-center gap-2">
                               {col.label}
                               {col.key !== 'actions' && (
-                                <ArrowUpDown size={12} className="text-slate-500 opacity-60" />
+                                <ArrowUpDown size={13} className="text-slate-500 opacity-60" />
                               )}
                               {sortConfig?.key === col.key && (
                                 <motion.div 
