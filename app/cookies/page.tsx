@@ -1,11 +1,9 @@
-"use client";
+import { cookies } from 'next/headers';
+import CookieClient from './cookie-client';
 
-export default function CookiesPage() {
-  return (
-    <main className="flex min-h-screen items-center justify-center bg-black">
-      <div className="grid grid-cols-3 gap-8">
-        This is the cookies page
-      </div>
-    </main>
-  );
+export default async function CookiePage() {
+  const cookieStore = await cookies();
+  const initialTheme = cookieStore.get('app_theme')?.value || null;
+
+  return <CookieClient initialTheme={initialTheme} />;
 }
