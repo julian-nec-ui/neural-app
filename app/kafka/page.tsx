@@ -43,7 +43,7 @@ const PAGE_SIZE_OPTIONS = [5, 10, 25, 50];
 // Global metallic colors for sort direction
 const SORT_COLORS = {
   asc: 'text-emerald-400 drop-shadow-[0_0_3px_rgba(52,211,153,0.6)]',
-  desc: 'text-orange-400 drop-shadow-[0_0_3px_rgba(251,146,60,0.6)]',
+  desc: 'text-amber-400 drop-shadow-[0_0_3px_rgba(251,191,36,0.6)]', // Shifted from orange to amber for a yellish-gold feel
 };
 
 const InvestorsPage: React.FC = () => {
