@@ -40,15 +40,10 @@ interface SortConfig {
 const METALLIC_ROYAL_BLUE = `bg-linear-to-r from-[#0C3E9C] via-[#4570F2] to-[#063895]`;
 const PAGE_SIZE_OPTIONS = [5, 10, 25, 50];
 
-// Mapping each column to a unique metallic/vibrant color
-const SORT_COLORS: Record<keyof Investor, string> = {
-  id: 'text-slate-300 drop-shadow-[0_0_3px_rgba(203,213,225,0.6)]',
-  firstName: 'text-indigo-400 drop-shadow-[0_0_3px_rgba(129,140,248,0.6)]',
-  lastName: 'text-cyan-400 drop-shadow-[0_0_3px_rgba(34,211,238,0.6)]',
-  email: 'text-emerald-400 drop-shadow-[0_0_3px_rgba(52,211,153,0.6)]',
-  phoneNumber: 'text-amber-400 drop-shadow-[0_0_3px_rgba(251,191,36,0.6)]',
-  initialInvestmentFund: 'text-yellow-400 drop-shadow-[0_0_3px_rgba(250,204,21,0.6)]',
-  investingStrategy: 'text-violet-400 drop-shadow-[0_0_3px_rgba(167,139,250,0.6)]',
+// Global metallic colors for sort direction
+const SORT_COLORS = {
+  asc: 'text-emerald-400 drop-shadow-[0_0_3px_rgba(52,211,153,0.6)]',
+  desc: 'text-orange-400 drop-shadow-[0_0_3px_rgba(251,146,60,0.6)]',
 };
 
 const InvestorsPage: React.FC = () => {
@@ -286,13 +281,15 @@ const InvestorsPage: React.FC = () => {
                             <div className="flex items-center gap-2">
                               {col.label}
                               {col.key !== 'actions' && (
-                                <ArrowUpDown size={13} className="text-slate-500 opacity-60" />
+                                <span className="p-1 rounded-md transition-all duration-200 hover:bg-white/10 group/icon">
+                                  <ArrowUpDown size={13} className="text-slate-500 opacity-60 group-hover/icon:opacity-100 group-hover/icon:text-slate-300" />
+                                </span>
                               )}
                               {sortConfig?.key === col.key && (
                                 <motion.div 
                                   animate={{ rotate: sortConfig.direction === 'asc' ? 180 : 0 }}
                                   transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                                  className={SORT_COLORS[col.key as keyof Investor]}
+                                  className={SORT_COLORS[sortConfig.direction]}
                                 >
                                   <ChevronDown size={15} />
                                 </motion.div>
