@@ -4,7 +4,7 @@ import { PUBLIC_PAGES, PUBLIC_API_ROUTES } from './lib/routes'
 
 export function middleware (request: NextRequest) {
   const { pathname } = request.nextUrl
-  const token = request.cookies.get('token')?.value
+  const token = request.cookies.get('auth-token')?.value
 
   const isApiRoute = pathname.startsWith('/api')
   const isPublicPage = PUBLIC_PAGES.includes(pathname)
