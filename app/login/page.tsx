@@ -13,6 +13,7 @@ interface LoginFormState {
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// --- THE PDG LOGO ICON ---
 const ToothIcon = () => (
   <svg
     width="32"
@@ -30,6 +31,7 @@ const ToothIcon = () => (
 );
 
 const LoginPage: React.FC = () => {
+  const router = useRouter();
   const [formData, setFormData] = useState<LoginFormState>({
     email: '',
     password: '',
@@ -41,23 +43,15 @@ const LoginPage: React.FC = () => {
 
   const isFormValid = EMAIL_REGEX.test(formData.email) && formData.password.length >= 6;
 
-  const router = useRouter();
-
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-
-    if (errorMessage) {
-      setErrorMessage(null);
-    }
+    if (errorMessage) setErrorMessage(null);
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
-    if (!isFormValid) {
-      return;
-    }
+    if (!isFormValid) return;
 
     setIsLoading(true);
     setErrorMessage(null);
@@ -72,8 +66,6 @@ const LoginPage: React.FC = () => {
       router.refresh();
       router.push('/dashboard');
     } catch (error: unknown) {
-      console.error("Login Error:", error);
-
       if (error instanceof Error) {
         setErrorMessage(error.message);
       } else if (typeof error === 'string') {
@@ -81,13 +73,12 @@ const LoginPage: React.FC = () => {
       } else {
         setErrorMessage("An unexpected error occurred. Please try again.");
       }
-    }
-    finally {
+    } finally {
       setIsLoading(false);
     }
   };
 
-  // Fixed styles to ensure the metallic text is visible in Next.js App Router
+  // FIXED METALLIC STYLES: This prevents the "solid block" bug
   const metallicStyles = {
     base: {
       backgroundSize: '200% auto',
@@ -97,21 +88,15 @@ const LoginPage: React.FC = () => {
       display: 'inline-block',
       animation: 'metallic-flow 6s linear infinite',
     },
-    royalBlue: {
-      background: 'linear-gradient(to right, #001a4d 0%, #4169E1 25%, #B0C4DE 50%, #4169E1 75%, #001a4d 100%)',
-    },
-    orange: {
-      background: 'linear-gradient(to right, #c47100 0%, #f2994a 25%, #ffe4b5 50%, #f2994a 75%, #c47100 100%)',
-    },
-    yellow: {
-      background: 'linear-gradient(to right, #b8860b 0%, #f8b500 25%, #fff9c4 50%, #f8b500 75%, #b8860b 100%)',
-    }
+    royalBlue: { background: 'linear-gradient(to right, #001a4d 0%, #4169E1 25%, #B0C4DE 50%, #4169E1 75%, #001a4d 100%)' },
+    orange: { background: 'linear-gradient(to right, #c47100 0%, #f2994a 25%, #ffe4b5 50%, #f2994a 75%, #c47100 100%)' },
+    yellow: { background: 'linear-gradient(to right, #b8860b 0%, #f8b500 25%, #fff9c4 50%, #f8b500 75%, #b8860b 100%)' },
   };
 
   return (
     <div className="min-h-screen w-full flex flex-col items-center justify-center bg-[#0f172a] relative overflow-x-hidden font-sans p-4">
-
-      {/* Only keeping the animation keyframes in global style */}
+      
+      {/* Required for the metallic animation to work */}
       <style dangerouslySetInnerHTML={{ __html: `
         @keyframes metallic-flow {
           0% { background-position: 0% 50%; }
@@ -128,6 +113,7 @@ const LoginPage: React.FC = () => {
         }}
       />
 
+      {/* --- THE PDG LOGO SECTION --- */}
       <div className="relative z-10 mb-12 text-center group">
         <div className="flex items-center justify-center gap-3 mb-2">
           <div className="p-2 bg-indigo-500/10 rounded-lg border border-indigo-500/20 shadow-[0_0_15px_rgba(99,102,241,0.3)] group-hover:shadow-[0_0_25px_rgba(99,102,241,0.5)] transition-all duration-500">
@@ -159,6 +145,7 @@ const LoginPage: React.FC = () => {
                 Please enter your credentials to access your account
               </p>
             </div>
+
             {errorMessage && (
               <div className="mb-6 p-3 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-3 text-red-400 text-sm animate-in fade-in slide-in-from-top-2">
                 <AlertCircle size={18} />
