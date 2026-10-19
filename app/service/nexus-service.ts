@@ -21,8 +21,10 @@ export interface NexusLoginRequest {
 
 const NEXUS_API = axios.create({
   baseURL: 'http://localhost:8081/api',
+  withCredentials: true,
   headers: {
-    'Content-Type': 'application/json'
+    'Content-Type': 'application/json',
+    'Accept': 'application/json'
   }
 })
 
