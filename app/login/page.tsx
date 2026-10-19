@@ -65,7 +65,7 @@ const LoginPage: React.FC = () => {
       const response = await nexusService.loginUser(payload);
       console.log('Login successful:', JSON.stringify(response, null, 2));
       router.refresh();
-      router.push('/dashboard');
+      router.push('/nexus-dashboard');
     } catch (error: unknown) {
       if (error instanceof Error) {
         setErrorMessage(error.message);
