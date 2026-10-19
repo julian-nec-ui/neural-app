@@ -68,20 +68,12 @@ const LoginPage: React.FC = () => {
     };
 
     try {
-      //call the backend api to login
       await nexusService.loginUser(payload);
-
-      //refresh the current route
-      //this forces NextJs to re-evaluate the middleware with thi new cookies
       router.refresh();
-
-      // redirect to the dashboard page
       router.push('/dashboard');
-
-    } catch (error: unknown) { // Change to 'unknown' (the TS default)
+    } catch (error: unknown) {
       console.error("Login Error:", error);
 
-      // TYPE GUARD: Check if the error is an actual Error object
       if (error instanceof Error) {
         setErrorMessage(error.message);
       } else if (typeof error === 'string') {
@@ -93,38 +85,39 @@ const LoginPage: React.FC = () => {
     finally {
       setIsLoading(false);
     }
+  };
 
+  // Fixed styles to ensure the metallic text is visible in Next.js App Router
+  const metallicStyles = {
+    base: {
+      backgroundSize: '200% auto',
+      WebkitBackgroundClip: 'text',
+      backgroundClip: 'text',
+      color: 'transparent',
+      display: 'inline-block',
+      animation: 'metallic-flow 6s linear infinite',
+    },
+    royalBlue: {
+      background: 'linear-gradient(to right, #001a4d 0%, #4169E1 25%, #B0C4DE 50%, #4169E1 75%, #001a4d 100%)',
+    },
+    orange: {
+      background: 'linear-gradient(to right, #c47100 0%, #f2994a 25%, #ffe4b5 50%, #f2994a 75%, #c47100 100%)',
+    },
+    yellow: {
+      background: 'linear-gradient(to right, #b8860b 0%, #f8b500 25%, #fff9c4 50%, #f8b500 75%, #b8860b 100%)',
+    }
   };
 
   return (
     <div className="min-h-screen w-full flex flex-col items-center justify-center bg-[#0f172a] relative overflow-x-hidden font-sans p-4">
 
-      <style jsx>{`
+      {/* Only keeping the animation keyframes in global style */}
+      <style dangerouslySetInnerHTML={{ __html: `
         @keyframes metallic-flow {
           0% { background-position: 0% 50%; }
           100% { background-position: 200% 50%; }
         }
-        .metallic-base {
-          background-size: 200% auto;
-          -webkit-background-clip: text;
-          background-clip: text;
-          color: transparent;
-          animation: metallic-flow 6s linear infinite;
-          display: inline-block;
-        }
-        /* Royal Blue Metallic: Deep Navy -> Royal Blue -> Silver-Blue -> Royal Blue -> Deep Navy */
-        .royal-blue-metallic {
-          background: linear-gradient(to right, #001a4d 0%, #4169E1 25%, #B0C4DE 50%, #4169E1 75%, #001a4d 100%);
-        }
-        /* Orange Metallic */
-        .orange-metallic {
-          background: linear-gradient(to right, #c47100 0%, #f2994a 25%, #ffe4b5 50%, #f2994a 75%, #c47100 100%);
-        }
-        /* Yellow Metallic */
-        .yellow-metallic {
-          background: linear-gradient(to right, #b8860b 0%, #f8b500 25%, #fff9c4 50%, #f8b500 75%, #b8860b 100%);
-        }
-      `}</style>
+      `}} />
 
       <div className="absolute -top-20 -left-20 w-96 h-96 bg-indigo-500/20 rounded-full blur-[120px] pointer-events-none" />
       <div className="absolute -bottom-20 -right-20 w-96 h-96 bg-cyan-500/20 rounded-full blur-[120px] pointer-events-none" />
@@ -142,9 +135,9 @@ const LoginPage: React.FC = () => {
           </div>
           <h2 className="text-3xl sm:text-5xl font-black tracking-tighter italic">
             <span className="drop-shadow-sm">
-              <span className="metallic-base royal-blue-metallic mr-2">Prewitt</span>
-              <span className="metallic-base orange-metallic mr-2">Dental</span>
-              <span className="metallic-base yellow-metallic">Group</span>
+              <span style={{ ...metallicStyles.base, ...metallicStyles.royalBlue }} className="mr-2">Prewitt</span>
+              <span style={{ ...metallicStyles.base, ...metallicStyles.orange }} className="mr-2">Dental</span>
+              <span style={{ ...metallicStyles.base, ...metallicStyles.yellow }}>Group</span>
             </span>
           </h2>
         </div>
@@ -166,7 +159,6 @@ const LoginPage: React.FC = () => {
                 Please enter your credentials to access your account
               </p>
             </div>
-            {/* Error Message integrated with styles */}
             {errorMessage && (
               <div className="mb-6 p-3 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-3 text-red-400 text-sm animate-in fade-in slide-in-from-top-2">
                 <AlertCircle size={18} />
