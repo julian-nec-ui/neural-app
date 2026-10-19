@@ -40,6 +40,6 @@ export const nexusService = {
   loginUser(
     loginRequest: NexusLoginRequest
   ): Promise<AxiosResponse<NexusUser>> {
-    return NEXUS_API.post('/nexus', loginRequest)
+    return NEXUS_API.post('/nexus/login', loginRequest)
   }
 }
