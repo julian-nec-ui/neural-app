@@ -12,7 +12,6 @@ export interface NexusUser {
   firstName: string
   lastName: string
   email: string
-  password: string
 }
 
 export interface NexusLoginRequest {
