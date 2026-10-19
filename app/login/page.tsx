@@ -2,7 +2,9 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Mail, Lock, ArrowRight, Loader2, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, ArrowRight, Loader2, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { NexusLoginRequest, nexusService } from '../service/nexus-service';
 
 interface LoginFormState {
   email: string;
@@ -12,17 +14,17 @@ interface LoginFormState {
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const ToothIcon = () => (
-  <svg 
-    width="32" 
-    height="32" 
-    viewBox="0 0 24 24" 
-    fill="none" 
+  <svg
+    width="32"
+    height="32"
+    viewBox="0 0 24 24"
+    fill="none"
     xmlns="http://www.w3.org/2000/svg"
     className="text-indigo-400"
   >
-    <path 
-      d="M12 2C9 2 7 4 7 7C7 9 8 11 9 12C8 13 7 15 7 17C7 20 9 22 12 22C15 22 17 20 17 17C17 15 16 13 15 12C16 11 17 9 17 7C17 4 15 2 12 2ZM12 4C13.5 4 14.5 5 14.5 6.5C14.5 8 13.5 9 12 9C10.5 9 9.5 8 9.5 6.5C9.5 5 10.5 4 12 4ZM12 14C13 14 14 15 14 16.5C14 18 13 19 12 19C11 19 10 18 10 16.5C10 15 11 14 12 14Z" 
-      fill="currentColor" 
+    <path
+      d="M12 2C9 2 7 4 7 7C7 9 8 11 9 12C8 13 7 15 7 17C7 20 9 22 12 22C15 22 17 20 17 17C17 15 16 13 15 12C16 11 17 9 17 7C17 4 15 2 12 2ZM12 4C13.5 4 14.5 5 14.5 6.5C14.5 8 13.5 9 12 9C10.5 9 9.5 8 9.5 6.5C9.5 5 10.5 4 12 4ZM12 14C13 14 14 15 14 16.5C14 18 13 19 12 19C11 19 10 18 10 16.5C10 15 11 14 12 14Z"
+      fill="currentColor"
     />
   </svg>
 );
@@ -35,25 +37,68 @@ const LoginPage: React.FC = () => {
 
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const isFormValid = EMAIL_REGEX.test(formData.email) && formData.password.length >= 6;
+
+  const router = useRouter();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+
+    if (errorMessage) {
+      setErrorMessage(null);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!isFormValid) return;
+
+    if (!isFormValid) {
+      return;
+    }
+
     setIsLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setIsLoading(false);
+    setErrorMessage(null);
+
+    const payload: NexusLoginRequest = {
+      email: formData.email,
+      password: formData.password
+    };
+
+    try {
+      //call the backend api to login
+      await nexusService.loginUser(payload);
+
+      //refresh the current route
+      //this forces NextJs to re-evaluate the middleware with thi new cookies
+      router.refresh();
+
+      // redirect to the dashboard page
+      router.push('/dashboard');
+
+    } catch (error: unknown) { // Change to 'unknown' (the TS default)
+      console.error("Login Error:", error);
+
+      // TYPE GUARD: Check if the error is an actual Error object
+      if (error instanceof Error) {
+        setErrorMessage(error.message);
+      } else if (typeof error === 'string') {
+        setErrorMessage(error);
+      } else {
+        setErrorMessage("An unexpected error occurred. Please try again.");
+      }
+    }
+    finally {
+      setIsLoading(false);
+    }
+
   };
 
   return (
     <div className="min-h-screen w-full flex flex-col items-center justify-center bg-[#0f172a] relative overflow-x-hidden font-sans p-4">
-      
+
       <style jsx>{`
         @keyframes metallic-flow {
           0% { background-position: 0% 50%; }
@@ -121,6 +166,13 @@ const LoginPage: React.FC = () => {
                 Please enter your credentials to access your account
               </p>
             </div>
+            {/* Error Message integrated with styles */}
+            {errorMessage && (
+              <div className="mb-6 p-3 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-3 text-red-400 text-sm animate-in fade-in slide-in-from-top-2">
+                <AlertCircle size={18} />
+                <span>{errorMessage}</span>
+              </div>
+            )}
 
             <form className="space-y-5 sm:space-y-6" onSubmit={handleSubmit}>
               <div className="space-y-2">
@@ -176,11 +228,10 @@ const LoginPage: React.FC = () => {
               <button
                 type="submit"
                 disabled={isLoading || !isFormValid}
-                className={`w-full group relative flex items-center justify-center gap-2 py-3.5 px-4 font-semibold rounded-xl transition-all duration-300 text-base sm:text-lg ${
-                  isLoading || !isFormValid
-                    ? "bg-slate-700 text-slate-400 opacity-70"
-                    : "bg-linear-to-r from-indigo-600 via-indigo-500 to-cyan-600 text-white hover:shadow-[0_0_20px_rgba(79,70,229,0.4)] hover:-translate-y-0.5 active:translate-y-0"
-                }`}
+                className={`w-full group relative flex items-center justify-center gap-2 py-3.5 px-4 font-semibold rounded-xl transition-all duration-300 text-base sm:text-lg ${isLoading || !isFormValid
+                  ? "bg-slate-700 text-slate-400 opacity-70"
+                  : "bg-linear-to-r from-indigo-600 via-indigo-500 to-cyan-600 text-white hover:shadow-[0_0_20px_rgba(79,70,229,0.4)] hover:-translate-y-0.5 active:translate-y-0"
+                  }`}
               >
                 {isLoading ? <Loader2 className="animate-spin" size={20} /> : (
                   <>

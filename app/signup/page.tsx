@@ -92,7 +92,7 @@ export default function CreateAccountPage() {
       };
 
       await nexusService.createNexusUser(payload);
-      
+
       setNotification({
         show: true,
         type: 'success',

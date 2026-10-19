@@ -1,32 +1,45 @@
-import NextAuth from "next-auth";
-import GoogleProvider from "next-auth/providers/google";
-import GitHubProvider from "next-auth/providers/github";
-import FacebookProvider from "next-auth/providers/facebook";
-import AppleProvider from "next-auth/providers/apple";
+// import NextAuth from 'next-auth'
+// import CredentialsProvider from 'next-auth/providers/credentials'
 
-const handler = NextAuth({
-  providers: [
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    }),
-    GitHubProvider({
-      clientId: process.env.GITHUB_ID!,
-      clientSecret: process.env.GITHUB_SECRET!,
-    }),
-    FacebookProvider({
-      clientId: process.env.FACEBOOK_ID!,
-      clientSecret: process.env.FACEBOOK_SECRET!,
-    }),
-    AppleProvider({
-      clientId: process.env.APPLE_ID!,
-      clientSecret: process.env.APPLE_SECRET!,
-    }),
-  ],
-  pages: {
-    signIn: '/login', // Custom login page
-  },
-  secret: process.env.NEXTAUTH_SECRET,
-});
+// const handler = NextAuth({
+//   providers: [
+//     CredentialsProvider({
+//       name: 'Credentials',
+//       credentials: {
+//         email: { label: 'Email', type: 'email' },
+//         password: { label: 'Password', type: 'password' }
+//       },
+//       async authorize (credentials) {
+//         // 1. YOUR DATABASE LOGIC HERE
+//         // Example: const user = await db.user.findUnique({ where: { email: credentials.email } });
 
-export { handler as GET, handler as POST };
+//         // for now we'll just return a user
+//         if (
+//           credentials?.email === 'sK0yv@example.com' &&
+//           credentials?.password === '123456'
+//         ) {
+//           return { id: '1', name: 'John Martin', email: 'admin@example.com', role: 'admin' }
+//         } 
+
+//         return null;
+//       }
+//     })
+//   ],
+//   session: {
+//     strategy: 'jwt',
+//     maxAge: 30 * 24 * 60 * 60 // 30 days
+//   },
+//   callbacks: {
+//     // this adds the User ID to the Role on the encrypted token
+//     async jwt({ token, user }) {
+//       if (user) {
+//         token.id = user.id;
+//         token.role = (user as any).role;
+//       }
+
+//       return token
+//     }
+//   }
+// })
+
+// export { handler as GET, handler as POST }
