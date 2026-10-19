@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { Mail, Lock, ArrowRight, Loader2, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { NexusLoginRequest, nexusService } from '../service/nexus-service';
+import { NexusLoginRequest, nexusService, NexusUser } from '../service/nexus-service';
 
 interface LoginFormState {
   email: string;
@@ -62,7 +62,8 @@ const LoginPage: React.FC = () => {
     };
 
     try {
-      await nexusService.loginUser(payload);
+      const response = await nexusService.loginUser(payload);
+      console.log('Login successful:', JSON.stringify(response, null, 2));
       router.refresh();
       router.push('/dashboard');
     } catch (error: unknown) {
