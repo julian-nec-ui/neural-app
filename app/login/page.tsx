@@ -1,4 +1,4 @@
-"use client";
+\"use client";
 
 import React, { useState } from 'react';
 import Link from 'next/link';
@@ -36,49 +36,42 @@ const ToothIcon = () => (
   </div>
 );
 
-// --- THE BOLD SVG PDG LOGO ---
+// --- THE BOLD, RIGHT-LEANING, TRUNCATED PDG LOGO ---
 const PDGLogo = () => (
-  <svg width="300" height="100" viewBox="0 0 300 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <svg width="400" height="140" viewBox="0 0 400 140" fill="none" xmlns="http://www.w3.org/2000/svg" className="drop-shadow-2xl">
     <defs>
       <linearGradient id="gradBlue" x1="0%" y1="0%" x2="100%" y2="0%">
         <stop offset="0%" stopColor="#001a4d" />
-        <stop offset="25%" stopColor="#4169E1" />
         <stop offset="50%" stopColor="#B0C4DE" />
-        <stop offset="75%" stopColor="#4169E1" />
         <stop offset="100%" stopColor="#001a4d" />
       </linearGradient>
       <linearGradient id="gradOrange" x1="0%" y1="0%" x2="100%" y2="0%">
         <stop offset="0%" stopColor="#c47100" />
-        <stop offset="25%" stopColor="#f2994a" />
         <stop offset="50%" stopColor="#ffe4b5" />
-        <stop offset="75%" stopColor="#f2994a" />
         <stop offset="100%" stopColor="#c47100" />
       </linearGradient>
       <linearGradient id="gradYellow" x1="0%" y1="0%" x2="100%" y2="0%">
         <stop offset="0%" stopColor="#b8860b" />
-        <stop offset="25%" stopColor="#f8b500" />
         <stop offset="50%" stopColor="#fff9c4" />
-        <stop offset="75%" stopColor="#f8b500" />
         <stop offset="100%" stopColor="#b8860b" />
       </linearGradient>
+      <clipPath id="truncateClip">
+        <rect x="0" y="0" width="400" height="115" />
+      </clipPath>
     </defs>
-    <text 
-      x="50%" 
-      y="70" 
-      textAnchor="middle" 
-      style={{ 
-        fontSize: '80px', 
-        fontWeight: '900', 
-        fontStyle: 'italic', 
-        fontFamily: 'sans-serif', 
-        letterSpacing: '-5px' 
-      }}
-    >
-      {/* We add stroke and strokeWidth to make the letters physically thicker */}
-      <tspan fill="url(#gradBlue)" stroke="url(#gradBlue)" strokeWidth="3">P</tspan>
-      <tspan fill="url(#gradOrange)" stroke="url(#gradOrange)" strokeWidth="3" className="mx-1">D</tspan>
-      <tspan fill="url(#gradYellow)" stroke="url(#gradYellow)" strokeWidth="3">G</tspan>
-    </text>
+    <g clipPath="url(#truncateClip)">
+      <text 
+        x="50%" 
+        y="110" 
+        textAnchor="middle" 
+        transform="skewX(15)" 
+        style={{ fontSize: '120px', fontWeight: '900', fontFamily: 'sans-serif', letterSpacing: '-8px' }}
+      >
+        <tspan fill="url(#gradBlue)" stroke="url(#gradBlue)" strokeWidth="6">P</tspan>
+        <tspan fill="url(#gradOrange)" stroke="url(#gradOrange)" strokeWidth="6">D</tspan>
+        <tspan fill="url(#gradYellow)" stroke="url(#gradYellow)" strokeWidth="6">G</tspan>
+      </text>
+    </g>
   </svg>
 );
 
@@ -189,7 +182,16 @@ const LoginPage: React.FC = () => {
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500 group-focus-within:text-indigo-400 transition-colors">
                     <Lock size={24} style={{ color: "#909DF6" }} />
                   </div>
-                  <input type={showPassword ? "text" : "password"} name="password" className="w-full pl-11 pr-12 py-3.5 bg-slate-900/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 backdrop-blur-sm text-base hover:border-indigo-200 hover:ring-2 hover:ring-indigo-500/20" placeholder="••••••••" value={formData.password} onChange={handleChange} required disabled={isLoading} />
+                  <input 
+                    type={showPassword ? "text" : "password"} 
+                    name="password" 
+                    className="w-full pl-11 pr-12 py-3.5 bg-slate-900/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 backdrop-blur-sm text-base hover:border-indigo-200 hover:ring-2 hover:ring-indigo-500/20" 
+                    placeholder="••••••••" 
+                    value={formData.password} 
+                    onChange={handleChange} 
+                    required 
+                    disabled={isLoading} 
+                  />
                   <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-500 hover:text-indigo-400 transition-colors focus:outline-none">
                     {showPassword ? <EyeOff size={24} /> : <Eye size={24} />}
                   </button>
