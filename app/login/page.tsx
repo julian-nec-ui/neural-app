@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { Mail, Lock, ArrowRight, Loader2, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { NexusLoginRequest, nexusService, NexusUser } from '../service/nexus-service';
+import { NexusLoginRequest, nexusService } from '../service/nexus-service';
 
 interface LoginFormState {
   email: string;
@@ -13,21 +13,44 @@ interface LoginFormState {
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// --- THE PDG LOGO ICON ---
+// --- THE NEW 3D ANIMATED TOOTH ICON ---
 const ToothIcon = () => (
-  <svg
-    width="32"
-    height="32"
-    viewBox="0 0 24 24"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-    className="text-indigo-400"
-  >
-    <path
-      d="M12 2C9 2 7 4 7 7C7 9 8 11 9 12C8 13 7 15 7 17C7 20 9 22 12 22C15 22 17 20 17 17C17 15 16 13 15 12C16 11 17 9 17 7C17 4 15 2 12 2ZM12 4C13.5 4 14.5 5 14.5 6.5C14.5 8 13.5 9 12 9C10.5 9 9.5 8 9.5 6.5C9.5 5 10.5 4 12 4ZM12 14C13 14 14 15 14 16.5C14 18 13 19 12 19C11 19 10 18 10 16.5C10 15 11 14 12 14Z"
-      fill="currentColor"
-    />
-  </svg>
+  <div className="relative group cursor-pointer">
+    {/* Outer Glow Effect */}
+    <div className="absolute inset-0 bg-indigo-500/40 blur-xl rounded-full animate-pulse" />
+    
+    <svg 
+      width="48" 
+      height="48" 
+      viewBox="0 0 24 24" 
+      fill="none" 
+      xmlns="http://www.w3.org/2000/svg" 
+      className="relative z-10 animate-float drop-shadow-[0_5px_15px_rgba(99,102,241,0.6)]"
+    >
+      <defs>
+        {/* 3D Volumetric Gradient */}
+        <linearGradient id="toothGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#C7D2FE" />   
+          <stop offset="50%" stopColor="#FFFFFF" />  
+          <stop offset="100%" stopColor="#6366F1" />  
+        </linearGradient>
+        
+        <filter id="glow">
+          <feGaussianBlur stdDeviation="1" result="coloredBlur"/>
+          <feMerge>
+            <feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/>
+          </feMerge>
+        </filter>
+      </defs>
+      
+      <path
+        d="M12 2C9 2 7 4 7 7C7 9 8 11 9 12C8 13 7 15 7 17C7 20 9 22 12 22C15 22 17 20 17 17C17 15 16 13 15 12C16 11 17 9 17 7C17 4 15 2 12 2ZM12 4C13.5 4 14.5 5 14.5 6.5C14.5 8 13.5 9 12 9C10.5 9 9.5 8 9.5 6.5C9.5 5 10.5 4 12 4ZM12 14C13 14 14 15 14 16.5C14 18 13 19 12 19C11 19 10 18 10 16.5C10 15 11 14 12 14Z"
+        fill="url(#toothGradient)"
+        filter="url(#glow)"
+        className="transition-all duration-500 group-hover:scale-110"
+      />
+    </svg>
+  </div>
 );
 
 const LoginPage: React.FC = () => {
@@ -62,8 +85,7 @@ const LoginPage: React.FC = () => {
     };
 
     try {
-      const response = await nexusService.loginUser(payload);
-      console.log('Login successful:', JSON.stringify(response));
+      await nexusService.loginUser(payload);
       router.refresh();
       router.push('/nexus-dashboard');
     } catch (error: unknown) {
@@ -79,7 +101,6 @@ const LoginPage: React.FC = () => {
     }
   };
 
-  // FIXED METALLIC STYLES: This prevents the "solid block" bug
   const metallicStyles = {
     base: {
       backgroundSize: '200% auto',
@@ -97,11 +118,18 @@ const LoginPage: React.FC = () => {
   return (
     <div className="min-h-screen w-full flex flex-col items-center justify-center bg-[#0f172a] relative overflow-x-hidden font-sans p-4">
       
-      {/* Required for the metallic animation to work */}
       <style dangerouslySetInnerHTML={{ __html: `
         @keyframes metallic-flow {
           0% { background-position: 0% 50%; }
           100% { background-position: 200% 50%; }
+        }
+        @keyframes float {
+          0% { transform: translateY(0px) rotate(0deg); }
+          50% { transform: translateY(-10px) rotate(2deg); }
+          100% { transform: translateY(0px) rotate(0deg); }
+        }
+        .animate-float {
+          animation: float 3s ease-in-out infinite;
         }
       `}} />
 
@@ -114,17 +142,17 @@ const LoginPage: React.FC = () => {
         }}
       />
 
-      {/* --- THE PDG LOGO SECTION --- */}
+      {/* --- THE UPDATED PDG LOGO SECTION --- */}
       <div className="relative z-10 mb-12 text-center group">
-        <div className="flex items-center justify-center gap-3 mb-2">
-          <div className="p-2 bg-indigo-500/10 rounded-lg border border-indigo-500/20 shadow-[0_0_15px_rgba(99,102,241,0.3)] group-hover:shadow-[0_0_25px_rgba(99,102,241,0.5)] transition-all duration-500">
+        <div className="flex flex-col items-center justify-center gap-4 mb-2">
+          <div className="p-3 bg-indigo-500/10 rounded-2xl border border-indigo-500/20 shadow-[0_0_20px_rgba(99,102,241,0.3)] group-hover:shadow-[0_0_30px_rgba(99,102,241,0.5)] transition-all duration-500">
             <ToothIcon />
           </div>
-          <h2 className="text-3xl sm:text-5xl font-black tracking-tighter italic">
+          <h2 className="text-5xl sm:text-7xl font-black tracking-tighter italic">
             <span className="drop-shadow-sm">
-              <span style={{ ...metallicStyles.base, ...metallicStyles.royalBlue }} className="mr-2">Prewitt</span>
-              <span style={{ ...metallicStyles.base, ...metallicStyles.orange }} className="mr-2">Dental</span>
-              <span style={{ ...metallicStyles.base, ...metallicStyles.yellow }}>Group</span>
+              <span style={{ ...metallicStyles.base, ...metallicStyles.royalBlue }}>P</span>
+              <span style={{ ...metallicStyles.base, ...metallicStyles.orange }} className="mx-1">D</span>
+              <span style={{ ...metallicStyles.base, ...metallicStyles.yellow }}>G</span>
             </span>
           </h2>
         </div>
