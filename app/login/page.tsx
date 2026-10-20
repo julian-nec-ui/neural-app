@@ -13,9 +13,9 @@ interface LoginFormState {
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// --- THE BULLETPROOF PDG LOGO ---
+// --- THE ALIEN-TECH PDG LOGO ---
 const PDGLogo = () => (
-  <svg width="350" height="120" viewBox="0 0 350 120" fill="none" xmlns="http://www.w3.org/2000/svg" className="drop-shadow-2xl">
+  <svg width="400" height="140" viewBox="0 0 400 140" fill="none" xmlns="http://www.w3.org/2000/svg" className="drop-shadow-2xl">
     <defs>
       <linearGradient id="gradP" x1="0%" y1="0%" x2="0%" y2="100%">
         <stop offset="0%" stopColor="#4169E1" />
@@ -29,25 +29,36 @@ const PDGLogo = () => (
         <stop offset="0%" stopColor="#fff9c4" />
         <stop offset="100%" stopColor="#b8860b" />
       </linearGradient>
+
+      {/* The "Cut-off" Slice: This defines what part of the text is VISIBLE */}
+      {/* We create a polygon that covers the text but leaves a thin diagonal gap in the middle */}
+      <clipPath id="alienCut">
+        <path d="M0,0 H400 V60 L0,80 Z" /> {/* Top Half */}
+        <path d="M0,90 L400,70 H400 V140 H0 Z" /> {/* Bottom Half */}
+      </clipPath>
     </defs>
-    <text 
-      x="50%" 
-      y="90" 
-      textAnchor="middle" 
-      strokeLinejoin="round"
-      style={{ 
-        fontSize: '110px', 
-        fontWeight: '900', 
-        fontStyle: 'italic', 
-        fontFamily: 'sans-serif', 
-        letterSpacing: '-8px' // Tightened slightly for the italic lean
-      }}
-    >
-      {/* Added strokeWidth and stroke (linked to gradient) to make them physically thicker */}
-      <tspan fill="url(#gradP)" stroke="url(#gradP)" strokeWidth="3">P</tspan>
-      <tspan fill="url(#gradD)" stroke="url(#gradD)" strokeWidth="3">D</tspan>
-      <tspan fill="url(#gradG)" stroke="url(#gradG)" strokeWidth="3">G</tspan>
-    </text>
+
+    {/* transform="skewX(-20)" creates the aggressive right-leaning lean */}
+    <g transform="skewX(-20) translate(40, 0)">
+      <text 
+        x="50%" 
+        y="100" 
+        textAnchor="middle" 
+        strokeLinejoin="round"
+        clipPath="url(#alienCut)"
+        style={{ 
+          fontSize: '120px', 
+          fontWeight: '900', 
+          fontFamily: 'sans-serif', 
+          letterSpacing: '-10px' 
+        }}
+      >
+        {/* StrokeWidth 6 makes it ultra-bold */}
+        <tspan fill="url(#gradP)" stroke="url(#gradP)" strokeWidth="6">P</tspan>
+        <tspan fill="url(#gradD)" stroke="url(#gradD)" strokeWidth="6">D</tspan>
+        <tspan fill="url(#gradG)" stroke="url(#gradG)" strokeWidth="6">G</tspan>
+      </text>
+    </g>
   </svg>
 );
 
