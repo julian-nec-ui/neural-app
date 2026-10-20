@@ -5,12 +5,12 @@ import { useState, useEffect } from 'react';
 // --- ENGINE CONFIGURATION ---
 const CONFIG = {
   cylinderCount: 4,
-  crankRadius: 40,       // Offset from center of crank to pin
-  rodLength: 120,        // Physical length of the piston rod
+  crankRadius: 35,       // Radius of the crankshaft throw
+  rodLength: 110,        // Length of the connecting rod
   cylinderWidth: 70,
-  spacing: 110,          // Horizontal space between cylinders
-  crankY: 450,           // Vertical position of the crankshaft center
-  speed: 0.04,           // Rotation speed (radians per frame)
+  spacing: 120,          // Distance between cylinder centers
+  crankY: 450,           // Center height of the crankshaft
+  speed: 0.04,           // Rotation speed
 };
 
 const STROKES = [
@@ -40,7 +40,7 @@ const Engine2D = () => {
           V4 <span className="text-blue-500">MECHANICAL</span> SIM
         </h1>
         <p className="text-slate-500 uppercase tracking-[0.3em] text-xs font-bold">
-          Synced 4-Stroke Kinematics
+          Kinematic Rod & Piston Synchronization
         </p>
       </div>
 
@@ -51,74 +51,74 @@ const Engine2D = () => {
           viewBox="0 0 600 600"
           className="overflow-visible"
         >
-          {/* MAIN CRANKSHAFT SHAFT */}
+          {/* 1. STATIC ENGINE BLOCK (Crankshaft Main Axis) */}
           <line 
             x1="50" y1={CONFIG.crankY} x2="550" y2={CONFIG.crankY} 
-            stroke="#334155" strokeWidth="12" strokeLinecap="round" 
+            stroke="#1e293b" strokeWidth="16" strokeLinecap="round" 
           />
 
           {[0, 1, 2, 3].map((i) => {
-            // Each cylinder offset by 180 degrees for smooth firing
+            // Stagger timing for firing order
             const cylinderAngle = angle + (i * Math.PI);
             
-            // 1. CRANK PIN POSITION (Polar to Cartesian)
+            // --- MATH: CRANK PIN POSITION ---
             const centerX = 120 + i * CONFIG.spacing;
             const pinX = centerX + Math.cos(cylinderAngle) * CONFIG.crankRadius;
             const pinY = CONFIG.crankY + Math.sin(cylinderAngle) * CONFIG.crankRadius;
 
-            // 2. PISTON POSITION (Kinematic Equation)
-            // Piston Y = CrankY - (CrankOffset_Y + sqrt(Rod^2 - CrankOffset_X^2))
-            const crankOffset_X = Math.cos(cylinderAngle) * CONFIG.crankRadius;
-            const crankOffset_Y = Math.sin(cylinderAngle) * CONFIG.crankRadius;
-            const pistonY = CONFIG.crankY - (crankOffset_Y + Math.sqrt(Math.pow(CONFIG.rodLength, 2) - Math.pow(crankOffset_X, 2)));
+            // --- MATH: PISTON POSITION ---
+            // The piston moves ONLY on the Y axis.
+            // We calculate Y based on the distance from the pin to the piston center.
+            const dx = pinX - centerX; // Horizontal offset of pin
+            const dy = Math.sqrt(Math.pow(CONFIG.rodLength, 2) - Math.pow(dx, 2));
+            const pistonY = pinY - dy;
             const pistonX = centerX;
 
-            // 3. 4-STROKE LOGIC (Cycle is 4*PI / 720 degrees)
+            // 4-Stroke Cycle Logic (0 to 4*PI)
             const fullCycle = (cylinderAngle % (Math.PI * 4));
-            
-            // Intake: 0 to PI (Rotation 1 Down)
             const intakeOpen = fullCycle < Math.PI ? 15 : 0;
-            // Exhaust: 3PI to 4PI (Rotation 2 Up)
             const exhaustOpen = fullCycle > Math.PI * 3 ? 15 : 0;
-
-            // Calculate current stroke index (0-3)
             const strokeIdx = Math.floor((fullCycle / Math.PI) % 4);
             const strokeColor = STROKES[strokeIdx].color;
 
             return (
               <g key={i}>
-                {/* Cylinder Sleeve */}
+                {/* STATIC CYLINDER SLEEVE (Does not move) */}
                 <rect 
                   x={pistonX - CONFIG.cylinderWidth/2} 
-                  y={pistonY - 100} 
+                  y={pistonY - 120} // Keeps top of cylinder static relative to piston travel
                   width={CONFIG.cylinderWidth} 
-                  height={CONFIG.crankY - (pistonY - 100)} 
+                  height={CONFIG.crankY - (pistonY - 120)} 
                   fill="none" 
                   stroke="#334155" 
                   strokeWidth="4" 
+                  rx="4"
                 />
 
-                {/* Valves (Left: Intake, Right: Exhaust) */}
+                {/* VALVES (Fixed at the top of the sleeve) */}
                 <rect 
-                  x={pistonX - 20} y={pistonY - 110} width="4" height={10 + intakeOpen} 
-                  fill={intakeOpen ? "#3b82f6" : "#64748b"} 
+                  x={pistonX - 20} y={pistonY - 130} width="4" height={10 + intakeOpen} 
+                  fill={intakeOpen ? "#3b82f6" : "#475569"} 
                 />
                 <rect 
-                  x={pistonX + 16} y={pistonY - 110} width="4" height={10 + exhaustOpen} 
-                  fill={exhaustOpen ? "#ef4444" : "#64748b"} 
+                  x={pistonX + 16} y={pistonY - 130} width="4" height={10 + exhaustOpen} 
+                  fill={exhaustOpen ? "#ef4444" : "#475569"} 
                 />
 
-                {/* Piston Head */}
+                {/* PISTON (Moves inside the sleeve) */}
                 <rect 
-                  x={pistonX - CONFIG.cylinderWidth/2 + 5} 
+                  x={pistonX - CONFIG.cylinderWidth/2 + 4} 
                   y={pistonY} 
-                  width={CONFIG.cylinderWidth - 10} 
+                  width={CONFIG.cylinderWidth - 8} 
                   height="40" 
                   rx="4" 
                   fill={strokeColor} 
+                  stroke="#fff"
+                  strokeWidth="1"
                 />
 
-                {/* Piston Rod - Connects Piston Center to Crank Pin */}
+                {/* PISTON ROD (The Pendulum) */}
+                {/* Connects center-bottom of piston to the rotating pin */}
                 <line 
                   x1={pistonX} y1={pistonY + 40} 
                   x2={pinX} y2={pinY} 
@@ -127,11 +127,13 @@ const Engine2D = () => {
                   strokeLinecap="round" 
                 />
 
-                {/* Crank Pin (Joint) */}
+                {/* CRANK PIN (The connection point to the crankshaft) */}
                 <circle 
                   cx={pinX} cy={pinY} 
-                  r="6" 
+                  r="7" 
                   fill="#f8fafc" 
+                  stroke="#1e293b" 
+                  strokeWidth="2"
                 />
               </g>
             );
