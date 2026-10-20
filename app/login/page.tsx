@@ -13,63 +13,62 @@ interface LoginFormState {
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// --- THE NEW RECOGNIZABLE 3D TOOTH ICON ---
+// --- THE APP-ICON STYLE TOOTH ---
 const ToothIcon = () => (
-  <div className="relative group cursor-pointer">
-    <div className="absolute inset-0 bg-indigo-500/40 blur-xl rounded-full animate-pulse" />
-    <svg width="54" height="54" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="relative z-10 animate-float drop-shadow-[0_5px_15px_rgba(99,102,241,0.6)]">
-      <defs>
-        <linearGradient id="toothGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#C7D2FE" />
-          <stop offset="50%" stopColor="#FFFFFF" />
-          <stop offset="100%" stopColor="#6366F1" />
-        </linearGradient>
-      </defs>
-      {/* Redrawn Path: Clear Molar Shape with distinct crown and roots */}
-      <path 
-        d="M12 2C15 2 17 4 17 7C17 9 16 11 15 12C16 13 17 15 17 18C17 21 14 22 12 22C10 22 7 21 7 18C7 15 8 13 9 12C8 11 7 9 7 7C7 4 9 2 12 2ZM12 4C13 4 14 5 14 6C14 7 13 8 12 8C11 8 10 7 10 6C10 5 11 4 12 4Z" 
-        fill="url(#toothGradient)" 
-        className="transition-all duration-500 group-hover:scale-110" 
-      />
-    </svg>
+  <div className="relative group">
+    {/* The App-Style Rounded Square Container */}
+    <div className="absolute inset-0 bg-indigo-500/20 blur-lg rounded-2xl pointer-events-none" />
+    <div className="relative z-10 w-16 h-16 bg-indigo-600/20 backdrop-blur-sm border border-indigo-400/30 rounded-2xl flex items-center justify-center shadow-xl">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="toothGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#FFFFFF" />
+            <stop offset="100%" stopColor="#C7D2FE" />
+          </linearGradient>
+        </defs>
+        <path 
+          d="M12 2C9 2 7 4 7 7C7 9 8 11 9 12C8 13 7 15 7 17C7 20 9 22 12 22C15 22 17 20 17 17C17 15 16 13 15 12C16 11 17 9 17 7C17 4 15 2 12 2ZM12 4C13 4 14 5 14 6C14 7 13 8 12 8C11 8 10 7 10 6C10 5 11 4 12 4Z" 
+          fill="url(#toothGrad)" 
+        />
+      </svg>
+    </div>
   </div>
 );
 
-// --- THE STABLE, MASSIVE PDG LOGO ---
+// --- THE BULLETPROOF PDG LOGO (Exactly like the shot) ---
 const PDGLogo = () => (
-  <svg width="400" height="140" viewBox="0 0 400 140" fill="none" xmlns="http://www.w3.org/2000/svg" className="drop-shadow-2xl">
+  <svg width="350" height="120" viewBox="0 0 350 120" fill="none" xmlns="http://www.w3.org/2000/svg" className="drop-shadow-2xl">
     <defs>
-      <linearGradient id="gradBlue" x1="0%" y1="0%" x2="100%" y2="0%">
-        <stop offset="0%" stopColor="#001a4d" />
-        <stop offset="50%" stopColor="#B0C4DE" />
+      {/* Deep Blue Gradient for P */}
+      <linearGradient id="gradP" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stopColor="#4169E1" />
         <stop offset="100%" stopColor="#001a4d" />
       </linearGradient>
-      <linearGradient id="gradOrange" x1="0%" y1="0%" x2="100%" y2="0%">
-        <stop offset="0%" stopColor="#c47100" />
-        <stop offset="50%" stopColor="#ffe4b5" />
+      {/* Gold/Orange Gradient for D */}
+      <linearGradient id="gradD" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stopColor="#ffe4b5" />
         <stop offset="100%" stopColor="#c47100" />
       </linearGradient>
-      <linearGradient id="gradYellow" x1="0%" y1="0%" x2="100%" y2="0%">
-        <stop offset="0%" stopColor="#b8860b" />
-        <stop offset="50%" stopColor="#fff9c4" />
+      {/* Bright Gold Gradient for G */}
+      <linearGradient id="gradG" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stopColor="#fff9c4" />
         <stop offset="100%" stopColor="#b8860b" />
       </linearGradient>
     </defs>
     <text 
       x="50%" 
-      y="100" 
+      y="90" 
       textAnchor="middle" 
       style={{ 
-        fontSize: '120px', 
+        fontSize: '110px', 
         fontWeight: '900', 
         fontFamily: 'sans-serif', 
         letterSpacing: '-6px' 
       }}
     >
-      {/* Upright, Thick, and Bold */}
-      <tspan fill="url(#gradBlue)" stroke="url(#gradBlue)" strokeWidth="6">P</tspan>
-      <tspan fill="url(#gradOrange)" stroke="url(#gradOrange)" strokeWidth="6">D</tspan>
-      <tspan fill="url(#gradYellow)" stroke="url(#gradYellow)" strokeWidth="6">G</tspan>
+      <tspan fill="url(#gradP)">P</tspan>
+      <tspan fill="url(#gradD)">D</tspan>
+      <tspan fill="url(#gradG)">G</tspan>
     </text>
   </svg>
 );
@@ -110,39 +109,25 @@ const LoginPage: React.FC = () => {
 
   return (
     <div className="min-h-screen w-full flex flex-col items-center justify-center bg-[#0f172a] relative overflow-x-hidden font-sans p-4">
-      <style dangerouslySetInnerHTML={{ __html: `
-        @keyframes float {
-          0% { transform: translateY(0px) rotate(0deg); }
-          50% { transform: translateY(-10px) rotate(2deg); }
-          100% { transform: translateY(0px) rotate(0deg); }
-        }
-        .animate-float { animation: float 3s ease-in-out infinite; }
-        .metallic-platinum {
-          background: linear-gradient(to right, #71717a 0%, #f4f4f5 50%, #71717a 100%);
-          -webkit-background-clip: text;
-          background-clip: text;
-          color: transparent;
-        }
-      `}} />
-
-      <div className="absolute -top-20 -left-20 w-96 h-96 bg-indigo-500/20 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute -bottom-20 -right-20 w-96 h-96 bg-cyan-500/20 rounded-full blur-[120px] pointer-events-none" />
+      
+      {/* Grainy Background Overlay to match the screenshot */}
       <div
-        className="absolute inset-0 opacity-20 brightness-100 contrast-150 pointer-events-none"
-        style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")` }}
+        className="absolute inset-0 opacity-30 pointer-events-none"
+        style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`
+        }}
       />
 
       <div className="relative z-10 mb-12 text-center group">
-        <div className="flex flex-col items-center justify-center gap-4 mb-2">
-          <div className="p-3 bg-indigo-500/10 rounded-2xl border border-indigo-500/20 shadow-[0_0_20px_rgba(99,102,241,0.3)] group-hover:shadow-[0_0_30px_rgba(99,102,241,0.5)] transition-all duration-500">
-            <ToothIcon />
-          </div>
+        <div className="flex flex-col items-center justify-center gap-6 mb-6">
+          <ToothIcon />
           <PDGLogo />
         </div>
-        <div className="h-1 w-12 bg-indigo-500 mx-auto rounded-full mb-3 group-hover:w-24 transition-all duration-500" />
         
-        {/* UPDATED SLOGAN: Thicker font and Platinum Metallic Color */}
-        <p className="text-slate-500 text-sm sm:text-base font-black tracking-widest uppercase opacity-90 metallic-platinum">
+        {/* The thin blue separator line */}
+        <div className="h-1 w-16 bg-indigo-500 mx-auto rounded-full mb-4" />
+        
+        <p className="text-slate-400 text-sm sm:text-base font-bold tracking-[0.3em] uppercase opacity-80">
           The Future of Connectivity
         </p>
       </div>
