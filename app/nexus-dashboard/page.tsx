@@ -45,22 +45,6 @@ const DashboardPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('Dashboard');
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-  // THE METALLIC GRADIENTS (Fixed for text-clipping)
-  const metallicStyles = {
-    base: {
-      backgroundSize: '200% auto',
-      WebkitBackgroundClip: 'text',
-      backgroundClip: 'text',
-      color: 'transparent',
-      display: 'inline-block',
-      animation: 'metallic-flow 6s linear infinite',
-      fontWeight: '900', // Extra bold for maximum impact
-    },
-    royalBlue: { background: 'linear-gradient(to right, #001a4d 0%, #4169E1 25%, #B0C4DE 50%, #4169E1 75%, #001a4d 100%)' },
-    orange: { background: 'linear-gradient(to right, #c47100 0%, #f2994a 25%, #ffe4b5 50%, #f2994a 75%, #c47100 100%)' },
-    yellow: { background: 'linear-gradient(to right, #b8860b 0%, #f8b500 25%, #fff9c4 50%, #f8b500 75%, #b8860b 100%)' },
-  };
-
   const handleLogout = async () => {
     setIsLoggingOut(true);
     try {
@@ -83,10 +67,21 @@ const DashboardPage: React.FC = () => {
 
   return (
     <div className="min-h-screen w-full bg-[#0f172a] text-slate-200 flex font-sans">
+      
+      {/* FORCED CSS: This is the only way to ensure the "Blocks" disappear */}
       <style dangerouslySetInnerHTML={{ __html: `
         @keyframes metallic-flow {
           0% { background-position: 0% 50%; }
           100% { background-position: 200% 50%; }
+        }
+        .pdg-letter {
+          background-size: 200% auto !important;
+          -webkit-background-clip: text !important;
+          background-clip: text !important;
+          color: transparent !important;
+          display: inline-block !important;
+          animation: metallic-flow 6s linear infinite !important;
+          font-weight: 900 !important;
         }
       `}} />
 
@@ -131,12 +126,12 @@ const DashboardPage: React.FC = () => {
 
         <header className="h-20 border-b border-white/10 backdrop-blur-md bg-[#0f172a]/60 sticky top-0 z-20 px-8 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            {/* THE LOGO FIX: No more rectangles, just a clean PDG with the metallic gradients */}
+            {/* PDG LOGO - Using the forced .pdg-letter class to kill the rectangles */}
             <h2 className="text-5xl sm:text-7xl font-black tracking-tighter italic">
               <span className="drop-shadow-sm">
-                <span style={{ ...metallicStyles.base, ...metallicStyles.royalBlue }}>P</span>
-                <span style={{ ...metallicStyles.base, ...metallicStyles.orange }} className="mx-1">D</span>
-                <span style={{ ...metallicStyles.base, ...metallicStyles.yellow }}>G</span>
+                <span className="pdg-letter mr-1" style={{ background: 'linear-gradient(to right, #001a4d, #4169E1, #B0C4DE, #4169E1, #001a4d)' }}>P</span>
+                <span className="pdg-letter mx-1" style={{ background: 'linear-gradient(to right, #c47100, #f2994a, #ffe4b5, #f2994a, #c47100)' }}>D</span>
+                <span className="pdg-letter" style={{ background: 'linear-gradient(to right, #b8860b, #f8b500, #fff9c4, #f8b500, #b8860b)' }}>G</span>
               </span>
             </h2>
           </div>
@@ -215,6 +210,7 @@ const DashboardPage: React.FC = () => {
   );
 };
 
+// --- TYPE-SAFE HELPER COMPONENTS ---
 const StatCard: React.FC<StatCardProps> = ({ title, value, icon, trend, color }) => {
   const colorClasses: Record<StatColor, string> = {
     indigo: "from-indigo-600/20 to-transparent border-indigo-500/20",
