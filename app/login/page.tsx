@@ -13,75 +13,51 @@ interface LoginFormState {
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// --- THE HORIZONTALLY ANIMATED PDG LOGO ---
-const PDGLogo = ({ isHovering, hasBeenHovered }: { isHovering: boolean; hasBeenHovered: boolean }) => {
-  // Exact colors from your base code
-  const palette = {
-    P: { dark: "#103FD8", light: "#8BB0DD", shadow: "#0C1A46" },
-    D: { dark: "#CC4E05", light: "#E3D218", shadow: "#833508" },
-    G: { dark: "#FFFF00", light: "#E3C727", shadow: "#EA4D04" },
-  };
-
-  return (
-    <svg width="350" height="120" viewBox="0 0 350 120" fill="none" xmlns="http://www.w3.org/2000/svg" className="drop-shadow-2xl cursor-pointer">
-      <style>{`
-        .stop-transition { transition: stop-color 0.8s ease; }
-        
-        @keyframes slide {
-          0% { stop-offset: -50%; }
-          100% { stop-offset: 150%; }
-        }
-        .animate-flow {
-          animation: slide 3s linear infinite;
-        }
-      `}</style>
-      <defs>
-        {/* 
-            We use x1=0% x2=100% for HORIZONTAL flow.
-            We create a "sandwich" of colors: Dark -> Light (The Sweep) -> Dark 
-        */}
-        <linearGradient id="gradP" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" className="stop-transition" stopColor={palette.P.dark} />
-          <stop offset="50%" className={`stop-transition ${isHovering ? 'animate-flow' : ''}`} 
-                stopColor={hasBeenHovered ? palette.P.light : palette.P.dark} />
-          <stop offset="100%" className="stop-transition" stopColor={palette.P.shadow} />
-        </linearGradient>
-        
-        <linearGradient id="gradD" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" className="stop-transition" stopColor={palette.D.dark} />
-          <stop offset="50%" className={`stop-transition ${isHovering ? 'animate-flow' : ''}`} 
-                stopColor={hasBeenHovered ? palette.D.light : palette.D.dark} />
-          <stop offset="100%" className="stop-transition" stopColor={palette.D.shadow} />
-        </linearGradient>
-        
-        <linearGradient id="gradG" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" className="stop-transition" stopColor={palette.G.dark} />
-          <stop offset="50%" className={`stop-transition ${isHovering ? 'animate-flow' : ''}`} 
-                stopColor={hasBeenHovered ? palette.G.light : palette.G.dark} />
-          <stop offset="100%" className="stop-transition" stopColor={palette.G.shadow} />
-        </linearGradient>
-      </defs>
+// --- THE EXTREME METALLIC PDG LOGO ---
+const PDGLogo = () => (
+  <svg width="350" height="120" viewBox="0 0 350 120" fill="none" xmlns="http://www.w3.org/2000/svg" className="drop-shadow-2xl">
+    <defs>
+      {/* P: Extreme Electric Blue Contrast (Dark -> Bright Neon -> Dark) */}
+      <linearGradient id="gradP" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stopColor="#103FD8" />
+        <stop offset="50%" stopColor="#8BB0DD" />
+        <stop offset="100%" stopColor="#0C1A46" />
+      </linearGradient>
       
-      <text 
-        x="50%" 
-        y="90" 
-        textAnchor="middle" 
-        strokeLinejoin="round"
-        style={{ 
-          fontSize: '110px', 
-          fontWeight: '900', 
-          fontStyle: 'italic', 
-          fontFamily: 'sans-serif', 
-          letterSpacing: '-10px' 
-        }}
-      >
-        <tspan fill="url(#gradP)" stroke="url(#gradP)" strokeWidth="8">P</tspan>
-        <tspan fill="url(#gradD)" stroke="url(#gradD)" strokeWidth="8">D</tspan>
-        <tspan fill="url(#gradG)" stroke="url(#gradG)" strokeWidth="8">G</tspan>
-      </text>
-    </svg>
-  );
-};
+      {/* D: Extreme Copper/Gold Contrast (Burnt Amber -> White Gold -> Burnt Amber) */}
+      <linearGradient id="gradD" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stopColor="#CC4E05" />
+        <stop offset="50%" stopColor="#E3D218" />
+        <stop offset="100%" stopColor="#833508" />
+      </linearGradient>
+      
+      {/* G: Extreme Radiant Gold Contrast (Dark Bronze -> Pale Yellow -> Dark Bronze) */}
+      <linearGradient id="gradG" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stopColor="#FFFF00" />
+        <stop offset="50%" stopColor="#E3C727" />
+        <stop offset="100%" stopColor="#EA4D04" />
+      </linearGradient>
+    </defs>
+    
+    <text 
+      x="50%" 
+      y="90" 
+      textAnchor="middle" 
+      strokeLinejoin="round"
+      style={{ 
+        fontSize: '110px', 
+        fontWeight: '900', 
+        fontStyle: 'italic', 
+        fontFamily: 'sans-serif', 
+        letterSpacing: '-10px' 
+      }}
+    >
+      <tspan fill="url(#gradP)" stroke="url(#gradP)" strokeWidth="8">P</tspan>
+      <tspan fill="url(#gradD)" stroke="url(#gradD)" strokeWidth="8">D</tspan>
+      <tspan fill="url(#gradG)" stroke="url(#gradG)" strokeWidth="8">G</tspan>
+    </text>
+  </svg>
+);
 
 const LoginPage: React.FC = () => {
   const router = useRouter();
@@ -89,10 +65,6 @@ const LoginPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
-  // Animation states
-  const [isHoveringLogo, setIsHoveringLogo] = useState(false);
-  const [hasBeenHovered, setHasBeenHovered] = useState(false);
 
   const isFormValid = EMAIL_REGEX.test(formData.email) && formData.password.length >= 6;
 
@@ -136,15 +108,8 @@ const LoginPage: React.FC = () => {
       />
 
       <div className="relative z-10 mb-12 text-center group">
-        <div 
-          className="flex flex-col items-center justify-center mb-6"
-          onMouseEnter={() => {
-            setIsHoveringLogo(true);
-            setHasBeenHovered(true);
-          }}
-          onMouseLeave={() => setIsHoveringLogo(false)}
-        >
-          <PDGLogo isHovering={isHoveringLogo} hasBeenHovered={hasBeenHovered} />
+        <div className="flex flex-col items-center justify-center mb-6">
+          <PDGLogo />
         </div>
         
         <div className="h-1 w-16 bg-indigo-500 mx-auto rounded-full mb-6" />
