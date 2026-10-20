@@ -23,13 +23,7 @@ const STAGES = [
   { name: 'EXHAUST', color: '#64748b', desc: 'Expelling waste gases' },
 ];
 
-// --- MECHANICAL ASSEMBLY ---
-
-interface EngineProps {
-  onStageUpdate: (idx: number) => void;
-}
-
-const EngineCore: React.FC<EngineProps> = ({ onStageUpdate }) => {
+const EngineCore = ({ onStageUpdate }: { onStageUpdate: (idx: number) => void }) => {
   const pistonRef = useRef<THREE.Group>(null);
   const rodRef = useRef<THREE.Mesh>(null);
   const intakeValveRef = useRef<THREE.Group>(null);
@@ -47,9 +41,6 @@ const EngineCore: React.FC<EngineProps> = ({ onStageUpdate }) => {
     }),
     pistonMetal: new THREE.MeshPhysicalMaterial({ 
       color: '#222222', metalness: 0.8, roughness: 0.4 
-    }),
-    glowGlass: new THREE.MeshPhysicalMaterial({ 
-      color: '#ffffff', transparent: true, opacity: 0.1, transmission: 0.9, roughness: 0 
     }),
   }), []);
 
@@ -98,11 +89,21 @@ const EngineCore: React.FC<EngineProps> = ({ onStageUpdate }) => {
 
   return (
     <group>
-      <mesh position={[0, 2, 0]}>
-        <cylinderGeometry args={[ENGINE.cylinderRadius + 0.1, ENGINE.cylinderRadius + 0.1, ENGINE.cylinderHeight, 32, 1, true]} />
-        <primitive object={mats.glowGlass} />
+      {/* THE CUTAWAY CYLINDER: thetaLength = Math.PI * 1.5 (270 degrees) */}
+      <mesh position={[0, 2, 0]} rotation={[0, Math.PI / 4, 0]}>
+        <cylinderGeometry 
+          args={[
+            ENGINE.cylinderRadius + 0.1, 
+            ENGINE.cylinderRadius + 0.1, 
+            ENGINE.cylinderHeight, 
+            32, 1, true, 
+            0, Math.PI * 1.5 
+          ]} 
+        />
+        <primitive object={mats.industrialSteel} />
       </mesh>
 
+      {/* VALVES */}
       <group ref={intakeValveRef} position={[-0.3, 2.5, 0]}>
         <mesh position={[0, 0.5, 0]}>
           <cylinderGeometry args={[0.04, 0.04, 1, 16]} />
@@ -125,6 +126,7 @@ const EngineCore: React.FC<EngineProps> = ({ onStageUpdate }) => {
         </mesh>
       </group>
 
+      {/* PISTON */}
       <group ref={pistonRef}>
         <mesh castShadow>
           <cylinderGeometry args={[ENGINE.pistonRadius, ENGINE.pistonRadius, 1.2, 32]} />
@@ -136,11 +138,13 @@ const EngineCore: React.FC<EngineProps> = ({ onStageUpdate }) => {
         </mesh>
       </group>
 
+      {/* ROD */}
       <mesh ref={rodRef} position={[0, 0, 0]}>
         <cylinderGeometry args={[0.1, 0.1, ENGINE.rodLength * 2, 16]} />
         <primitive object={mats.industrialSteel} />
       </mesh>
 
+      {/* CRANKSHAFT */}
       <group ref={crankRef} position={[0, 0, 0]}>
         <mesh rotation={[Math.PI / 2, 0, 0]}>
           <cylinderGeometry args={[0.2, 0.2, 2, 32]} />
@@ -170,7 +174,7 @@ const EngineSimulation = () => {
           </h1>
         </div>
         <p className="text-slate-500 uppercase tracking-[0.6em] text-[10px] font-bold mt-2">
-          Precision Kinematic Analysis
+          Industrial Cutaway Analysis
         </p>
         
         <div className="mt-10 flex flex-col gap-4 bg-black/80 backdrop-blur-2xl p-6 rounded-2xl border border-white/10 w-80 shadow-2xl">
