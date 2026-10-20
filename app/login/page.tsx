@@ -13,7 +13,7 @@ interface LoginFormState {
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// --- THE 3D ANIMATED TOOTH ICON (Still floating) ---
+// --- THE 3D ANIMATED TOOTH ICON ---
 const ToothIcon = () => (
   <div className="relative group cursor-pointer">
     <div className="absolute inset-0 bg-indigo-500/40 blur-xl rounded-full animate-pulse" />
@@ -36,9 +36,9 @@ const ToothIcon = () => (
   </div>
 );
 
-// --- THE BULLETPROOF SVG PDG LOGO (Now Static/No Bouncing) ---
+// --- THE BOLD SVG PDG LOGO ---
 const PDGLogo = () => (
-  <svg width="280" height="80" viewBox="0 0 280 80" fill="none" xmlns="http://www.w3.org/2000/svg" className="">
+  <svg width="300" height="100" viewBox="0 0 300 100" fill="none" xmlns="http://www.w3.org/2000/svg">
     <defs>
       <linearGradient id="gradBlue" x1="0%" y1="0%" x2="100%" y2="0%">
         <stop offset="0%" stopColor="#001a4d" />
@@ -62,10 +62,22 @@ const PDGLogo = () => (
         <stop offset="100%" stopColor="#b8860b" />
       </linearGradient>
     </defs>
-    <text x="50%" y="60" textAnchor="middle" style={{ fontSize: '70px', fontWeight: '900', fontStyle: 'italic', fontFamily: 'sans-serif', letterSpacing: '-4px' }}>
-      <tspan fill="url(#gradBlue)">P</tspan>
-      <tspan fill="url(#gradOrange)">D</tspan>
-      <tspan fill="url(#gradYellow)">G</tspan>
+    <text 
+      x="50%" 
+      y="70" 
+      textAnchor="middle" 
+      style={{ 
+        fontSize: '80px', 
+        fontWeight: '900', 
+        fontStyle: 'italic', 
+        fontFamily: 'sans-serif', 
+        letterSpacing: '-5px' 
+      }}
+    >
+      {/* We add stroke and strokeWidth to make the letters physically thicker */}
+      <tspan fill="url(#gradBlue)" stroke="url(#gradBlue)" strokeWidth="3">P</tspan>
+      <tspan fill="url(#gradOrange)" stroke="url(#gradOrange)" strokeWidth="3" className="mx-1">D</tspan>
+      <tspan fill="url(#gradYellow)" stroke="url(#gradYellow)" strokeWidth="3">G</tspan>
     </text>
   </svg>
 );
