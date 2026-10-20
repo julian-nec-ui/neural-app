@@ -17,17 +17,14 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PDGLogo = () => (
   <svg width="350" height="120" viewBox="0 0 350 120" fill="none" xmlns="http://www.w3.org/2000/svg" className="drop-shadow-2xl">
     <defs>
-      {/* Deep Blue Gradient for P */}
       <linearGradient id="gradP" x1="0%" y1="0%" x2="0%" y2="100%">
         <stop offset="0%" stopColor="#4169E1" />
         <stop offset="100%" stopColor="#001a4d" />
       </linearGradient>
-      {/* Gold/Orange Gradient for D */}
       <linearGradient id="gradD" x1="0%" y1="0%" x2="0%" y2="100%">
         <stop offset="0%" stopColor="#ffe4b5" />
         <stop offset="100%" stopColor="#c47100" />
       </linearGradient>
-      {/* Bright Gold Gradient for G */}
       <linearGradient id="gradG" x1="0%" y1="0%" x2="0%" y2="100%">
         <stop offset="0%" stopColor="#fff9c4" />
         <stop offset="100%" stopColor="#b8860b" />
@@ -86,11 +83,16 @@ const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen w-full flex flex-col items-center justify-center bg-[#0f172a] relative overflow-x-hidden font-sans p-4">
+    <div className="min-h-screen w-full flex flex-col items-center justify-center relative overflow-hidden font-sans p-4 
+                    bg-[#0a0f1c] bg-[radial-gradient(circle_at_center,#1e293b_0%,#0a0f1c_100%)]">
       
-      {/* Grainy Background Overlay */}
+      {/* METALLIC ACCENTS: Ambient glow blobs to simulate light reflection on metal */}
+      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-indigo-500/10 blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-cyan-500/10 blur-[120px] pointer-events-none" />
+
+      {/* Grainy Background Overlay for "Brushed Metal" effect */}
       <div
-        className="absolute inset-0 opacity-30 pointer-events-none"
+        className="absolute inset-0 opacity-20 pointer-events-none mix-blend-overlay"
         style={{
           backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`
         }}
@@ -101,7 +103,6 @@ const LoginPage: React.FC = () => {
           <PDGLogo />
         </div>
         
-        {/* The thin blue separator line */}
         <div className="h-1 w-16 bg-indigo-500 mx-auto rounded-full mb-4" />
         
         <p className="text-slate-400 text-sm sm:text-base font-bold tracking-[0.3em] uppercase opacity-80">
@@ -110,7 +111,8 @@ const LoginPage: React.FC = () => {
       </div>
 
       <div className="relative z-10 w-full max-w-md">
-        <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-3xl shadow-2xl overflow-hidden">
+        {/* Glassmorphism Card */}
+        <div className="backdrop-blur-2xl bg-white/3 border border-white/10 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden">
           <div className="h-1.5 w-full bg-linear-to-r from-transparent via-indigo-400 to-transparent opacity-50" />
           <div className="p-6 sm:p-8">
             <div className="text-center mb-8 sm:mb-10">
@@ -138,7 +140,7 @@ const LoginPage: React.FC = () => {
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500 group-focus-within:text-indigo-400 transition-colors">
                     <Mail size={24} style={{ color: "#909DF6" }} />
                   </div>
-                  <input type="email" name="email" className="w-full pl-11 pr-4 py-3.5 bg-slate-900/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 backdrop-blur-sm text-base hover:border-indigo-200 hover:ring-2 hover:ring-indigo-500/20" placeholder="name@company.com" value={formData.email} onChange={handleChange} required disabled={isLoading} />
+                  <input type="email" name="email" className="w-full pl-11 pr-4 py-3.5 bg-slate-950/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 backdrop-blur-sm text-base hover:border-indigo-400/50" placeholder="name@company.com" value={formData.email} onChange={handleChange} required disabled={isLoading} />
                 </div>
               </div>
 
@@ -151,7 +153,7 @@ const LoginPage: React.FC = () => {
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500 group-focus-within:text-indigo-400 transition-colors">
                     <Lock size={24} style={{ color: "#909DF6" }} />
                   </div>
-                  <input type={showPassword ? "text" : "password"} name="password" className="w-full pl-11 pr-12 py-3.5 bg-slate-900/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 backdrop-blur-sm text-base hover:border-indigo-200 hover:ring-2 hover:ring-indigo-500/20" placeholder="••••••••" value={formData.password} onChange={handleChange} required disabled={isLoading} />
+                  <input type={showPassword ? "text" : "password"} name="password" className="w-full pl-11 pr-12 py-3.5 bg-slate-950/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 backdrop-blur-sm text-base hover:border-indigo-400/50" placeholder="••••••••" value={formData.password} onChange={handleChange} required disabled={isLoading} />
                   <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-500 hover:text-indigo-400 transition-colors focus:outline-none">
                     {showPassword ? <EyeOff size={24} /> : <Eye size={24} />}
                   </button>
@@ -169,7 +171,7 @@ const LoginPage: React.FC = () => {
             </form>
           </div>
 
-          <div className="p-6 bg-white/5 border-t border-white/10 text-center">
+          <div className="p-6 bg-white/2 border-t border-white/10 text-center">
             <p className="text-slate-400 text-base">
               Don&apos;t have an account?{' '}
               <Link href="/signup" className="text-indigo-400 font-semibold hover:text-indigo-300 transition-colors">
