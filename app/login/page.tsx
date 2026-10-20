@@ -13,52 +13,48 @@ interface LoginFormState {
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// --- THE ALIEN-TECH PDG LOGO ---
+// --- THE EXACT PDG LOGO FROM THE IMAGE ---
 const PDGLogo = () => (
-  <svg width="400" height="140" viewBox="0 0 400 140" fill="none" xmlns="http://www.w3.org/2000/svg" className="drop-shadow-2xl">
+  <svg width="350" height="120" viewBox="0 0 350 120" fill="none" xmlns="http://www.w3.org/2000/svg" className="drop-shadow-xl">
     <defs>
+      {/* P: Deep Blue Gradient */}
       <linearGradient id="gradP" x1="0%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" stopColor="#4169E1" />
-        <stop offset="100%" stopColor="#001a4d" />
+        <stop offset="0%" stopColor="#4A90E2" />
+        <stop offset="100%" stopColor="#1A3A8A" />
       </linearGradient>
+      {/* D: Muted Gold Gradient */}
       <linearGradient id="gradD" x1="0%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" stopColor="#ffe4b5" />
-        <stop offset="100%" stopColor="#c47100" />
+        <stop offset="0%" stopColor="#F3D28D" />
+        <stop offset="100%" stopColor="#B8860B" />
       </linearGradient>
+      {/* G: Bright Gold Gradient */}
       <linearGradient id="gradG" x1="0%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" stopColor="#fff9c4" />
-        <stop offset="100%" stopColor="#b8860b" />
+        <stop offset="0%" stopColor="#FDF5C8" />
+        <stop offset="100%" stopColor="#D4AF37" />
       </linearGradient>
-
-      {/* The "Cut-off" Slice: This defines what part of the text is VISIBLE */}
-      {/* We create a polygon that covers the text but leaves a thin diagonal gap in the middle */}
-      <clipPath id="alienCut">
-        <path d="M0,0 H400 V60 L0,80 Z" /> {/* Top Half */}
-        <path d="M0,90 L400,70 H400 V140 H0 Z" /> {/* Bottom Half */}
-      </clipPath>
     </defs>
-
-    {/* transform="skewX(-20)" creates the aggressive right-leaning lean */}
-    <g transform="skewX(-20) translate(40, 0)">
-      <text 
-        x="50%" 
-        y="100" 
-        textAnchor="middle" 
-        strokeLinejoin="round"
-        clipPath="url(#alienCut)"
-        style={{ 
-          fontSize: '120px', 
-          fontWeight: '900', 
-          fontFamily: 'sans-serif', 
-          letterSpacing: '-10px' 
-        }}
-      >
-        {/* StrokeWidth 6 makes it ultra-bold */}
-        <tspan fill="url(#gradP)" stroke="url(#gradP)" strokeWidth="6">P</tspan>
-        <tspan fill="url(#gradD)" stroke="url(#gradD)" strokeWidth="6">D</tspan>
-        <tspan fill="url(#gradG)" stroke="url(#gradG)" strokeWidth="6">G</tspan>
-      </text>
-    </g>
+    
+    {/* 
+       - fontStyle: 'italic' for the lean
+       - fontWeight: '900' for the thickness
+       - letterSpacing: '-6px' to pull letters close together as seen in the image
+    */}
+    <text 
+      x="50%" 
+      y="90" 
+      textAnchor="middle" 
+      style={{ 
+        fontSize: '110px', 
+        fontWeight: '900', 
+        fontStyle: 'italic', 
+        fontFamily: 'sans-serif', 
+        letterSpacing: '-6px' 
+      }}
+    >
+      <tspan fill="url(#gradP)">P</tspan>
+      <tspan fill="url(#gradD)">D</tspan>
+      <tspan fill="url(#gradG)">G</tspan>
+    </text>
   </svg>
 );
 
@@ -100,9 +96,11 @@ const LoginPage: React.FC = () => {
     <div className="min-h-screen w-full flex flex-col items-center justify-center relative overflow-hidden font-sans p-4 
                     bg-[#0a0f1c] bg-[radial-gradient(circle_at_center,#1e293b_0%,#0a0f1c_100%)]">
       
+      {/* METALLIC ACCENTS */}
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-indigo-500/10 blur-[120px] pointer-events-none" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-cyan-500/10 blur-[120px] pointer-events-none" />
 
+      {/* Brushed Metal Grain */}
       <div
         className="absolute inset-0 opacity-20 pointer-events-none mix-blend-overlay"
         style={{
@@ -111,13 +109,14 @@ const LoginPage: React.FC = () => {
       />
 
       <div className="relative z-10 mb-12 text-center group">
-        <div className="flex flex-col items-center justify-center gap-6 mb-6">
+        <div className="flex flex-col items-center justify-center mb-6">
           <PDGLogo />
         </div>
         
-        <div className="h-1 w-16 bg-indigo-500 mx-auto rounded-full mb-4" />
+        {/* Exact purple line from image */}
+        <div className="h-1 w-16 bg-indigo-500 mx-auto rounded-full mb-6" />
         
-        <p className="text-slate-400 text-sm sm:text-base font-bold tracking-[0.3em] uppercase opacity-80">
+        <p className="text-slate-400 text-xs sm:text-sm font-bold tracking-[0.3em] uppercase opacity-80">
           The Future of Connectivity
         </p>
       </div>
