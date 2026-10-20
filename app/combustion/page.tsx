@@ -1,178 +1,163 @@
 "use client";
 
-import { useRef } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, PerspectiveCamera, ContactShadows } from '@react-three/drei';
-import * as THREE from 'three';
+import React, { useState, useEffect } from 'react';
 
-// --- CONSTANTS ---
-const SETTINGS = {
-  pistonRadius: 0.6,
-  cylinderRadius: 0.7,
-  cylinderHeight: 5,
-  spacing: 2.5,
-  speed: 1.5,
+// --- ENGINE CONFIGURATION ---
+const CONFIG = {
+  cylinderCount: 4,
+  crankRadius: 40,       // Distance from center of crank to pin
+  rodLength: 120,        // Length of the piston rod
+  cylinderWidth: 70,
+  spacing: 110,          // Space between cylinders
+  startY: 200,           // Vertical offset for the piston top
+  crankY: 450,           // Vertical position of the crankshaft center
+  speed: 0.04,           // Rotation speed
 };
 
-const CylinderUnit = ({ index, total }: { index: number, total: number }) => {
-  const pistonRef = useRef<THREE.Group>(null);
-  const rodRef = useRef<THREE.Mesh>(null);
-  const intakeValveRef = useRef<THREE.Group>(null);
-  const exhaustValveRef = useRef<THREE.Group>(null);
-  const fireRef = useRef<THREE.Mesh>(null);
+const STROKES = [
+  { name: 'Intake', color: '#3b82f6', desc: 'Air/Fuel In' },     // Blue
+  { name: 'Compression', color: '#eab308', desc: 'Compressing' }, // Yellow
+  { name: 'Power', color: '#ef4444', desc: 'Combustion' },      // Red
+  { name: 'Exhaust', color: '#64748b', desc: 'Gases Out' },      // Grey
+];
 
-  const timingOffset = (index * (Math.PI * 2)) / total;
+const Engine2D = () => {
+  const [angle, setAngle] = useState(0);
 
-  useFrame((state) => {
-    const t = state.clock.getElapsedTime() * SETTINGS.speed;
-    const angle = t + timingOffset;
-
-    // 1. Piston Movement
-    const yPos = Math.sin(angle) * 1.5;
-    if (pistonRef.current) {
-      pistonRef.current.position.y = yPos;
-    }
-
-    // 2. Rod Movement
-    if (rodRef.current) {
-      rodRef.current.position.y = yPos / 2;
-      rodRef.current.rotation.z = Math.cos(angle) * 0.3;
-    }
-
-    // 3. Valve Timing
-    const intakeOpen = Math.max(0, Math.sin(angle));
-    const exhaustOpen = Math.max(0, Math.sin(angle + Math.PI));
-    if (intakeValveRef.current) intakeValveRef.current.position.y = -intakeOpen * 0.5;
-    if (exhaustValveRef.current) exhaustValveRef.current.position.y = -exhaustOpen * 0.5;
-
-    // 4. Combustion Flash
-    const normalized = (Math.sin(angle) + 1) / 2;
-    if (fireRef.current) {
-      const isPower = normalized > 0.9 && normalized < 0.98;
-      fireRef.current.visible = isPower;
-      if (isPower) {
-        const s = (normalized - 0.9) * 20;
-        fireRef.current.scale.set(s, s, s);
-      }
-    }
-  });
+  useEffect(() => {
+    let animationFrame: number;
+    const update = () => {
+      setAngle((prev) => prev + CONFIG.speed);
+      animationFrame = requestAnimationFrame(update);
+    };
+    animationFrame = requestAnimationFrame(update);
+    return () => cancelAnimationFrame(animationFrame);
+  }, []);
 
   return (
-    <group>
-      {/* STATIC CYLINDER SLEEVE */}
-      <mesh position={[0, 0, 0]}>
-        <cylinderGeometry args={[SETTINGS.cylinderRadius, SETTINGS.cylinderRadius, SETTINGS.cylinderHeight, 32]} />
-        <meshStandardMaterial 
-          color="#444" 
-          transparent 
-          opacity={0.2} 
-          side={THREE.DoubleSide} 
-        />
-      </mesh>
-
-      {/* VALVES */}
-      <group position={[0, SETTINGS.cylinderHeight / 2, 0]}>
-        <group ref={intakeValveRef} position={[-0.2, 0, 0]}>
-          <mesh position={[0, 0, 0]}>
-            <cylinderGeometry args={[0.05, 0.05, 1, 16]} />
-            <meshStandardMaterial color="#aaa" metalness={1} />
-          </mesh>
-          <mesh position={[0, -0.5, 0]} rotation={[Math.PI / 2, 0, 0]}>
-            <cylinderGeometry args={[0.2, 0.2, 0.05, 16]} />
-            <meshStandardMaterial color="#aaa" metalness={1} />
-          </mesh>
-        </group>
-        <group ref={exhaustValveRef} position={[0.2, 0, 0]}>
-          <mesh position={[0, 0, 0]}>
-            <cylinderGeometry args={[0.05, 0.05, 1, 16]} />
-            <meshStandardMaterial color="#aaa" metalness={1} />
-          </mesh>
-          <mesh position={[0, -0.5, 0]} rotation={[Math.PI / 2, 0, 0]}>
-            <cylinderGeometry args={[0.2, 0.2, 0.05, 16]} />
-            <meshStandardMaterial color="#aaa" metalness={1} />
-          </mesh>
-        </group>
-      </group>
-
-      {/* PISTON */}
-      <group ref={pistonRef}>
-        <mesh castShadow>
-          <cylinderGeometry args={[SETTINGS.pistonRadius, SETTINGS.pistonRadius, 1, 32]} />
-          <meshStandardMaterial color="#eee" metalness={0.9} roughness={0.1} />
-        </mesh>
-        <mesh ref={fireRef} position={[0, 0.6, 0]}>
-          <sphereGeometry args={[0.4, 32, 32]} />
-          <meshStandardMaterial color="#ff4400" />
-        </mesh>
-      </group>
-
-      {/* ROD */}
-      <mesh ref={rodRef} position={[0, -1.5, 0]}>
-        <cylinderGeometry args={[0.1, 0.1, 3, 16]} />
-        <meshStandardMaterial color="#666" metalness={1} />
-      </mesh>
-    </group>
-  );
-};
-
-const Crankshaft = () => {
-  const ref = useRef<THREE.Group>(null);
-  useFrame((state) => {
-    if (ref.current) {
-      ref.current.rotation.x = state.clock.getElapsedTime() * SETTINGS.speed;
-    }
-  });
-
-  return (
-    <group ref={ref}>
-      <mesh rotation={[0, 0, Math.PI / 2]}>
-        <cylinderGeometry args={[0.2, 0.2, 10, 32]} />
-        <meshStandardMaterial color="#222" metalness={1} />
-      </mesh>
-      {[-SETTINGS.spacing * 1.5, -SETTINGS.spacing / 2, SETTINGS.spacing / 2, SETTINGS.spacing * 1.5].map((x, i) => (
-        <mesh key={i} position={[x, i % 2 === 0 ? 0.7 : -0.7, 0]} rotation={[0, 0, Math.PI / 2]}>
-          <cylinderGeometry args={[0.2, 0.2, 0.6, 32]} />
-          <meshStandardMaterial color="#222" metalness={1} />
-        </mesh>
-      ))}
-    </group>
-  );
-};
-
-const EngineSimulation = () => {
-  return (
-    <div className="w-full h-screen bg-[#05070a] relative overflow-hidden">
-      <div className="absolute top-10 left-10 z-10 pointer-events-none select-none">
-        <h1 className="text-5xl font-black italic text-white tracking-tighter">
-          ENGINE <span className="text-blue-500">X-4</span>
+    <div className="min-h-screen bg-[#0a0c12] text-white font-sans flex flex-col items-center justify-center p-4">
+      <div className="text-center mb-12">
+        <h1 className="text-4xl font-black italic tracking-tighter mb-2">
+          V4 <span className="text-blue-500">MECHANICAL</span> SIM
         </h1>
-        <p className="text-slate-500 uppercase tracking-[0.3em] text-xs font-bold mt-1">
-          Static Background Render
+        <p className="text-slate-500 uppercase tracking-[0.3em] text-xs font-bold">
+          Synced 4-Stroke Kinematics
         </p>
-      </div >
+      </div>
 
-      <Canvas shadows>
-        <PerspectiveCamera makeDefault position={[12, 8, 12]} />
-        
-        {/* Simple Static Lighting (No Environment) */}
-        <ambientLight intensity={0.7} />
-        <spotLight position={[10, 15, 10]} angle={0.2} penumbra={1} intensity={2} castShadow />
-        <pointLight position={[-10, -10, -10]} color="#4444ff" intensity={0.5} />
+      <div className="relative bg-slate-900/50 p-12 rounded-3xl border border-white/10 shadow-2xl">
+        <svg 
+          width={CONFIG.spacing * CONFIG.cylinderCount + 100} 
+          height={600} 
+          viewBox="0 0 600 600"
+          className="overflow-visible"
+        >
+          {/* CRANKSHAFT MAIN SHAFT */}
+          <line 
+            x1="50" y1={CONFIG.crankY} x2="550" y2={CONFIG.crankY} 
+            stroke="#334155" strokeWidth="12" strokeLinecap="round" 
+          />
 
-        <group position={[0, 0, 0]}>
-          <Crankshaft />
-          {[-SETTINGS.spacing * 1.5, -SETTINGS.spacing / 2, SETTINGS.spacing / 2, SETTINGS.spacing * 1.5].map((x, i) => (
-            <group key={i} position={[x, 0, 0]}>
-              <CylinderUnit index={i} total={4} />
-            </group>
-          ))}
-        </group>
+          {[0, 1, 2, 3].map((i) => {
+            // Timing offset: Each cylinder is 180 degrees (Math.PI) apart
+            const cylinderAngle = angle + (i * Math.PI);
+            
+            // 1. CALCULATE CRANK PIN POSITION
+            // The pin rotates in a circle around the crankshaft center
+            const pinX = 120 + i * CONFIG.spacing;
+            const pinY = CONFIG.crankY + Math.sin(cylinderAngle) * CONFIG.crankRadius;
+            const pinXOffset = Math.cos(cylinderAngle) * CONFIG.crankRadius;
 
-        <ContactShadows opacity={0.4} scale={20} blur={2} far={10} resolution={256} color="#000" />
-        <OrbitControls makeDefault />
-      </Canvas>
+            // 2. CALCULATE PISTON POSITION
+            // Using the Law of Cosines/Pythagoras to find the vertical height of the piston
+            // Piston height = Crank center Y - (offset from crank pin)
+            const pistonY = CONFIG.crankY - (Math.sqrt(Math.pow(CONFIG.rodLength, 2) - Math.pow(pinXOffset, 2)) + Math.sin(cylinderAngle) * CONFIG.crankRadius);
+            const pistonX = 120 + i * CONFIG.spacing;
+
+            // 3. VALVE TIMING (4-Stroke Logic)
+            // Cycle: Intake (Down) -> Compression (Up) -> Power (Down) -> Exhaust (Up)
+            const cyclePos = (cylinderAngle % (Math.PI * 2));
+            const isIntake = cyclePos < Math.PI; // First half of rotation
+            const isExhaust = cyclePos >= Math.PI; // Second half of rotation
+            
+            // We use a modulo of 4PI because 4 strokes = 2 rotations
+            const fullCycle = (cylinderAngle % (Math.PI * 4));
+            const intakeOpen = fullCycle < Math.PI ? 15 : 0;
+            const exhaustOpen = (fullCycle > Math.PI * 3) ? 15 : 0;
+
+            // 4. STROKE COLOR
+            const strokeIdx = Math.floor((fullCycle / Math.PI) % 4);
+            const strokeColor = STROKES[strokeIdx].color;
+
+            return (
+              <g key={i}>
+                {/* Cylinder Wall */}
+                <rect 
+                  x={pistonX - CONFIG.cylinderWidth/2} 
+                  y={pistonY - 100} 
+                  width={CONFIG.cylinderWidth} 
+                  height={CONFIG.crankY - (pistonY - 100)} 
+                  fill="none" 
+                  stroke="#334155" 
+                  strokeWidth="4" 
+                />
+
+                {/* Valves */}
+                <rect 
+                  x={pistonX - 20} y={pistonY - 110} width="4" height={10 + intakeOpen} 
+                  fill={intakeOpen ? "#3b82f6" : "#64748b"} 
+                />
+                <rect 
+                  x={pistonX + 16} y={pistonY - 110} width="4" height={10 + exhaustOpen} 
+                  fill={exhaustOpen ? "#ef4444" : "#64748b"} 
+                />
+
+                {/* Piston Head */}
+                <rect 
+                  x={pistonX - CONFIG.cylinderWidth/2 + 5} 
+                  y={pistonY} 
+                  width={CONFIG.cylinderWidth - 10} 
+                  height="40" 
+                  rx="4" 
+                  fill={strokeColor} 
+                  className="transition-colors duration-300"
+                />
+
+                {/* Piston Rod (Connecting pin to piston) */}
+                <line 
+                  x1={pistonX} y1={pistonY + 40} 
+                  x2={pinX + pinXOffset} y2={pinY} 
+                  stroke="#94a3b8" 
+                  strokeWidth="8" 
+                  strokeLinecap="round" 
+                />
+
+                {/* Crank Pin */}
+                <circle 
+                  cx={pinX + pinXOffset} cy={pinY} 
+                  r="6" 
+                  fill="#f8fafc" 
+                />
+              </g>
+            );
+          })}
+        </svg>
+      </div>
+
+      {/* LEGEND */}
+      <div className="mt-12 grid grid-cols-2 md:grid-cols-4 gap-6">
+        {STROKES.map((s) => (
+          <div key={s.name} className="flex items-center gap-3 bg-slate-900/80 p-3 rounded-lg border border-white/5">
+            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: s.color }} />
+            <div>
+              <div className="text-[10px] font-bold uppercase text-slate-500">{s.name}</div>
+              <div className="text-xs text-slate-300">{s.desc}</div>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 };
 
-export default EngineSimulation;
+export default Engine2D;
