@@ -1,161 +1,217 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useRef, useMemo, useState } from 'react';
+import { Canvas, useFrame } from '@react-three/fiber';
+import { OrbitControls, PerspectiveCamera, Environment, ContactShadows } from '@react-three/drei';
+import { EffectComposer, Bloom, ToneMapping } from '@react-three/postprocessing';
+import * as THREE from 'three';
 
-// --- ENGINE CONFIGURATION ---
-const CONFIG = {
-  cylinderCount: 4,
-  crankRadius: 35,       
-  rodLength: 110,        
-  cylinderWidth: 70,
-  spacing: 120,          
-  crankY: 450,           
-  speed: 0.04,           
+// --- RIGID CONFIGURATION ---
+const ENGINE_CONFIG = {
+  crankRadius: 1.2,
+  rodLength: 3.8,
+  pistonRadius: 0.8,
+  cylinderRadius: 0.9,
+  cylinderHeight: 6,
+  rotationSpeed: 1.2,
 };
 
-const STROKES = [
-  { name: 'Intake', color: '#3b82f6', desc: 'Air/Fuel In' },     
-  { name: 'Compression', color: '#eab308', desc: 'Compressing' }, 
-  { name: 'Power', color: '#ef4444', desc: 'Combustion' },      
-  { name: 'Exhaust', color: '#64748b', desc: 'Gases Out' },      
+const STAGE_DATA = [
+  { name: 'INTAKE', color: '#3b82f6', desc: 'Drawing in air-fuel mixture.' },
+  { name: 'COMPRESSION', color: '#eab308', desc: 'Compressing the charge.' },
+  { name: 'POWER', color: '#ef4444', desc: 'Combustion forcing piston down.' },
+  { name: 'EXHAUST', color: '#64748b', desc: 'Expelling burnt gases.' },
 ];
 
-const Engine2D = () => {
-  const [angle, setAngle] = useState(0);
+// --- MECHANICAL ASSEMBLY ---
 
-  useEffect(() => {
-    let animationFrame: number;
-    const update = () => {
-      // REVERSED MOVEMENT: Subtracting speed instead of adding
-      setAngle((prev) => prev - CONFIG.speed);
-      animationFrame = requestAnimationFrame(update);
-    };
-    animationFrame = requestAnimationFrame(update);
-    return () => cancelAnimationFrame(animationFrame);
-  }, []);
+interface EngineProps {
+  onStageChange: (idx: number) => void;
+}
+
+const EngineAssembly: React.FC<EngineProps> = ({ onStageChange }) => {
+  const pistonRef = useRef<THREE.Group>(null);
+  const rodRef = useRef<THREE.Mesh>(null);
+  const intakeValveRef = useRef<THREE.Group>(null);
+  const exhaustValveRef = useRef<THREE.Group>(null);
+  const fireRef = useRef<THREE.Mesh>(null);
+  const crankRef = useRef<THREE.Group>(null);
+  const lastStage = useRef<number>(-1);
+
+  const materials = useMemo(() => ({
+    darkSteel: new THREE.MeshStandardMaterial({ color: '#111111', metalness: 0.9, roughness: 0.2 }),
+    smugMetal: new THREE.MeshStandardMaterial({ color: '#2a2a2a', metalness: 0.8, roughness: 0.3 }),
+    chrome: new THREE.MeshStandardMaterial({ color: '#aaaaaa', metalness: 1, roughness: 0.1 }),
+    glass: new THREE.MeshStandardMaterial({ color: '#ffffff', transparent: true, opacity: 0.1, roughness: 0 }),
+  }), []);
+
+  useFrame((state) => {
+    const t = state.clock.getElapsedTime() * ENGINE_CONFIG.rotationSpeed;
+    const angle = t;
+
+    // 1. Crankshaft Rotation
+    if (crankRef.current) {
+      crankRef.current.rotation.z = angle;
+    }
+
+    // 2. Kinematic Piston Position
+    const pinX = Math.cos(angle) * ENGINE_CONFIG.crankRadius;
+    const pinY = Math.sin(angle) * ENGINE_CONFIG.crankRadius;
+    const verticalOffset = Math.sqrt(Math.pow(ENGINE_CONFIG.rodLength, 2) - Math.pow(pinX, 2));
+    const pistonY = pinY + verticalOffset;
+
+    if (pistonRef.current) {
+      pistonRef.current.position.y = pistonY;
+    }
+
+    // 3. Connecting Rod Pendulum
+    if (rodRef.current) {
+      rodRef.current.position.y = (pistonY + pinY) / 2;
+      rodRef.current.rotation.z = Math.atan2(pinX, verticalOffset);
+    }
+
+    // 4. 4-Stroke Valve Synchronization (2 rotations per cycle)
+    const fullCycle = (angle % (Math.PI * 4));
+    const intakeOpen = fullCycle < Math.PI ? Math.sin(fullCycle) * 0.5 : 0;
+    const exhaustOpen = fullCycle > Math.PI * 3 ? Math.sin(fullCycle - Math.PI * 3) * 0.5 : 0;
+
+    if (intakeValveRef.current) intakeValveRef.current.position.y = 2.5 - intakeOpen;
+    if (exhaustValveRef.current) exhaustValveRef.current.position.y = 2.5 - exhaustOpen;
+
+    // 5. Stage Logic & UI Sync
+    const currentIdx = Math.floor((fullCycle / Math.PI) % 4);
+    if (currentIdx !== lastStage.current) {
+      lastStage.current = currentIdx;
+      onStageChange(currentIdx);
+    }
+
+    // 6. Combustion Event (Power Stroke)
+    if (fireRef.current) {
+      const isPower = currentIdx === 2;
+      fireRef.current.visible = isPower;
+      if (isPower) {
+        const pulse = 1 + Math.sin(angle * 5) * 0.1;
+        fireRef.current.scale.set(pulse, pulse, pulse);
+      }
+    }
+  });
 
   return (
-    <div className="min-h-screen bg-[#0a0c12] text-white font-sans flex flex-col items-center justify-center p-4">
-      <div className="text-center mb-12">
-        <h1 className="text-4xl font-black italic tracking-tighter mb-2">
-          V4 <span className="text-blue-500">MECHANICAL</span> SIM
+    <group>
+      {/* CYLINDER SHELL */}
+      <mesh position={[0, 2, 0]}>
+        <cylinderGeometry args={[ENGINE_CONFIG.cylinderRadius + 0.1, ENGINE_CONFIG.cylinderRadius + 0.1, ENGINE_CONFIG.cylinderHeight, 32, 1, true]} />
+        <primitive object={materials.glass} />
+      </mesh>
+
+      {/* INTAKE VALVE */}
+      <group ref={intakeValveRef} position={[-0.3, 2.5, 0]}>
+        <mesh position={[0, 0.5, 0]}>
+          <cylinderGeometry args={[0.05, 0.05, 1, 16]} />
+          <primitive object={materials.darkSteel} />
+        </mesh>
+        <mesh position={[0, 0, 0]} rotation={[Math.PI / 2, 0, 0]}>
+          <cylinderGeometry args={[0.2, 0.2, 0.05, 16]} />
+          <primitive object={materials.chrome} />
+        </mesh>
+      </group>
+
+      {/* EXHAUST VALVE */}
+      <group ref={exhaustValveRef} position={[0.3, 2.5, 0]}>
+        <mesh position={[0, 0.5, 0]}>
+          <cylinderGeometry args={[0.05, 0.05, 1, 16]} />
+          <primitive object={materials.darkSteel} />
+        </mesh>
+        <mesh position={[0, 0, 0]} rotation={[Math.PI / 2, 0, 0]}>
+          <cylinderGeometry args={[0.2, 0.2, 0.05, 16]} />
+          <primitive object={materials.chrome} />
+        </mesh>
+      </group>
+
+      {/* PISTON ASSEMBLY */}
+      <group ref={pistonRef}>
+        <mesh castShadow>
+          <cylinderGeometry args={[ENGINE_CONFIG.pistonRadius, ENGINE_CONFIG.pistonRadius, 1.2, 32]} />
+          <primitive object={materials.smugMetal} />
+        </mesh>
+        <mesh ref={fireRef} position={[0, 0.7, 0]}>
+          <sphereGeometry args={[0.6, 32, 32]} />
+          <meshStandardMaterial emissive="#ff4400" emissiveIntensity={15} color="#ffaa00" transparent opacity={0.8} />
+        </mesh>
+      </group>
+
+      {/* CONNECTING ROD */}
+      <mesh ref={rodRef} position={[0, 0, 0]}>
+        <cylinderGeometry args={[0.1, 0.1, ENGINE_CONFIG.rodLength * 2, 16]} />
+        <primitive object={materials.darkSteel} />
+      </mesh>
+
+      {/* CRANKSHAFT */}
+      <group ref={crankRef} position={[0, 0, 0]}>
+        <mesh rotation={[Math.PI / 2, 0, 0]}>
+          <cylinderGeometry args={[0.2, 0.2, 2, 32]} />
+          <primitive object={materials.darkSteel} />
+        </mesh>
+        <group position={[0, ENGINE_CONFIG.crankRadius, 0]}>
+          <mesh rotation={[Math.PI / 2, 0, 0]}>
+            <cylinderGeometry args={[0.2, 0.2, 0.6, 32]} />
+            <primitive object={materials.chrome} />
+          </mesh>
+        </group>
+      </group>
+    </group>
+  );
+};
+
+// --- MAIN PAGE ---
+
+const EnginePage: React.FC = () => {
+  const [currentStage, setCurrentStage] = useState(0);
+
+  return (
+    <div className="w-full h-screen bg-[#030303] relative overflow-hidden">
+      <div className="absolute top-12 left-12 z-10 pointer-events-none select-none">
+        <h1 className="text-6xl font-black italic text-white tracking-tighter">
+          S-CORE <span className="text-orange-600">V1</span>
         </h1>
-        <p className="text-slate-500 uppercase tracking-[0.3em] text-xs font-bold">
-          Reverse-Rotation Kinematics
+        <p className="text-slate-500 uppercase tracking-[0.5em] text-xs font-bold mt-2">
+          Professional Mechanical Simulation
         </p>
-      </div>
-
-      <div className="relative bg-slate-900/50 p-12 rounded-3xl border border-white/10 shadow-2xl">
-        <svg 
-          width={CONFIG.spacing * CONFIG.cylinderCount + 100} 
-          height={600} 
-          viewBox="0 0 600 600"
-          className="overflow-visible"
-        >
-          {/* STATIC ENGINE BLOCK (Crankshaft Main Axis) */}
-          <line 
-            x1="50" y1={CONFIG.crankY} x2="550" y2={CONFIG.crankY} 
-            stroke="#1e293b" strokeWidth="16" strokeLinecap="round" 
-          />
-
-          {[0, 1, 2, 3].map((i) => {
-            const cylinderAngle = angle + (i * Math.PI);
-            
-            // --- MATH: CRANK PIN POSITION ---
-            const centerX = 120 + i * CONFIG.spacing;
-            const pinX = centerX + Math.cos(cylinderAngle) * CONFIG.crankRadius;
-            const pinY = CONFIG.crankY + Math.sin(cylinderAngle) * CONFIG.crankRadius;
-
-            // --- MATH: PISTON POSITION ---
-            const dx = pinX - centerX; 
-            const dy = Math.sqrt(Math.pow(CONFIG.rodLength, 2) - Math.pow(dx, 2));
-            const pistonY = pinY - dy;
-            const pistonX = centerX;
-
-            // --- 4-STROKE LOGIC (Normalized for reverse movement) ---
-            // We use ((a % n) + n) % n to ensure the result is always positive 
-            // regardless of rotation direction.
-            const cyclePeriod = Math.PI * 4; 
-            const fullCycle = ((cylinderAngle % cyclePeriod) + cyclePeriod) % cyclePeriod;
-            
-            const intakeOpen = fullCycle < Math.PI ? 15 : 0;
-            const exhaustOpen = fullCycle > Math.PI * 3 ? 15 : 0;
-            const strokeIdx = Math.floor((fullCycle / Math.PI) % 4);
-            const strokeColor = STROKES[strokeIdx].color;
-
-            return (
-              <g key={i}>
-                {/* STATIC CYLINDER SLEEVE */}
-                <rect 
-                  x={pistonX - CONFIG.cylinderWidth/2} 
-                  y={pistonY - 120} 
-                  width={CONFIG.cylinderWidth} 
-                  height={CONFIG.crankY - (pistonY - 120)} 
-                  fill="none" 
-                  stroke="#334155" 
-                  strokeWidth="4" 
-                  rx="4"
-                />
-
-                {/* VALVES (Fixed at top) */}
-                <rect 
-                  x={pistonX - 20} y={pistonY - 130} width="4" height={10 + intakeOpen} 
-                  fill={intakeOpen ? "#3b82f6" : "#475569"} 
-                />
-                <rect 
-                  x={pistonX + 16} y={pistonY - 130} width="4" height={10 + exhaustOpen} 
-                  fill={exhaustOpen ? "#ef4444" : "#475569"} 
-                />
-
-                {/* PISTON (Slides inside static sleeve) */}
-                <rect 
-                  x={pistonX - CONFIG.cylinderWidth/2 + 4} 
-                  y={pistonY} 
-                  width={CONFIG.cylinderWidth - 8} 
-                  height="40" 
-                  rx="4" 
-                  fill={strokeColor} 
-                  stroke="#fff"
-                  strokeWidth="1"
-                />
-
-                {/* PISTON ROD (Pendulum connection) */}
-                <line 
-                  x1={pistonX} y1={pistonY + 40} 
-                  x2={pinX} y2={pinY} 
-                  stroke="#94a3b8" 
-                  strokeWidth="8" 
-                  strokeLinecap="round" 
-                />
-
-                {/* CRANK PIN */}
-                <circle 
-                  cx={pinX} cy={pinY} 
-                  r="7" 
-                  fill="#f8fafc" 
-                  stroke="#1e293b" 
-                  strokeWidth="2"
-                />
-              </g>
-            );
-          })}
-        </svg>
-      </div>
-
-      {/* LEGEND */}
-      <div className="mt-12 grid grid-cols-2 md:grid-cols-4 gap-6">
-        {STROKES.map((s) => (
-          <div key={s.name} className="flex items-center gap-3 bg-slate-900/80 p-3 rounded-lg border border-white/5">
-            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: s.color }} />
-            <div className="flex flex-col">
-              <div className="text-[10px] font-bold uppercase text-slate-500">{s.name}</div>
-              <div className="text-xs text-slate-300">{s.desc}</div>
-            </div>
+        
+        <div className="mt-10 flex flex-col gap-4 bg-black/60 backdrop-blur-xl p-6 rounded-2xl border border-white/10 w-72">
+          <div className="flex items-center justify-between">
+            <span className="text-slate-400 text-xs font-bold uppercase">Current Stage</span>
+            <span className="text-orange-500 font-mono font-bold">{STAGE_DATA[currentStage].name}</span>
           </div>
-        ))}
+          <div className="h-px bg-white/10 w-full" />
+          <p className="text-slate-400 text-xs leading-relaxed">
+            {STAGE_DATA[currentStage].desc}
+          </p>
+        </div>
       </div>
+
+      <Canvas shadows>
+        <PerspectiveCamera makeDefault position={[8, 8, 12]} />
+        <ambientLight intensity={0.3} />
+        <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} intensity={2} castShadow />
+        <pointLight position={[-10, -5, -10]} color="#3b82f6" intensity={0.5} />
+        <Environment preset="night" />
+
+        <group position={[0, 0, 0]}>
+          <EngineAssembly onStageChange={setCurrentStage} />
+        </group>
+
+        <ContactShadows opacity={0.6} scale={10} blur={2} far={10} resolution={256} color="#000" />
+        
+        <EffectComposer>
+          <Bloom intensity={1.5} luminanceThreshold={0.1} mipmapBlur />
+          <ToneMapping />
+        </EffectComposer>
+
+        <OrbitControls makeDefault />
+      </Canvas>
     </div>
   );
 };
 
-export default Engine2D;
+export default EnginePage;
