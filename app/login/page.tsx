@@ -36,7 +36,7 @@ const ToothIcon = () => (
   </div>
 );
 
-// --- THE BOLD, RIGHT-LEANING, TRUNCATED PDG LOGO ---
+// --- THE ARCHITECTURAL PDG LOGO ---
 const PDGLogo = () => (
   <svg width="400" height="140" viewBox="0 0 400 140" fill="none" xmlns="http://www.w3.org/2000/svg" className="drop-shadow-2xl">
     <defs>
@@ -55,17 +55,25 @@ const PDGLogo = () => (
         <stop offset="50%" stopColor="#fff9c4" />
         <stop offset="100%" stopColor="#b8860b" />
       </linearGradient>
-      <clipPath id="truncateClip">
-        <rect x="0" y="0" width="400" height="115" />
+
+      {/* COOL TRUNCATION: A diagonal slice across the bottom */}
+      <clipPath id="diagClip">
+        <polygon points="0,0 400,0 400,110 0,130" />
       </clipPath>
     </defs>
-    <g clipPath="url(#truncateClip)">
+
+    <g clipPath="url(#diagClip)">
       <text 
         x="50%" 
         y="110" 
         textAnchor="middle" 
-        transform="skewX(15)" 
-        style={{ fontSize: '120px', fontWeight: '900', fontFamily: 'sans-serif', letterSpacing: '-8px' }}
+        transform="skewX(15)" // Aggressive lean to the right
+        style={{ 
+          fontSize: '120px', 
+          fontWeight: '900', 
+          fontFamily: 'sans-serif', 
+          letterSpacing: '-8px' 
+        }}
       >
         <tspan fill="url(#gradBlue)" stroke="url(#gradBlue)" strokeWidth="6">P</tspan>
         <tspan fill="url(#gradOrange)" stroke="url(#gradOrange)" strokeWidth="6">D</tspan>
@@ -182,16 +190,7 @@ const LoginPage: React.FC = () => {
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500 group-focus-within:text-indigo-400 transition-colors">
                     <Lock size={24} style={{ color: "#909DF6" }} />
                   </div>
-                  <input 
-                    type={showPassword ? "text" : "password"} 
-                    name="password" 
-                    className="w-full pl-11 pr-12 py-3.5 bg-slate-900/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 backdrop-blur-sm text-base hover:border-indigo-200 hover:ring-2 hover:ring-indigo-500/20" 
-                    placeholder="••••••••" 
-                    value={formData.password} 
-                    onChange={handleChange} 
-                    required 
-                    disabled={isLoading} 
-                  />
+                  <input type={showPassword ? "text" : "password"} name="password" className="w-full pl-11 pr-12 py-3.5 bg-slate-900/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 backdrop-blur-sm text-base hover:border-indigo-200 hover:ring-2 hover:ring-indigo-500/20" placeholder="••••••••" value={formData.password} onChange={handleChange} required disabled={isLoading} />
                   <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-500 hover:text-indigo-400 transition-colors focus:outline-none">
                     {showPassword ? <EyeOff size={24} /> : <Eye size={24} />}
                   </button>
