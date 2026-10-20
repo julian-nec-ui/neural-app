@@ -34,8 +34,8 @@ const PDGLogo = () => (
       {/* G: Extreme Radiant Gold Contrast (Dark Bronze -> Pale Yellow -> Dark Bronze) */}
       <linearGradient id="gradG" x1="0%" y1="0%" x2="0%" y2="100%">
         <stop offset="0%" stopColor="#F1E507" />
-        <stop offset="50%" stopColor="#B6AD78" />
-        <stop offset="100%" stopColor="#A64010" />
+        <stop offset="50%" stopColor="#D7D4BE" />
+        <stop offset="100%" stopColor="#C23E01" />
       </linearGradient>
     </defs>
     
