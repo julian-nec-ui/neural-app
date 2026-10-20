@@ -34,10 +34,45 @@ interface ActionButtonProps {
   label: string;
 }
 
+// --- THE NEW 3D ANIMATED TOOTH ICON ---
 const ToothIcon = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-indigo-400">
-    <path d="M12 2C9 2 7 4 7 7C7 9 8 11 9 12C8 13 7 15 7 17C7 20 9 22 12 22C15 22 17 20 17 17C17 15 16 13 15 12C16 11 17 9 17 7C17 4 15 2 12 2ZM12 4C13.5 4 14.5 5 14.5 6.5C14.5 8 13.5 9 12 9C10.5 9 9.5 8 9.5 6.5C9.5 5 10.5 4 12 4ZM12 14C13 14 14 15 14 16.5C14 18 13 19 12 19C11 19 10 18 10 16.5C10 15 11 14 12 14Z" fill="currentColor" />
-  </svg>
+  <div className="relative group cursor-pointer">
+    {/* Outer Glow Effect */}
+    <div className="absolute inset-0 bg-indigo-500/40 blur-xl rounded-full animate-pulse" />
+    
+    <svg 
+      width="64" 
+      height="64" 
+      viewBox="0 0 24 24" 
+      fill="none" 
+      xmlns="http://www.w3.org/2000/svg" 
+      className="relative z-10 animate-float drop-shadow-[0_5px_15px_rgba(99,102,241,0.6)]"
+    >
+      <defs>
+        {/* 3D Volumetric Gradient: Light in center, dark on edges */}
+        <linearGradient id="toothGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#C7D2FE" />   {/* Light Indigo */}
+          <stop offset="50%" stopColor="#FFFFFF" />  {/* Bright Highlight (The "3D" peak) */}
+          <stop offset="100%" stopColor="#6366F1" />  {/* Deep Indigo */}
+        </linearGradient>
+        
+        {/* Shimmer Animation Filter */}
+        <filter id="glow">
+          <feGaussianBlur stdDeviation="1" result="coloredBlur"/>
+          <feMerge>
+            <feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/>
+          </feMerge>
+        </filter>
+      </defs>
+      
+      <path
+        d="M12 2C9 2 7 4 7 7C7 9 8 11 9 12C8 13 7 15 7 17C7 20 9 22 12 22C15 22 17 20 17 17C17 15 16 13 15 12C16 11 17 9 17 7C17 4 15 2 12 2ZM12 4C13.5 4 14.5 5 14.5 6.5C14.5 8 13.5 9 12 9C10.5 9 9.5 8 9.5 6.5C9.5 5 10.5 4 12 4ZM12 14C13 14 14 15 14 16.5C14 18 13 19 12 19C11 19 10 18 10 16.5C10 15 11 14 12 14Z"
+        fill="url(#toothGradient)"
+        filter="url(#glow)"
+        className="transition-all duration-500 group-hover:scale-110"
+      />
+    </svg>
+  </div>
 );
 
 const DashboardPage: React.FC = () => {
