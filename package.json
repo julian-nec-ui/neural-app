@@ -13,7 +13,10 @@
   "dependencies": {
     "@fortawesome/free-solid-svg-icons": "^7.3.1",
     "@fortawesome/react-fontawesome": "^3.5.0",
+    "@react-three/drei": "^10.7.9",
+    "@react-three/fiber": "^9.8.2",
     "@stomp/stompjs": "^7.3.0",
+    "@types/three": "^0.186.0",
     "@xyflow/react": "^12.12.0",
     "axios": "^1.20.0",
     "bcryptjs": "^3.0.3",
@@ -27,7 +30,8 @@
     "reactflow": "^11.11.4",
     "resend": "^6.32.1",
     "socketjs-client": "^1.0.2",
-    "sockjs-client": "^1.6.1"
+    "sockjs-client": "^1.6.1",
+    "three": "^0.186.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
