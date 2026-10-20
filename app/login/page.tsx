@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { Mail, Lock, ArrowRight, Loader2, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { nexusService } from '../service/nexus-service'; // Removed NexusLoginRequest import
+import { nexusService } from '../service/nexus-service';
 
 interface LoginFormState {
   email: string;
@@ -13,7 +13,7 @@ interface LoginFormState {
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// --- THE 3D ANIMATED TOOTH ICON ---
+// --- THE 3D ANIMATED TOOTH ICON (Still floating) ---
 const ToothIcon = () => (
   <div className="relative group cursor-pointer">
     <div className="absolute inset-0 bg-indigo-500/40 blur-xl rounded-full animate-pulse" />
@@ -36,9 +36,9 @@ const ToothIcon = () => (
   </div>
 );
 
-// --- THE BULLETPROOF SVG PDG LOGO ---
+// --- THE BULLETPROOF SVG PDG LOGO (Now Static/No Bouncing) ---
 const PDGLogo = () => (
-  <svg width="280" height="80" viewBox="0 0 280 80" fill="none" xmlns="http://www.w3.org/2000/svg" className="animate-float">
+  <svg width="280" height="80" viewBox="0 0 280 80" fill="none" xmlns="http://www.w3.org/2000/svg" className="">
     <defs>
       <linearGradient id="gradBlue" x1="0%" y1="0%" x2="100%" y2="0%">
         <stop offset="0%" stopColor="#001a4d" />
@@ -93,11 +93,7 @@ const LoginPage: React.FC = () => {
     setErrorMessage(null);
 
     try {
-      // Pass data directly to avoid unused type import
-      await nexusService.loginUser({ 
-        email: formData.email, 
-        password: formData.password 
-      });
+      await nexusService.loginUser({ email: formData.email, password: formData.password });
       router.refresh();
       router.push('/nexus-dashboard');
     } catch (error: unknown) {
