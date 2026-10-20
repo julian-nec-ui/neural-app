@@ -4,7 +4,8 @@ export const PUBLIC_PAGES = [
   '/signup',
   '/forgot-password',
   '/reset-password',
-  '/privacy'
+  '/privacy',
+  '/combustion'
 ];
 
 export const PUBLIC_API_ROUTES = [
