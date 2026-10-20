@@ -13,51 +13,81 @@ interface LoginFormState {
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// --- THE EXTREME METALLIC PDG LOGO ---
-const PDGLogo = () => (
-  <svg width="350" height="120" viewBox="0 0 350 120" fill="none" xmlns="http://www.w3.org/2000/svg" className="drop-shadow-2xl">
-    <defs>
-      {/* P: Extreme Electric Blue Contrast (Dark -> Bright Neon -> Dark) */}
-      <linearGradient id="gradP" x1="0%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" stopColor="#103FD8" />
-        <stop offset="50%" stopColor="#8BB0DD" />
-        <stop offset="100%" stopColor="#0C1A46" />
-      </linearGradient>
+// --- THE INTERACTIVE METALLIC PDG LOGO ---
+const PDGLogo = ({ isHovering, hasBeenHovered }: { isHovering: boolean; hasBeenHovered: boolean }) => {
+  // Define the color transitions
+  // If it has been hovered, we use a more "Luminous" palette, otherwise the "Standard" palette
+  const colors = {
+    P: {
+      top: hasBeenHovered ? "#3b82f6" : "#103FD8",
+      mid: isHovering ? "#ffffff" : (hasBeenHovered ? "#93c5fd" : "#8BB0DD"),
+      bot: hasBeenHovered ? "#1e3a8a" : "#0C1A46",
+    },
+    D: {
+      top: hasBeenHovered ? "#f59e0b" : "#CC4E05",
+      mid: isHovering ? "#ffffff" : (hasBeenHovered ? "#fde68a" : "#E3D218"),
+      bot: hasBeenHovered ? "#78350f" : "#833508",
+    },
+    G: {
+      top: hasBeenHovered ? "#fbbf24" : "#FFFF00",
+      mid: isHovering ? "#ffffff" : (hasBeenHovered ? "#fef3c7" : "#E3C727"),
+      bot: hasBeenHovered ? "#b45309" : "#EA4D04",
+    }
+  };
+
+  return (
+    <svg width="350" height="120" viewBox="0 0 350 120" fill="none" xmlns="http://www.w3.org/2000/svg" className="drop-shadow-2xl cursor-pointer">
+      <style>{`
+        .stop-transition { transition: stop-color 0.4s ease; }
+        @keyframes shimmer {
+          0% { stop-color: var(--start-color); }
+          50% { stop-color: #ffffff; }
+          100% { stop-color: var(--start-color); }
+        }
+        .animate-shimmer {
+          animation: shimmer 1.5s infinite ease-in-out;
+        }
+      `}</style>
+      <defs>
+        <linearGradient id="gradP" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" className="stop-transition" stopColor={colors.P.top} />
+          <stop offset="50%" className={`stop-transition ${isHovering ? 'animate-shimmer' : ''}`} stopColor={colors.P.mid} />
+          <stop offset="100%" className="stop-transition" stopColor={colors.P.bot} />
+        </linearGradient>
+        
+        <linearGradient id="gradD" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" className="stop-transition" stopColor={colors.D.top} />
+          <stop offset="50%" className={`stop-transition ${isHovering ? 'animate-shimmer' : ''}`} stopColor={colors.D.mid} />
+          <stop offset="100%" className="stop-transition" stopColor={colors.D.bot} />
+        </linearGradient>
+        
+        <linearGradient id="gradG" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" className="stop-transition" stopColor={colors.G.top} />
+          <stop offset="50%" className={`stop-transition ${isHovering ? 'animate-shimmer' : ''}`} stopColor={colors.G.mid} />
+          <stop offset="100%" className="stop-transition" stopColor={colors.G.bot} />
+        </linearGradient>
+      </defs>
       
-      {/* D: Extreme Copper/Gold Contrast (Burnt Amber -> White Gold -> Burnt Amber) */}
-      <linearGradient id="gradD" x1="0%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" stopColor="#CC4E05" />
-        <stop offset="50%" stopColor="#E3D218" />
-        <stop offset="100%" stopColor="#833508" />
-      </linearGradient>
-      
-      {/* G: Extreme Radiant Gold Contrast (Dark Bronze -> Pale Yellow -> Dark Bronze) */}
-      <linearGradient id="gradG" x1="0%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" stopColor="#FFFF00" />
-        <stop offset="50%" stopColor="#E3C727" />
-        <stop offset="100%" stopColor="#EA4D04" />
-      </linearGradient>
-    </defs>
-    
-    <text 
-      x="50%" 
-      y="90" 
-      textAnchor="middle" 
-      strokeLinejoin="round"
-      style={{ 
-        fontSize: '110px', 
-        fontWeight: '900', 
-        fontStyle: 'italic', 
-        fontFamily: 'sans-serif', 
-        letterSpacing: '-10px' 
-      }}
-    >
-      <tspan fill="url(#gradP)" stroke="url(#gradP)" strokeWidth="8">P</tspan>
-      <tspan fill="url(#gradD)" stroke="url(#gradD)" strokeWidth="8">D</tspan>
-      <tspan fill="url(#gradG)" stroke="url(#gradG)" strokeWidth="8">G</tspan>
-    </text>
-  </svg>
-);
+      <text 
+        x="50%" 
+        y="90" 
+        textAnchor="middle" 
+        strokeLinejoin="round"
+        style={{ 
+          fontSize: '110px', 
+          fontWeight: '900', 
+          fontStyle: 'italic', 
+          fontFamily: 'sans-serif', 
+          letterSpacing: '-10px' 
+        }}
+      >
+        <tspan fill="url(#gradP)" stroke="url(#gradP)" strokeWidth="8">P</tspan>
+        <tspan fill="url(#gradD)" stroke="url(#gradD)" strokeWidth="8">D</tspan>
+        <tspan fill="url(#gradG)" stroke="url(#gradG)" strokeWidth="8">G</tspan>
+      </text>
+    </svg>
+  );
+};
 
 const LoginPage: React.FC = () => {
   const router = useRouter();
@@ -65,6 +95,10 @@ const LoginPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // State for Logo Animation
+  const [isHoveringLogo, setIsHoveringLogo] = useState(false);
+  const [hasBeenHovered, setHasBeenHovered] = useState(false);
 
   const isFormValid = EMAIL_REGEX.test(formData.email) && formData.password.length >= 6;
 
@@ -108,8 +142,15 @@ const LoginPage: React.FC = () => {
       />
 
       <div className="relative z-10 mb-12 text-center group">
-        <div className="flex flex-col items-center justify-center mb-6">
-          <PDGLogo />
+        <div 
+          className="flex flex-col items-center justify-center mb-6"
+          onMouseEnter={() => {
+            setIsHoveringLogo(true);
+            setHasBeenHovered(true);
+          }}
+          onMouseLeave={() => setIsHoveringLogo(false)}
+        >
+          <PDGLogo isHovering={isHoveringLogo} hasBeenHovered={hasBeenHovered} />
         </div>
         
         <div className="h-1 w-16 bg-indigo-500 mx-auto rounded-full mb-6" />
