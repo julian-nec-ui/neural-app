@@ -34,16 +34,19 @@ const PDGLogo = () => (
       x="50%" 
       y="90" 
       textAnchor="middle" 
+      strokeLinejoin="round"
       style={{ 
         fontSize: '110px', 
         fontWeight: '900', 
+        fontStyle: 'italic', 
         fontFamily: 'sans-serif', 
-        letterSpacing: '-6px' 
+        letterSpacing: '-8px' // Tightened slightly for the italic lean
       }}
     >
-      <tspan fill="url(#gradP)">P</tspan>
-      <tspan fill="url(#gradD)">D</tspan>
-      <tspan fill="url(#gradG)">G</tspan>
+      {/* Added strokeWidth and stroke (linked to gradient) to make them physically thicker */}
+      <tspan fill="url(#gradP)" stroke="url(#gradP)" strokeWidth="3">P</tspan>
+      <tspan fill="url(#gradD)" stroke="url(#gradD)" strokeWidth="3">D</tspan>
+      <tspan fill="url(#gradG)" stroke="url(#gradG)" strokeWidth="3">G</tspan>
     </text>
   </svg>
 );
@@ -86,11 +89,9 @@ const LoginPage: React.FC = () => {
     <div className="min-h-screen w-full flex flex-col items-center justify-center relative overflow-hidden font-sans p-4 
                     bg-[#0a0f1c] bg-[radial-gradient(circle_at_center,#1e293b_0%,#0a0f1c_100%)]">
       
-      {/* METALLIC ACCENTS: Ambient glow blobs to simulate light reflection on metal */}
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-indigo-500/10 blur-[120px] pointer-events-none" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-cyan-500/10 blur-[120px] pointer-events-none" />
 
-      {/* Grainy Background Overlay for "Brushed Metal" effect */}
       <div
         className="absolute inset-0 opacity-20 pointer-events-none mix-blend-overlay"
         style={{
@@ -111,7 +112,6 @@ const LoginPage: React.FC = () => {
       </div>
 
       <div className="relative z-10 w-full max-w-md">
-        {/* Glassmorphism Card */}
         <div className="backdrop-blur-2xl bg-white/3 border border-white/10 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden">
           <div className="h-1.5 w-full bg-linear-to-r from-transparent via-indigo-400 to-transparent opacity-50" />
           <div className="p-6 sm:p-8">
