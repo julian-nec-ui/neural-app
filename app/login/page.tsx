@@ -13,30 +13,29 @@ interface LoginFormState {
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// --- THE 3D ANIMATED TOOTH ICON ---
+// --- THE NEW RECOGNIZABLE 3D TOOTH ICON ---
 const ToothIcon = () => (
   <div className="relative group cursor-pointer">
     <div className="absolute inset-0 bg-indigo-500/40 blur-xl rounded-full animate-pulse" />
-    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="relative z-10 animate-float drop-shadow-[0_5px_15px_rgba(99,102,241,0.6)]">
+    <svg width="54" height="54" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="relative z-10 animate-float drop-shadow-[0_5px_15px_rgba(99,102,241,0.6)]">
       <defs>
         <linearGradient id="toothGradient" x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor="#C7D2FE" />
           <stop offset="50%" stopColor="#FFFFFF" />
           <stop offset="100%" stopColor="#6366F1" />
         </linearGradient>
-        <filter id="glow">
-          <feGaussianBlur stdDeviation="1" result="coloredBlur"/>
-          <feMerge>
-            <feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/>
-          </feMerge>
-        </filter>
       </defs>
-      <path d="M12 2C9 2 7 4 7 7C7 9 8 11 9 12C8 13 7 15 7 17C7 20 9 22 12 22C15 22 17 20 17 17C17 15 16 13 15 12C16 11 17 9 17 7C17 4 15 2 12 2ZM12 4C13.5 4 14.5 5 14.5 6.5C14.5 8 13.5 9 12 9C10.5 9 9.5 8 9.5 6.5C9.5 5 10.5 4 12 4ZM12 14C13 14 14 15 14 16.5C14 18 13 19 12 19C11 19 10 18 10 16.5C10 15 11 14 12 14Z" fill="url(#toothGradient)" filter="url(#glow)" className="transition-all duration-500 group-hover:scale-110" />
+      {/* Redrawn Path: Clear Molar Shape with distinct crown and roots */}
+      <path 
+        d="M12 2C15 2 17 4 17 7C17 9 16 11 15 12C16 13 17 15 17 18C17 21 14 22 12 22C10 22 7 21 7 18C7 15 8 13 9 12C8 11 7 9 7 7C7 4 9 2 12 2ZM12 4C13 4 14 5 14 6C14 7 13 8 12 8C11 8 10 7 10 6C10 5 11 4 12 4Z" 
+        fill="url(#toothGradient)" 
+        className="transition-all duration-500 group-hover:scale-110" 
+      />
     </svg>
   </div>
 );
 
-// --- THE ARCHITECTURAL PDG LOGO ---
+// --- THE STABLE, MASSIVE PDG LOGO ---
 const PDGLogo = () => (
   <svg width="400" height="140" viewBox="0 0 400 140" fill="none" xmlns="http://www.w3.org/2000/svg" className="drop-shadow-2xl">
     <defs>
@@ -55,31 +54,23 @@ const PDGLogo = () => (
         <stop offset="50%" stopColor="#fff9c4" />
         <stop offset="100%" stopColor="#b8860b" />
       </linearGradient>
-
-      {/* COOL TRUNCATION: A diagonal slice across the bottom */}
-      <clipPath id="diagClip">
-        <polygon points="0,0 400,0 400,110 0,130" />
-      </clipPath>
     </defs>
-
-    <g clipPath="url(#diagClip)">
-      <text 
-        x="50%" 
-        y="110" 
-        textAnchor="middle" 
-        transform="skewX(15)" // Aggressive lean to the right
-        style={{ 
-          fontSize: '120px', 
-          fontWeight: '900', 
-          fontFamily: 'sans-serif', 
-          letterSpacing: '-8px' 
-        }}
-      >
-        <tspan fill="url(#gradBlue)" stroke="url(#gradBlue)" strokeWidth="6">P</tspan>
-        <tspan fill="url(#gradOrange)" stroke="url(#gradOrange)" strokeWidth="6">D</tspan>
-        <tspan fill="url(#gradYellow)" stroke="url(#gradYellow)" strokeWidth="6">G</tspan>
-      </text>
-    </g>
+    <text 
+      x="50%" 
+      y="100" 
+      textAnchor="middle" 
+      style={{ 
+        fontSize: '120px', 
+        fontWeight: '900', 
+        fontFamily: 'sans-serif', 
+        letterSpacing: '-6px' 
+      }}
+    >
+      {/* Upright, Thick, and Bold */}
+      <tspan fill="url(#gradBlue)" stroke="url(#gradBlue)" strokeWidth="6">P</tspan>
+      <tspan fill="url(#gradOrange)" stroke="url(#gradOrange)" strokeWidth="6">D</tspan>
+      <tspan fill="url(#gradYellow)" stroke="url(#gradYellow)" strokeWidth="6">G</tspan>
+    </text>
   </svg>
 );
 
@@ -126,6 +117,12 @@ const LoginPage: React.FC = () => {
           100% { transform: translateY(0px) rotate(0deg); }
         }
         .animate-float { animation: float 3s ease-in-out infinite; }
+        .metallic-platinum {
+          background: linear-gradient(to right, #71717a 0%, #f4f4f5 50%, #71717a 100%);
+          -webkit-background-clip: text;
+          background-clip: text;
+          color: transparent;
+        }
       `}} />
 
       <div className="absolute -top-20 -left-20 w-96 h-96 bg-indigo-500/20 rounded-full blur-[120px] pointer-events-none" />
@@ -143,7 +140,9 @@ const LoginPage: React.FC = () => {
           <PDGLogo />
         </div>
         <div className="h-1 w-12 bg-indigo-500 mx-auto rounded-full mb-3 group-hover:w-24 transition-all duration-500" />
-        <p className="text-slate-500 text-sm sm:text-base font-medium tracking-widest uppercase opacity-80">
+        
+        {/* UPDATED SLOGAN: Thicker font and Platinum Metallic Color */}
+        <p className="text-slate-500 text-sm sm:text-base font-black tracking-widest uppercase opacity-90 metallic-platinum">
           The Future of Connectivity
         </p>
       </div>
