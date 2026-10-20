@@ -13,29 +13,7 @@ interface LoginFormState {
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// --- THE APP-ICON STYLE TOOTH ---
-const ToothIcon = () => (
-  <div className="relative group">
-    {/* The App-Style Rounded Square Container */}
-    <div className="absolute inset-0 bg-indigo-500/20 blur-lg rounded-2xl pointer-events-none" />
-    <div className="relative z-10 w-16 h-16 bg-indigo-600/20 backdrop-blur-sm border border-indigo-400/30 rounded-2xl flex items-center justify-center shadow-xl">
-      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <linearGradient id="toothGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#FFFFFF" />
-            <stop offset="100%" stopColor="#C7D2FE" />
-          </linearGradient>
-        </defs>
-        <path 
-          d="M12 2C9 2 7 4 7 7C7 9 8 11 9 12C8 13 7 15 7 17C7 20 9 22 12 22C15 22 17 20 17 17C17 15 16 13 15 12C16 11 17 9 17 7C17 4 15 2 12 2ZM12 4C13 4 14 5 14 6C14 7 13 8 12 8C11 8 10 7 10 6C10 5 11 4 12 4Z" 
-          fill="url(#toothGrad)" 
-        />
-      </svg>
-    </div>
-  </div>
-);
-
-// --- THE BULLETPROOF PDG LOGO (Exactly like the shot) ---
+// --- THE BULLETPROOF PDG LOGO ---
 const PDGLogo = () => (
   <svg width="350" height="120" viewBox="0 0 350 120" fill="none" xmlns="http://www.w3.org/2000/svg" className="drop-shadow-2xl">
     <defs>
@@ -110,7 +88,7 @@ const LoginPage: React.FC = () => {
   return (
     <div className="min-h-screen w-full flex flex-col items-center justify-center bg-[#0f172a] relative overflow-x-hidden font-sans p-4">
       
-      {/* Grainy Background Overlay to match the screenshot */}
+      {/* Grainy Background Overlay */}
       <div
         className="absolute inset-0 opacity-30 pointer-events-none"
         style={{
@@ -120,7 +98,6 @@ const LoginPage: React.FC = () => {
 
       <div className="relative z-10 mb-12 text-center group">
         <div className="flex flex-col items-center justify-center gap-6 mb-6">
-          <ToothIcon />
           <PDGLogo />
         </div>
         
