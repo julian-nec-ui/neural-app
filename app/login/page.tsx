@@ -13,47 +13,44 @@ interface LoginFormState {
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// --- THE EXACT PDG LOGO FROM THE IMAGE ---
+// --- THE ULTRA-BOLD PDG LOGO ---
 const PDGLogo = () => (
   <svg width="350" height="120" viewBox="0 0 350 120" fill="none" xmlns="http://www.w3.org/2000/svg" className="drop-shadow-xl">
     <defs>
-      {/* P: Deep Blue Gradient */}
       <linearGradient id="gradP" x1="0%" y1="0%" x2="0%" y2="100%">
         <stop offset="0%" stopColor="#4A90E2" />
         <stop offset="100%" stopColor="#1A3A8A" />
       </linearGradient>
-      {/* D: Muted Gold Gradient */}
       <linearGradient id="gradD" x1="0%" y1="0%" x2="0%" y2="100%">
         <stop offset="0%" stopColor="#F3D28D" />
         <stop offset="100%" stopColor="#B8860B" />
       </linearGradient>
-      {/* G: Bright Gold Gradient */}
       <linearGradient id="gradG" x1="0%" y1="0%" x2="0%" y2="100%">
         <stop offset="0%" stopColor="#FDF5C8" />
         <stop offset="100%" stopColor="#D4AF37" />
       </linearGradient>
     </defs>
     
-    {/* 
-       - fontStyle: 'italic' for the lean
-       - fontWeight: '900' for the thickness
-       - letterSpacing: '-6px' to pull letters close together as seen in the image
-    */}
     <text 
       x="50%" 
       y="90" 
       textAnchor="middle" 
+      strokeLinejoin="round" // Ensures the extra thickness has smooth corners
       style={{ 
         fontSize: '110px', 
         fontWeight: '900', 
         fontStyle: 'italic', 
         fontFamily: 'sans-serif', 
-        letterSpacing: '-6px' 
+        letterSpacing: '-10px' // Adjusted to prevent overlap from increased thickness
       }}
     >
-      <tspan fill="url(#gradP)">P</tspan>
-      <tspan fill="url(#gradD)">D</tspan>
-      <tspan fill="url(#gradG)">G</tspan>
+      {/* 
+         Adding a stroke with the same gradient as the fill 
+         effectively "doubles" the perceived weight of the font.
+      */}
+      <tspan fill="url(#gradP)" stroke="url(#gradP)" strokeWidth="8">P</tspan>
+      <tspan fill="url(#gradD)" stroke="url(#gradD)" strokeWidth="8">D</tspan>
+      <tspan fill="url(#gradG)" stroke="url(#gradG)" strokeWidth="8">G</tspan>
     </text>
   </svg>
 );
@@ -96,11 +93,9 @@ const LoginPage: React.FC = () => {
     <div className="min-h-screen w-full flex flex-col items-center justify-center relative overflow-hidden font-sans p-4 
                     bg-[#0a0f1c] bg-[radial-gradient(circle_at_center,#1e293b_0%,#0a0f1c_100%)]">
       
-      {/* METALLIC ACCENTS */}
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-indigo-500/10 blur-[120px] pointer-events-none" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-cyan-500/10 blur-[120px] pointer-events-none" />
 
-      {/* Brushed Metal Grain */}
       <div
         className="absolute inset-0 opacity-20 pointer-events-none mix-blend-overlay"
         style={{
@@ -113,7 +108,6 @@ const LoginPage: React.FC = () => {
           <PDGLogo />
         </div>
         
-        {/* Exact purple line from image */}
         <div className="h-1 w-16 bg-indigo-500 mx-auto rounded-full mb-6" />
         
         <p className="text-slate-400 text-xs sm:text-sm font-bold tracking-[0.3em] uppercase opacity-80">
