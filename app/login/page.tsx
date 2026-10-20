@@ -19,7 +19,7 @@ const PDGLogo = () => (
     <defs>
       {/* P: Extreme Electric Blue Contrast (Dark -> Bright Neon -> Dark) */}
       <linearGradient id="gradP" x1="0%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" stopColor="#19317E" />
+        <stop offset="0%" stopColor="#0A2EA5" />
         <stop offset="50%" stopColor="#6EA5E7" />
         <stop offset="100%" stopColor="#22377B" />
       </linearGradient>
