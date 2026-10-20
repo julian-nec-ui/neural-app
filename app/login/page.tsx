@@ -19,8 +19,8 @@ const PDGLogo = () => (
     <defs>
       {/* P: Extreme Electric Blue Contrast (Dark -> Bright Neon -> Dark) */}
       <linearGradient id="gradP" x1="0%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" stopColor="#0630B8" />
-        <stop offset="50%" stopColor="#6895CB" />
+        <stop offset="0%" stopColor="#103FD8" />
+        <stop offset="50%" stopColor="#8BB0DD" />
         <stop offset="100%" stopColor="#0C1A46" />
       </linearGradient>
       
@@ -34,8 +34,8 @@ const PDGLogo = () => (
       {/* G: Extreme Radiant Gold Contrast (Dark Bronze -> Pale Yellow -> Dark Bronze) */}
       <linearGradient id="gradG" x1="0%" y1="0%" x2="0%" y2="100%">
         <stop offset="0%" stopColor="#FFFF00" />
-        <stop offset="50%" stopColor="#E0C21B" />
-        <stop offset="100%" stopColor="#B73D05" />
+        <stop offset="50%" stopColor="#E3C727" />
+        <stop offset="100%" stopColor="#EA4D04" />
       </linearGradient>
     </defs>
     
