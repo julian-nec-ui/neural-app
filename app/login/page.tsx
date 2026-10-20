@@ -35,7 +35,7 @@ const PDGLogo = () => (
       <linearGradient id="gradG" x1="0%" y1="0%" x2="0%" y2="100%">
         <stop offset="0%" stopColor="#FFFF00" />
         <stop offset="50%" stopColor="#9D710A" />
-        <stop offset="100%" stopColor="#842E07" />
+        <stop offset="100%" stopColor="#EA4D04" />
       </linearGradient>
     </defs>
     
