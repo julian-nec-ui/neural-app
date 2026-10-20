@@ -2,123 +2,133 @@
 
 import { useState, useEffect } from 'react';
 
-const EnginePage = () => {
+const RealisticEngine = () => {
   const [cycleStep, setCycleStep] = useState(0);
 
-  // The 4 stages of the internal combustion engine
   const stages = [
     { 
       name: 'Intake', 
-      color: 'bg-blue-500', 
-      shadow: 'shadow-blue-500/50', 
-      desc: 'Cool air and fuel enter the cylinder', 
-      temp: 'Cool' 
+      color: '#3b82f6', // Blue
+      glow: 'rgba(59, 130, 246, 0.5)', 
+      desc: 'Air/Fuel Intake', 
+      pos: 'down' 
     },
     { 
       name: 'Compression', 
-      color: 'bg-yellow-500', 
-      shadow: 'shadow-yellow-500/50', 
-      desc: 'Piston moves up, compressing the mixture', 
-      temp: 'Heating' 
+      color: '#eab308', // Yellow
+      glow: 'rgba(234, 179, 8, 0.5)', 
+      desc: 'Pressure Build', 
+      pos: 'up' 
     },
     { 
       name: 'Combustion', 
-      color: 'bg-red-600', 
-      shadow: 'shadow-red-600/80', 
-      desc: 'Spark plug ignites, forcing piston down', 
-      temp: 'Extreme Heat' 
+      color: '#ef4444', // Red
+      glow: 'rgba(239, 68, 68, 0.8)', 
+      desc: 'Power Stroke', 
+      pos: 'down' 
     },
     { 
       name: 'Exhaust', 
-      color: 'bg-slate-500', 
-      shadow: 'shadow-slate-500/50', 
-      desc: 'Waste gases are pushed out', 
-      temp: 'Cooling' 
+      color: '#64748b', // Grey
+      glow: 'rgba(100, 116, 139, 0.5)', 
+      desc: 'Gas Release', 
+      pos: 'up' 
     },
   ];
 
   useEffect(() => {
     const interval = setInterval(() => {
       setCycleStep((prev) => (prev + 1) % 4);
-    }, 1000); // Change state every second
+    }, 800);
     return () => clearInterval(interval);
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#0a0f1c] text-white font-sans p-8 flex flex-col items-center justify-center overflow-hidden">
-      {/* Background Glow */}
-      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-indigo-500/10 blur-[120px] rounded-full" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-red-500/10 blur-[120px] rounded-full" />
+    <div className="min-h-screen bg-[#050810] text-white font-sans p-8 flex flex-col items-center justify-center overflow-hidden">
+      {/* Ambient Background Lights */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-600/10 blur-[150px] rounded-full" />
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-red-600/10 blur-[150px] rounded-full" />
       </div>
 
-      <div className="relative z-10 text-center mb-16">
-        <h1 className="text-5xl font-black tracking-tighter italic mb-2 bg-gradient-to-r from-white via-slate-400 to-white bg-clip-text text-transparent">
-          V4 ENGINE SIMULATOR
+      <div className="relative z-10 text-center mb-20">
+        <h1 className="text-6xl font-black italic tracking-tighter mb-2 text-slate-200">
+          ENGINE <span className="text-indigo-500">X-4</span>
         </h1>
-        <p className="text-slate-400 tracking-[0.3em] uppercase text-xs font-bold">
-          Internal Combustion Sequence
+        <p className="text-slate-500 tracking-[0.4em] uppercase text-xs font-bold">
+          High-Fidelity Combustion Simulation
         </p>
       </div>
 
-      {/* 3D Engine Container */}
-      <div className="relative perspective-1000">
+      {/* 3D SCENE CONTAINER */}
+      <div className="relative perspective-2000">
         <div 
-          className="relative w-150 h-100 transition-transform duration-700 ease-out"
+          className="relative transition-transform duration-1000"
           style={{ 
-            transform: 'rotateX(60deg) rotateZ(-45deg)',
-            transformStyle: 'preserve-3d' 
+            transform: 'rotateX(60deg) rotateZ(-35deg)',
+            transformStyle: 'preserve-3d',
+            width: '600px',
+            height: '300px'
           }}
         >
-          {/* Engine Block Base */}
-          <div className="absolute inset-0 bg-slate-800/50 border-4 border-slate-700 rounded-xl shadow-2xl" 
-               style={{ transform: 'translateZ(-20px)' }} />
+          {/* 1. THE MAIN ENGINE BLOCK (Volume Depth) */}
+          {/* Bottom Plate */}
+          <div className="absolute inset-0 bg-slate-900 border-b-8 border-slate-950" 
+               style={{ transform: 'translateZ(-40px)' }} />
+          
+          {/* Side Walls (Depth) */}
+          <div className="absolute top-0 left-0 w-full h-[40px] bg-slate-800" 
+               style={{ transform: 'rotateX(-90deg)', transformOrigin: 'top', translateZ: '0px' }} />
+          
+          {/* Top Face */}
+          <div className="absolute inset-0 bg-slate-800 border-4 border-slate-700 rounded-xl shadow-2xl overflow-hidden"
+               style={{ transform: 'translateZ(0px)' }}>
+            
+            {/* The Cylinder Bores (The holes in the block) */}
+            <div className="absolute inset-0 flex justify-around items-center px-12">
+              {[0, 1, 2, 3].map((i) => (
+                <div key={i} className="w-24 h-24 bg-black rounded-full shadow-[inset_0_0_20px_rgba(0,0,0,1)] border-2 border-slate-700" />
+              ))}
+            </div>
+          </div>
 
-          {/* Cylinders */}
-          <div className="absolute inset-0 flex justify-around items-center px-10">
+          {/* 2. THE PISTONS AND RODS */}
+          <div className="absolute inset-0 flex justify-around items-center px-12" style={{ transform: 'translateZ(10px)' }}>
             {[0, 1, 2, 3].map((i) => {
-              // Logic to offset the cycle for each cylinder (Firing order)
-              const currentStageIdx = (cycleStep + i) % 4;
-              const stage = stages[currentStageIdx];
-              
-              // Calculate piston position based on stage
-              // Intake: Down, Compression: Up, Combustion: Down, Exhaust: Up
-              const isUp = currentStageIdx === 1 || currentStageIdx === 3;
-              const pistonTranslate = isUp ? '-60px' : '60px';
+              const stageIdx = (cycleStep + i) % 4;
+              const stage = stages[stageIdx];
+              const isUp = stage.pos === 'up';
+              const yOffset = isUp ? '-80px' : '60px';
 
               return (
                 <div key={i} className="relative flex flex-col items-center" style={{ transformStyle: 'preserve-3d' }}>
                   
-                  {/* Cylinder Sleeve */}
-                  <div className="w-20 h-40 bg-slate-900/80 border-2 border-slate-600 rounded-lg relative overflow-hidden shadow-inner">
+                  {/* Piston Head (Cylindrical Volume) */}
+                  <div 
+                    className="absolute w-20 h-20 rounded-full transition-all duration-700 ease-in-out flex items-center justify-center"
+                    style={{ 
+                      transform: `translateY(${yOffset}) translateZ(20px)`,
+                      background: `radial-gradient(circle at 30% 30%, ${stage.color}, #000)`,
+                      boxShadow: `0 0 40px ${stage.glow}, inset -5px -5px 15px rgba(0,0,0,0.8)`,
+                      border: '2px solid rgba(255,255,255,0.1)'
+                    }}
+                  >
+                    {/* Piston Top Cap */}
+                    <div className="absolute inset-0 rounded-full bg-gradient-to-b from-white/20 to-transparent opacity-40" />
                     
-                    {/* The Combustion Chamber Glow */}
-                    <div className={`absolute inset-0 transition-all duration-500 ${stage.color} opacity-20 ${currentStageIdx === 2 ? 'animate-pulse opacity-60' : ''}`} />
-                    
-                    {/* The Piston */}
-                    <div 
-                      className={`absolute left-2 right-2 bottom-4 h-16 rounded-md transition-all duration-700 ease-in-out ${stage.color} ${stage.shadow} shadow-lg border border-white/20`}
-                      style={{ 
-                        transform: `translateY(${pistonTranslate})`,
-                        boxShadow: `0 0 30px ${stage.color === 'bg-red-600' ? '#ef4444' : 'transparent'}`
-                      }}
-                    >
-                      {/* Piston Top Detail */}
-                      <div className="absolute top-0 left-0 right-0 h-2 bg-white/30 rounded-t-md" />
-                    </div>
-
-                    {/* Combustion Flash Effect */}
-                    {currentStageIdx === 2 && (
-                      <div className="absolute top-0 left-0 right-0 h-10 bg-white blur-md animate-ping opacity-50" />
+                    {/* Combustion Flash */}
+                    {stageIdx === 2 && (
+                      <div className="absolute w-full h-full bg-white rounded-full animate-ping opacity-60" />
                     )}
                   </div>
 
-                  {/* Connecting Rod */}
+                  {/* Connecting Rod (3D Depth) */}
                   <div 
-                    className="w-3 bg-slate-600 transition-all duration-700 ease-in-out"
+                    className="absolute w-4 bg-gradient-to-r from-slate-600 via-slate-400 to-slate-600 transition-all duration-700 ease-in-out"
                     style={{ 
-                      height: isUp ? '40px' : '120px',
-                      transform: 'translateZ(-10px)'
+                      height: isUp ? '40px' : '160px',
+                      transform: `translateY(${isUp ? '-40px' : '60px'}) translateZ(10px)`,
+                      boxShadow: '0 0 10px rgba(0,0,0,0.5)'
                     }}
                   />
                 </div>
@@ -126,48 +136,56 @@ const EnginePage = () => {
             })}
           </div>
 
-          {/* Crankshaft Bar */}
+          {/* 3. THE CRANKSHAFT (Rotating Base) */}
           <div 
-            className="absolute bottom-10 left-0 right-0 h-6 bg-slate-700 rounded-full border border-slate-500"
-            style={{ transform: 'translateZ(-30px)' }}
+            className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-b from-slate-600 to-slate-900 rounded-full border-y border-slate-500"
+            style={{ transform: 'translateZ(-20px)' }}
           />
         </div>
       </div>
 
-      {/* Bottom Info Panel */}
-      <div className="relative z-10 mt-24 grid grid-cols-1 md:grid-cols-4 gap-6 w-full max-w-5xl">
+      {/* CONTROL PANEL / LEGEND */}
+      <div className="relative z-10 mt-32 grid grid-cols-2 md:grid-cols-4 gap-4 w-full max-w-5xl">
         {stages.map((stage, idx) => {
-          const isActive = (cycleStep + 0) % 4 === idx; // Simplified for the main display
+          const isActive = (cycleStep + 0) % 4 === idx;
           return (
             <div 
               key={idx} 
-              className={`p-6 rounded-2xl border transition-all duration-500 ${
+              className={`p-4 rounded-xl border transition-all duration-500 flex flex-col gap-2 ${
                 isActive 
-                ? `${stage.color} border-white/40 scale-105 shadow-2xl` 
-                : 'bg-slate-900/50 border-slate-800 opacity-40'
+                ? 'bg-slate-800 border-white/40 scale-105 shadow-lg' 
+                : 'bg-slate-900/40 border-slate-800 opacity-30'
               }`}
             >
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-xs font-black uppercase tracking-widest opacity-70">Stage 0{idx + 1}</span>
-                <span className={`text-[10px] px-2 py-1 rounded-full bg-black/20 font-bold ${isActive ? 'text-white' : 'text-slate-400'}`}>
-                  {stage.temp}
-                </span>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: stage.color }} />
+                <span className="text-xs font-bold uppercase tracking-widest">{stage.name}</span>
               </div>
-              <h3 className="text-xl font-bold mb-2">{stage.name}</h3>
-              <p className="text-sm opacity-80 leading-relaxed">{stage.desc}</p>
+              <p className="text-xs text-slate-400">{stage.desc}</p>
+              {isActive && (
+                <div className="h-1 w-full bg-white/20 rounded-full overflow-hidden">
+                  <div className="h-full bg-white animate-progress" style={{ backgroundColor: stage.color }} />
+                </div>
+              )}
             </div>
           );
         })}
       </div>
 
-      {/* Global CSS for Perspective */}
       <style jsx global>{`
-        .perspective-1000 {
-          perspective: 1000px;
+        .perspective-2000 {
+          perspective: 2000px;
+        }
+        @keyframes progress {
+          0% { width: 0%; }
+          100% { width: 100%; }
+        }
+        .animate-progress {
+          animation: progress 800ms linear infinite;
         }
       `}</style>
     </div>
   );
 };
 
-export default EnginePage;
+export default RealisticEngine;
