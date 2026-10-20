@@ -13,21 +13,29 @@ interface LoginFormState {
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// --- THE ULTRA-BOLD PDG LOGO ---
+// --- THE EXTREME METALLIC PDG LOGO ---
 const PDGLogo = () => (
-  <svg width="350" height="120" viewBox="0 0 350 120" fill="none" xmlns="http://www.w3.org/2000/svg" className="drop-shadow-xl">
+  <svg width="350" height="120" viewBox="0 0 350 120" fill="none" xmlns="http://www.w3.org/2000/svg" className="drop-shadow-2xl">
     <defs>
+      {/* P: Extreme Electric Blue Contrast (Dark -> Bright Neon -> Dark) */}
       <linearGradient id="gradP" x1="0%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" stopColor="#4A90E2" />
-        <stop offset="100%" stopColor="#1A3A8A" />
+        <stop offset="0%" stopColor="#000B2E" />
+        <stop offset="50%" stopColor="#60A5FA" />
+        <stop offset="100%" stopColor="#000B2E" />
       </linearGradient>
+      
+      {/* D: Extreme Copper/Gold Contrast (Burnt Amber -> White Gold -> Burnt Amber) */}
       <linearGradient id="gradD" x1="0%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" stopColor="#F3D28D" />
-        <stop offset="100%" stopColor="#B8860B" />
+        <stop offset="0%" stopColor="#78350F" />
+        <stop offset="50%" stopColor="#FFFDE7" />
+        <stop offset="100%" stopColor="#78350F" />
       </linearGradient>
+      
+      {/* G: Extreme Radiant Gold Contrast (Dark Bronze -> Pale Yellow -> Dark Bronze) */}
       <linearGradient id="gradG" x1="0%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" stopColor="#FDF5C8" />
-        <stop offset="100%" stopColor="#D4AF37" />
+        <stop offset="0%" stopColor="#5C4033" />
+        <stop offset="50%" stopColor="#FDF5C8" />
+        <stop offset="100%" stopColor="#5C4033" />
       </linearGradient>
     </defs>
     
@@ -35,19 +43,15 @@ const PDGLogo = () => (
       x="50%" 
       y="90" 
       textAnchor="middle" 
-      strokeLinejoin="round" // Ensures the extra thickness has smooth corners
+      strokeLinejoin="round"
       style={{ 
         fontSize: '110px', 
         fontWeight: '900', 
         fontStyle: 'italic', 
         fontFamily: 'sans-serif', 
-        letterSpacing: '-10px' // Adjusted to prevent overlap from increased thickness
+        letterSpacing: '-10px' 
       }}
     >
-      {/* 
-         Adding a stroke with the same gradient as the fill 
-         effectively "doubles" the perceived weight of the font.
-      */}
       <tspan fill="url(#gradP)" stroke="url(#gradP)" strokeWidth="8">P</tspan>
       <tspan fill="url(#gradD)" stroke="url(#gradD)" strokeWidth="8">D</tspan>
       <tspan fill="url(#gradG)" stroke="url(#gradG)" strokeWidth="8">G</tspan>
