@@ -26,7 +26,7 @@ interface StatCardProps {
   value: string;
   icon: React.ReactNode;
   trend: string;
-  color: StatColor; // Strictly typed to only allow our specific colors
+  color: StatColor;
 }
 
 interface ActionButtonProps {
@@ -36,7 +36,7 @@ interface ActionButtonProps {
 
 const ToothIcon = () => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-indigo-400">
-    <path d="M12 2C9 2 7 4 7 7C7 9 8 11 9 12C8 13 7 15 7 17C7 20 9 22 12 22C15 22 17 20 17 17C same as before..." fill="currentColor" />
+    <path d="M12 2C9 2 7 4 7 7C7 9 8 11 9 12C8 13 7 15 7 17C7 20 9 22 12 22C15 22 17 20 17 17C17 15 16 13 15 12C16 11 17 9 17 7C17 4 15 2 12 2ZM12 4C13.5 4 14.5 5 14.5 6.5C14.5 8 13.5 9 12 9C10.5 9 9.5 8 9.5 6.5C9.5 5 10.5 4 12 4ZM12 14C13 14 14 15 14 16.5C14 18 13 19 12 19C11 19 10 18 10 16.5C10 15 11 14 12 14Z" fill="currentColor" />
   </svg>
 );
 
@@ -127,10 +127,13 @@ const DashboardPage: React.FC = () => {
 
         <header className="h-20 border-b border-white/10 backdrop-blur-md bg-[#0f172a]/60 sticky top-0 z-20 px-8 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <h2 className="text-2xl font-bold italic tracking-tighter">
-              <span style={{ ...metallicStyles.base, ...metallicStyles.royalBlue }}>Prewitt</span>
-              <span style={{ ...metallicStyles.base, ...metallicStyles.orange }} className="mx-1">Dental</span>
-              <span style={{ ...metallicStyles.base, ...metallicStyles.yellow }}>Group</span>
+            {/* UPDATED LOGO: Changed to "PDG" initials with larger, bolder font */}
+            <h2 className="text-4xl sm:text-6xl font-black tracking-tighter italic">
+              <span className="drop-shadow-sm">
+                <span style={{ ...metallicStyles.base, ...metallicStyles.royalBlue }}>P</span>
+                <span style={{ ...metallicStyles.base, ...metallicStyles.orange }} className="mx-1">D</span>
+                <span style={{ ...metallicStyles.base, ...metallicStyles.yellow }}>G</span>
+              </span>
             </h2>
           </div>
 
@@ -208,10 +211,7 @@ const DashboardPage: React.FC = () => {
   );
 };
 
-// --- TYPE-SAFE HELPER COMPONENTS ---
-
 const StatCard: React.FC<StatCardProps> = ({ title, value, icon, trend, color }) => {
-  // Type defined as a Record with specific allowed keys
   const colorClasses: Record<StatColor, string> = {
     indigo: "from-indigo-600/20 to-transparent border-indigo-500/20",
     cyan: "from-cyan-600/20 to-transparent border-cyan-500/20",
