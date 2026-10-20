@@ -45,6 +45,7 @@ const DashboardPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('Dashboard');
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
+  // THE METALLIC GRADIENTS (Fixed for text-clipping)
   const metallicStyles = {
     base: {
       backgroundSize: '200% auto',
@@ -53,6 +54,7 @@ const DashboardPage: React.FC = () => {
       color: 'transparent',
       display: 'inline-block',
       animation: 'metallic-flow 6s linear infinite',
+      fontWeight: '900', // Extra bold for maximum impact
     },
     royalBlue: { background: 'linear-gradient(to right, #001a4d 0%, #4169E1 25%, #B0C4DE 50%, #4169E1 75%, #001a4d 100%)' },
     orange: { background: 'linear-gradient(to right, #c47100 0%, #f2994a 25%, #ffe4b5 50%, #f2994a 75%, #c47100 100%)' },
@@ -88,6 +90,7 @@ const DashboardPage: React.FC = () => {
         }
       `}} />
 
+      {/* SIDEBAR */}
       <aside className="w-64 bg-[#0a0f1f] border-r border-white/10 flex flex-col sticky top-0 h-screen transition-all duration-300">
         <div className="p-6 flex items-center gap-3 mb-8">
           <div className="p-1.5 bg-indigo-500/10 rounded-lg border border-indigo-500/20">
@@ -121,14 +124,15 @@ const DashboardPage: React.FC = () => {
         </div>
       </aside>
 
+      {/* MAIN */}
       <main className="flex-1 flex flex-col relative overflow-hidden">
         <div className="absolute -top-20 -right-20 w-96 h-96 bg-indigo-500/10 rounded-full blur-[120px] pointer-events-none" />
         <div className="absolute top-1/2 -left-20 w-96 h-96 bg-cyan-500/10 rounded-full blur-[120px] pointer-events-none" />
 
         <header className="h-20 border-b border-white/10 backdrop-blur-md bg-[#0f172a]/60 sticky top-0 z-20 px-8 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            {/* UPDATED LOGO: Changed to "PDG" initials with larger, bolder font */}
-            <h2 className="text-4xl sm:text-6xl font-black tracking-tighter italic">
+            {/* THE LOGO FIX: No more rectangles, just a clean PDG with the metallic gradients */}
+            <h2 className="text-5xl sm:text-7xl font-black tracking-tighter italic">
               <span className="drop-shadow-sm">
                 <span style={{ ...metallicStyles.base, ...metallicStyles.royalBlue }}>P</span>
                 <span style={{ ...metallicStyles.base, ...metallicStyles.orange }} className="mx-1">D</span>
