@@ -42,5 +42,8 @@ export const nexusService = {
     loginRequest: NexusLoginRequest
   ): Promise<AxiosResponse<NexusUser>> {
     return NEXUS_API.post('/nexus/login', loginRequest)
+  },
+  logout(): Promise<AxiosResponse<void>> {
+    return NEXUS_API.post('/nexus/logout')
   }
 }
