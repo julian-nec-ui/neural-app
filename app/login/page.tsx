@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { Mail, Lock, ArrowRight, Loader2, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { NexusLoginRequest, nexusService } from '../service/nexus-service';
+import { nexusService } from '../service/nexus-service'; // Removed NexusLoginRequest import
 
 interface LoginFormState {
   email: string;
@@ -13,28 +13,17 @@ interface LoginFormState {
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// --- THE NEW 3D ANIMATED TOOTH ICON ---
+// --- THE 3D ANIMATED TOOTH ICON ---
 const ToothIcon = () => (
   <div className="relative group cursor-pointer">
-    {/* Outer Glow Effect */}
     <div className="absolute inset-0 bg-indigo-500/40 blur-xl rounded-full animate-pulse" />
-    
-    <svg 
-      width="48" 
-      height="48" 
-      viewBox="0 0 24 24" 
-      fill="none" 
-      xmlns="http://www.w3.org/2000/svg" 
-      className="relative z-10 animate-float drop-shadow-[0_5px_15px_rgba(99,102,241,0.6)]"
-    >
+    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="relative z-10 animate-float drop-shadow-[0_5px_15px_rgba(99,102,241,0.6)]">
       <defs>
-        {/* 3D Volumetric Gradient */}
         <linearGradient id="toothGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#C7D2FE" />   
-          <stop offset="50%" stopColor="#FFFFFF" />  
-          <stop offset="100%" stopColor="#6366F1" />  
+          <stop offset="0%" stopColor="#C7D2FE" />
+          <stop offset="50%" stopColor="#FFFFFF" />
+          <stop offset="100%" stopColor="#6366F1" />
         </linearGradient>
-        
         <filter id="glow">
           <feGaussianBlur stdDeviation="1" result="coloredBlur"/>
           <feMerge>
@@ -42,24 +31,48 @@ const ToothIcon = () => (
           </feMerge>
         </filter>
       </defs>
-      
-      <path
-        d="M12 2C9 2 7 4 7 7C7 9 8 11 9 12C8 13 7 15 7 17C7 20 9 22 12 22C15 22 17 20 17 17C17 15 16 13 15 12C16 11 17 9 17 7C17 4 15 2 12 2ZM12 4C13.5 4 14.5 5 14.5 6.5C14.5 8 13.5 9 12 9C10.5 9 9.5 8 9.5 6.5C9.5 5 10.5 4 12 4ZM12 14C13 14 14 15 14 16.5C14 18 13 19 12 19C11 19 10 18 10 16.5C10 15 11 14 12 14Z"
-        fill="url(#toothGradient)"
-        filter="url(#glow)"
-        className="transition-all duration-500 group-hover:scale-110"
-      />
+      <path d="M12 2C9 2 7 4 7 7C7 9 8 11 9 12C8 13 7 15 7 17C7 20 9 22 12 22C15 22 17 20 17 17C17 15 16 13 15 12C16 11 17 9 17 7C17 4 15 2 12 2ZM12 4C13.5 4 14.5 5 14.5 6.5C14.5 8 13.5 9 12 9C10.5 9 9.5 8 9.5 6.5C9.5 5 10.5 4 12 4ZM12 14C13 14 14 15 14 16.5C14 18 13 19 12 19C11 19 10 18 10 16.5C10 15 11 14 12 14Z" fill="url(#toothGradient)" filter="url(#glow)" className="transition-all duration-500 group-hover:scale-110" />
     </svg>
   </div>
 );
 
+// --- THE BULLETPROOF SVG PDG LOGO ---
+const PDGLogo = () => (
+  <svg width="280" height="80" viewBox="0 0 280 80" fill="none" xmlns="http://www.w3.org/2000/svg" className="animate-float">
+    <defs>
+      <linearGradient id="gradBlue" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%" stopColor="#001a4d" />
+        <stop offset="25%" stopColor="#4169E1" />
+        <stop offset="50%" stopColor="#B0C4DE" />
+        <stop offset="75%" stopColor="#4169E1" />
+        <stop offset="100%" stopColor="#001a4d" />
+      </linearGradient>
+      <linearGradient id="gradOrange" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%" stopColor="#c47100" />
+        <stop offset="25%" stopColor="#f2994a" />
+        <stop offset="50%" stopColor="#ffe4b5" />
+        <stop offset="75%" stopColor="#f2994a" />
+        <stop offset="100%" stopColor="#c47100" />
+      </linearGradient>
+      <linearGradient id="gradYellow" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%" stopColor="#b8860b" />
+        <stop offset="25%" stopColor="#f8b500" />
+        <stop offset="50%" stopColor="#fff9c4" />
+        <stop offset="75%" stopColor="#f8b500" />
+        <stop offset="100%" stopColor="#b8860b" />
+      </linearGradient>
+    </defs>
+    <text x="50%" y="60" textAnchor="middle" style={{ fontSize: '70px', fontWeight: '900', fontStyle: 'italic', fontFamily: 'sans-serif', letterSpacing: '-4px' }}>
+      <tspan fill="url(#gradBlue)">P</tspan>
+      <tspan fill="url(#gradOrange)">D</tspan>
+      <tspan fill="url(#gradYellow)">G</tspan>
+    </text>
+  </svg>
+);
+
 const LoginPage: React.FC = () => {
   const router = useRouter();
-  const [formData, setFormData] = useState<LoginFormState>({
-    email: '',
-    password: '',
-  });
-
+  const [formData, setFormData] = useState<LoginFormState>({ email: '', password: '' });
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -79,82 +92,46 @@ const LoginPage: React.FC = () => {
     setIsLoading(true);
     setErrorMessage(null);
 
-    const payload: NexusLoginRequest = {
-      email: formData.email,
-      password: formData.password
-    };
-
     try {
-      await nexusService.loginUser(payload);
+      // Pass data directly to avoid unused type import
+      await nexusService.loginUser({ 
+        email: formData.email, 
+        password: formData.password 
+      });
       router.refresh();
       router.push('/nexus-dashboard');
     } catch (error: unknown) {
-      if (error instanceof Error) {
-        setErrorMessage(error.message);
-      } else if (typeof error === 'string') {
-        setErrorMessage(error);
-      } else {
-        setErrorMessage("An unexpected error occurred. Please try again.");
-      }
+      if (error instanceof Error) setErrorMessage(error.message);
+      else setErrorMessage("An unexpected error occurred. Please try again.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const metallicStyles = {
-    base: {
-      backgroundSize: '200% auto',
-      WebkitBackgroundClip: 'text',
-      backgroundClip: 'text',
-      color: 'transparent',
-      display: 'inline-block',
-      animation: 'metallic-flow 6s linear infinite',
-    },
-    royalBlue: { background: 'linear-gradient(to right, #001a4d 0%, #4169E1 25%, #B0C4DE 50%, #4169E1 75%, #001a4d 100%)' },
-    orange: { background: 'linear-gradient(to right, #c47100 0%, #f2994a 25%, #ffe4b5 50%, #f2994a 75%, #c47100 100%)' },
-    yellow: { background: 'linear-gradient(to right, #b8860b 0%, #f8b500 25%, #fff9c4 50%, #f8b500 75%, #b8860b 100%)' },
-  };
-
   return (
     <div className="min-h-screen w-full flex flex-col items-center justify-center bg-[#0f172a] relative overflow-x-hidden font-sans p-4">
-      
       <style dangerouslySetInnerHTML={{ __html: `
-        @keyframes metallic-flow {
-          0% { background-position: 0% 50%; }
-          100% { background-position: 200% 50%; }
-        }
         @keyframes float {
           0% { transform: translateY(0px) rotate(0deg); }
           50% { transform: translateY(-10px) rotate(2deg); }
           100% { transform: translateY(0px) rotate(0deg); }
         }
-        .animate-float {
-          animation: float 3s ease-in-out infinite;
-        }
+        .animate-float { animation: float 3s ease-in-out infinite; }
       `}} />
 
       <div className="absolute -top-20 -left-20 w-96 h-96 bg-indigo-500/20 rounded-full blur-[120px] pointer-events-none" />
       <div className="absolute -bottom-20 -right-20 w-96 h-96 bg-cyan-500/20 rounded-full blur-[120px] pointer-events-none" />
       <div
         className="absolute inset-0 opacity-20 brightness-100 contrast-150 pointer-events-none"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`
-        }}
+        style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")` }}
       />
 
-      {/* --- THE UPDATED PDG LOGO SECTION --- */}
       <div className="relative z-10 mb-12 text-center group">
         <div className="flex flex-col items-center justify-center gap-4 mb-2">
           <div className="p-3 bg-indigo-500/10 rounded-2xl border border-indigo-500/20 shadow-[0_0_20px_rgba(99,102,241,0.3)] group-hover:shadow-[0_0_30px_rgba(99,102,241,0.5)] transition-all duration-500">
             <ToothIcon />
           </div>
-          <h2 className="text-5xl sm:text-7xl font-black tracking-tighter italic">
-            <span className="drop-shadow-sm">
-              <span style={{ ...metallicStyles.base, ...metallicStyles.royalBlue }}>P</span>
-              <span style={{ ...metallicStyles.base, ...metallicStyles.orange }} className="mx-1">D</span>
-              <span style={{ ...metallicStyles.base, ...metallicStyles.yellow }}>G</span>
-            </span>
-          </h2>
+          <PDGLogo />
         </div>
         <div className="h-1 w-12 bg-indigo-500 mx-auto rounded-full mb-3 group-hover:w-24 transition-all duration-500" />
         <p className="text-slate-500 text-sm sm:text-base font-medium tracking-widest uppercase opacity-80">
@@ -191,16 +168,7 @@ const LoginPage: React.FC = () => {
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500 group-focus-within:text-indigo-400 transition-colors">
                     <Mail size={24} style={{ color: "#909DF6" }} />
                   </div>
-                  <input
-                    type="email"
-                    name="email"
-                    className="w-full pl-11 pr-4 py-3.5 bg-slate-900/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 backdrop-blur-sm text-base hover:border-indigo-200 hover:ring-2 hover:ring-indigo-500/20"
-                    placeholder="name@company.com"
-                    value={formData.email}
-                    onChange={handleChange}
-                    required
-                    disabled={isLoading}
-                  />
+                  <input type="email" name="email" className="w-full pl-11 pr-4 py-3.5 bg-slate-900/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 backdrop-blur-sm text-base hover:border-indigo-200 hover:ring-2 hover:ring-indigo-500/20" placeholder="name@company.com" value={formData.email} onChange={handleChange} required disabled={isLoading} />
                 </div>
               </div>
 
@@ -213,34 +181,14 @@ const LoginPage: React.FC = () => {
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500 group-focus-within:text-indigo-400 transition-colors">
                     <Lock size={24} style={{ color: "#909DF6" }} />
                   </div>
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    name="password"
-                    className="w-full pl-11 pr-12 py-3.5 bg-slate-900/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 backdrop-blur-sm text-base hover:border-indigo-200 hover:ring-2 hover:ring-indigo-500/20"
-                    placeholder="••••••••"
-                    value={formData.password}
-                    onChange={handleChange}
-                    required
-                    disabled={isLoading}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-500 hover:text-indigo-400 transition-colors focus:outline-none"
-                  >
+                  <input type={showPassword ? "text" : "password"} name="password" className="w-full pl-11 pr-12 py-3.5 bg-slate-900/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 backdrop-blur-sm text-base hover:border-indigo-200 hover:ring-2 hover:ring-indigo-500/20" placeholder="••••••••" value={formData.password} onChange={handleChange} required disabled={isLoading} />
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-500 hover:text-indigo-400 transition-colors focus:outline-none">
                     {showPassword ? <EyeOff size={24} /> : <Eye size={24} />}
                   </button>
                 </div>
               </div>
 
-              <button
-                type="submit"
-                disabled={isLoading || !isFormValid}
-                className={`w-full group relative flex items-center justify-center gap-2 py-3.5 px-4 font-semibold rounded-xl transition-all duration-300 text-base sm:text-lg ${isLoading || !isFormValid
-                  ? "bg-slate-700 text-slate-400 opacity-70"
-                  : "bg-linear-to-r from-indigo-600 via-indigo-500 to-cyan-600 text-white hover:shadow-[0_0_20px_rgba(79,70,229,0.4)] hover:-translate-y-0.5 active:translate-y-0"
-                  }`}
-              >
+              <button type="submit" disabled={isLoading || !isFormValid} className={`w-full group relative flex items-center justify-center gap-2 py-3.5 px-4 font-semibold rounded-xl transition-all duration-300 text-base sm:text-lg ${isLoading || !isFormValid ? "bg-slate-700 text-slate-400 opacity-70" : "bg-linear-to-r from-indigo-600 via-indigo-500 to-cyan-600 text-white hover:shadow-[0_0_20px_rgba(79,70,229,0.4)] hover:-translate-y-0.5 active:translate-y-0"}`}>
                 {isLoading ? <Loader2 className="animate-spin" size={20} /> : (
                   <>
                     Sign In
