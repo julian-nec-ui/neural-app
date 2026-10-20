@@ -15,6 +15,7 @@
     "@fortawesome/react-fontawesome": "^3.5.0",
     "@react-three/drei": "^10.7.9",
     "@react-three/fiber": "^9.8.2",
+    "@react-three/postprocessing": "^3.2.0",
     "@stomp/stompjs": "^7.3.0",
     "@types/three": "^0.186.0",
     "@xyflow/react": "^12.12.0",

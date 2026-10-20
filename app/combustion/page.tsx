@@ -1,163 +1,222 @@
 "use client";
 
-import React, { useRef, useMemo } from 'react';
+import { useRef, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, PerspectiveCamera, Text, Environment, Float } from '@react-three/drei';
+import { OrbitControls, PerspectiveCamera, Environment } from '@react-three/drei';
+import { EffectComposer, Bloom } from '@react-three/postprocessing';
 import * as THREE from 'three';
 
-// --- Piston Component ---
-const Piston = ({ index, totalPistons }: { index: number, totalPistons: number }) => {
+// --- MECHANICAL COMPONENTS ---
+
+const CylinderAssembly = ({ index, total }: { index: number, total: number }) => {
   const pistonRef = useRef<THREE.Group>(null);
   const rodRef = useRef<THREE.Mesh>(null);
-  const glowRef = useRef<THREE.Mesh>(null);
+  const intakeValveRef = useRef<THREE.Mesh>(null);
+  const exhaustValveRef = useRef<THREE.Mesh>(null);
+  const fireRef = useRef<THREE.Mesh>(null);
 
-  // Calculate the offset for the 4-stroke cycle (Firing order)
-  const offset = (index * (Math.PI * 2)) / totalPistons;
+  // Create a unique material for this specific piston's fire
+  const fireMaterial = useMemo(() => new THREE.MeshStandardMaterial({
+    emissive: '#ff4400',
+    emissiveIntensity: 10,
+    color: '#ffaa00',
+  }), []);
+
+  const offset = (index * (Math.PI * 2)) / total;
 
   useFrame((state) => {
-    const t = state.clock.getElapsedTime() * 2; // Speed of engine
+    const t = state.clock.getElapsedTime() * 2;
     const angle = t + offset;
-    
-    // 1. Piston Vertical Movement (Sine wave)
-    const yPos = Math.sin(angle) * 1.5; 
+
+    // 1. Piston & Rod Kinematics (Null guarded)
+    const yPos = Math.sin(angle) * 1.5;
     if (pistonRef.current) {
       pistonRef.current.position.y = yPos;
     }
-
-    // 2. Connecting Rod Movement (Tilt to follow crankshaft)
     if (rodRef.current) {
       rodRef.current.position.y = yPos / 2;
-      rodRef.current.rotation.z = Math.cos(angle) * 0.5;
+      rodRef.current.rotation.z = Math.cos(angle) * 0.4;
     }
 
-    // 3. Combustion Color Logic
-    // We map the sine wave ( -1 to 1 ) to 4 stages
+    // 2. Valve Kinematics
+    const intakeOpen = Math.max(0, Math.sin(angle)); 
+    const exhaustOpen = Math.max(0, Math.sin(angle + Math.PI));
+
+    if (intakeValveRef.current) intakeValveRef.current.position.y = -intakeOpen * 0.5;
+    if (exhaustValveRef.current) exhaustValveRef.current.position.y = -exhaustOpen * 0.5;
+
+    // 3. Combustion Logic
     const normalized = (Math.sin(angle) + 1) / 2; // 0 to 1
-    let color = new THREE.Color('#64748b'); // Default Exhaust (Grey)
-
-    if (normalized < 0.25) color.set('#3b82f6'); // Intake (Blue)
-    else if (normalized < 0.5) color.set('#eab308'); // Compression (Yellow)
-    else if (normalized < 0.75) color.set('#ef4444'); // Combustion (Red)
-    else color.set('#64748b'); // Exhaust (Grey)
-
-    if (glowRef.current) {
-      glowRef.current.material.color.lerp(color, 0.1);
-      // Make it "pulse" during combustion
-      const scale = normalized > 0.5 && normalized < 0.75 ? 1.2 : 1.0;
-      glowRef.current.scale.set(scale, scale, scale);
+    if (fireRef.current) {
+      const isPowerStroke = normalized > 0.7 && normalized < 0.9;
+      fireRef.current.visible = isPowerStroke;
+      if (isPowerStroke) {
+        const scale = (normalized - 0.7) * 10;
+        fireRef.current.scale.set(scale, scale, scale);
+      }
     }
   });
 
   return (
     <group>
-      {/* Piston Head */}
+      {/* Valves */}
+      <mesh ref={intakeValveRef} position={[-0.3, 2, 0]}>
+        <cylinderGeometry args={[0.05, 0.05, 1, 16]} />
+        <meshStandardMaterial color="#a1a1aa" metalness={1} />
+      </mesh>
+      <mesh ref={exhaustValveRef} position={[0.3, 2, 0]}>
+        <cylinderGeometry args={[0.05, 0.05, 1, 16]} />
+        <meshStandardMaterial color="#a1a1aa" metalness={1} />
+      </mesh>
+
+      {/* Piston */}
       <group ref={pistonRef}>
         <mesh castShadow>
           <cylinderGeometry args={[0.7, 0.7, 0.8, 32]} />
-          <meshStandardMaterial color="#a1a1aa" metalness={0.8} roughness={0.2} />
+          <meshStandardMaterial color="#d1d5db" metalness={0.9} roughness={0.1} />
         </mesh>
-        {/* Internal Glow (The combustion chamber) */}
-        <mesh ref={glowRef} position={[0, 0.5, 0]}>
-          <sphereGeometry args={[0.6, 16, 16]} />
-          <meshStandardMaterial emissiveIntensity={2} emissive="#ef4444" transparent opacity={0.6} />
+        {/* Fire Sphere */}
+        <mesh ref={fireRef} position={[0, 0.6, 0]}>
+          <sphereGeometry args={[0.5, 32, 32]} />
+          <primitive object={fireMaterial} />
         </mesh>
       </group>
 
-      {/* Connecting Rod */}
+      {/* Piston Rod */}
       <mesh ref={rodRef} position={[0, -1, 0]}>
         <cylinderGeometry args={[0.1, 0.1, 3, 16]} />
-        <meshStandardMaterial color="#4b5563" metalness={0.9} roughness={0.3} />
+        <meshStandardMaterial color="#4b5563" metalness={1} />
       </mesh>
     </group>
   );
 };
 
-// --- Main Engine Scene ---
-const EngineScene = () => {
+const Crankshaft = () => {
+  const ref = useRef<THREE.Group>(null);
+  useFrame((state) => {
+    if (ref.current) {
+      ref.current.rotation.x = state.clock.getElapsedTime() * 2;
+    }
+  });
+
   return (
-    <>
-      <ambientLight intensity={0.5} />
-      <pointLight position={[10, 10, 10]} intensity={1} castShadow />
-      <spotLight position={[-10, 10, 10]} angle={0.15} penumbra={1} intensity={2} castShadow />
-      
-      <Environment preset="city" />
-
-      {/* Engine Block Shell (Semi-transparent to see inside) */}
-      <mesh position={[0, 0, 0]}>
-        <boxGeometry args={[5, 5, 2]} />
-        <meshStandardMaterial 
-          color="#1e293b" 
-          transparent 
-          opacity={0.3} 
-          metalness={0.5} 
-          roughness={0.1} 
-        />
+    <group ref={ref}>
+      <mesh rotation={[0, 0, Math.PI / 2]}>
+        <cylinderGeometry args={[0.2, 0.2, 6, 32]} />
+        <meshStandardMaterial color="#334155" metalness={1} />
       </mesh>
-
-      {/* The Pistons Group */}
-      <group position={[0, 0, 0]}>
-        {[-2, -1, 1, 2].map((x, i) => (
-          <group key={i} position={[x, 0, 0]}>
-            <Piston index={i} totalPistons={4} />
-          </group>
-        ))}
-      </group>
-
-      {/* Crankshaft */}
-      <mesh rotation={[0, 0, Math.PI / 2]} position={[0, -2.5, 0]}>
-        <cylinderGeometry args={[0.2, 0.2, 5, 32]} />
-        <meshStandardMaterial color="#334155" metalness={1} roughness={0.1} />
-      </mesh>
-      
-      <OrbitControls makeDefault />
-    </>
+      {[-2, -1, 1, 2].map((x, i) => (
+        <mesh key={i} position={[x, i % 2 === 0 ? 0.8 : -0.8, 0]} rotation={[0, 0, Math.PI / 2]}>
+          <cylinderGeometry args={[0.2, 0.2, 0.5, 32]} />
+          <meshStandardMaterial color="#334155" metalness={1} />
+        </mesh>
+      ))}
+    </group>
   );
 };
 
-const EnginePage = () => {
+const Camshaft = () => {
+  const ref = useRef<THREE.Group>(null);
+  useFrame((state) => {
+    if (ref.current) {
+      ref.current.rotation.x = (state.clock.getElapsedTime() * 2) / 2;
+    }
+  });
+
   return (
-    <div className="w-full h-screen bg-[#050810] relative">
-      {/* UI Overlay */}
-      <div className="absolute top-10 left-10 z-10 pointer-events-none">
-        <h1 className="text-6xl font-black italic text-white tracking-tighter">
-          V4 <span className="text-indigo-500">3D-CORE</span>
+    <group ref={ref} position={[0, 3, 0]}>
+      <mesh rotation={[0, 0, Math.PI / 2]}>
+        <cylinderGeometry args={[0.15, 0.15, 6, 32]} />
+        <meshStandardMaterial color="#1e293b" metalness={1} />
+      </mesh>
+      {[-2, -1, 1, 2].map((x, i) => (
+        <mesh key={i} position={[x, 0, 0]}>
+          <sphereGeometry args={[0.4, 16, 16]} />
+          <meshStandardMaterial color="#1e293b" metalness={1} />
+        </mesh>
+      ))}
+    </group>
+  );
+};
+
+// --- MAIN PAGE ---
+
+const EngineSimulation = () => {
+  return (
+    <div className="w-full h-screen bg-[#02040a] relative overflow-hidden">
+      {/* UI OVERLAY */}
+      <div className="absolute top-12 left-12 z-10 pointer-events-none">
+        <h1 className="text-7xl font-black italic text-white tracking-tighter">
+          CORE <span className="text-orange-600">V4-MAX</span>
         </h1>
-        <p className="text-slate-500 uppercase tracking-[0.4em] text-xs font-bold mt-2">
-          Real-time Mechanical Simulation
+        <p className="text-slate-500 uppercase tracking-[0.5em] text-xs font-bold mt-2">
+          High-Torque Mechanical Kinematics
         </p>
         
-        <div className="mt-10 flex flex-col gap-4">
+        <div className="mt-12 flex flex-col gap-4 bg-black/40 backdrop-blur-md p-6 rounded-2xl border border-white/10">
           <div className="flex items-center gap-3">
-            <div className="w-3 h-3 rounded-full bg-blue-500" />
-            <span className="text-slate-300 text-sm">Intake</span>
+            <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+            <span className="text-slate-300 text-xs font-bold uppercase">Intake Sequence</span>
           </div>
           <div className="flex items-center gap-3">
-            <div className="w-3 h-3 rounded-full bg-yellow-500" />
-            <span className="text-slate-300 text-sm">Compression</span>
+            <div className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" />
+            <span className="text-slate-300 text-xs font-bold uppercase">Compression Phase</span>
           </div>
           <div className="flex items-center gap-3">
-            <div className="w-3 h-3 rounded-full bg-red-500" />
-            <span className="text-slate-300 text-sm">Combustion</span>
+            <div className="w-2 h-2 rounded-full bg-red-600 animate-pulse" />
+            <span className="text-slate-300 text-xs font-bold uppercase">Combustion Event</span>
           </div>
           <div className="flex items-center gap-3">
-            <div className="w-3 h-3 rounded-full bg-slate-500" />
-            <span className="text-slate-300 text-sm">Exhaust</span>
+            <div className="w-2 h-2 rounded-full bg-slate-500 animate-pulse" />
+            <span className="text-slate-300 text-xs font-bold uppercase">Exhaust Purge</span>
           </div>
         </div>
       </div>
 
-      {/* Instructions */}
-      <div className="absolute bottom-10 right-10 z-10 text-slate-500 text-xs uppercase tracking-widest">
-        Drag to Rotate • Scroll to Zoom
+      <div className="absolute bottom-12 right-12 z-10 text-slate-600 text-[10px] uppercase tracking-widest font-bold">
+        Mechanical Linkage: Active • RPM: 2400 • Heat: Optimized
       </div>
 
-      {/* THE 3D CANVAS */}
       <Canvas shadows>
-        <PerspectiveCamera makeDefault position={[8, 8, 12]} />
-        <EngineScene />
+        <PerspectiveCamera makeDefault position={[10, 10, 15]} />
+        <ambientLight intensity={0.4} />
+        <spotLight position={[10, 20, 10]} angle={0.15} penumbra={1} intensity={2} castShadow />
+        <pointLight position={[-10, -10, -10]} color="#3b82f6" intensity={1} />
+        <Environment preset="city" />
+
+        <group position={[0, 0, 0]}>
+          <Crankshaft />
+          <Camshaft />
+          {[-2, -1, 1, 2].map((x, i) => (
+            <group key={i} position={[x, 0, 0]}>
+              <CylinderAssembly index={i} total={4} />
+            </group>
+          ))}
+          
+          <mesh position={[0, 0, 0]}>
+            <boxGeometry args={[6, 6, 3]} />
+            <meshStandardMaterial 
+              color="#0f172a" 
+              transparent 
+              opacity={0.2} 
+              metalness={0.8} 
+              roughness={0.2} 
+            />
+          </mesh>
+        </group>
+
+        <EffectComposer>
+          <Bloom 
+            intensity={1.5} 
+            luminanceThreshold={0.1} 
+            mipmapBlur 
+          />
+        </EffectComposer>
+
+        <OrbitControls makeDefault />
       </Canvas>
     </div>
   );
 };
 
-export default EnginePage;
+export default EngineSimulation;
