@@ -2,8 +2,7 @@
 
 import { useRef } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, PerspectiveCamera, Environment, ContactShadows } from '@react-three/drei';
-import { EffectComposer, Bloom } from '@react-three/postprocessing';
+import { OrbitControls, PerspectiveCamera, ContactShadows } from '@react-three/drei';
 import * as THREE from 'three';
 
 // --- CONSTANTS ---
@@ -16,7 +15,6 @@ const SETTINGS = {
 };
 
 const CylinderUnit = ({ index, total }: { index: number, total: number }) => {
-  // Strict typing for refs to avoid TS errors
   const pistonRef = useRef<THREE.Group>(null);
   const rodRef = useRef<THREE.Mesh>(null);
   const intakeValveRef = useRef<THREE.Group>(null);
@@ -29,25 +27,25 @@ const CylinderUnit = ({ index, total }: { index: number, total: number }) => {
     const t = state.clock.getElapsedTime() * SETTINGS.speed;
     const angle = t + timingOffset;
 
-    // 1. Piston Movement - Null check added
+    // 1. Piston Movement
     const yPos = Math.sin(angle) * 1.5;
     if (pistonRef.current) {
       pistonRef.current.position.y = yPos;
     }
 
-    // 2. Rod Movement - Null check added
+    // 2. Rod Movement
     if (rodRef.current) {
       rodRef.current.position.y = yPos / 2;
       rodRef.current.rotation.z = Math.cos(angle) * 0.3;
     }
 
-    // 3. Valve Timing - Null check added
+    // 3. Valve Timing
     const intakeOpen = Math.max(0, Math.sin(angle));
     const exhaustOpen = Math.max(0, Math.sin(angle + Math.PI));
     if (intakeValveRef.current) intakeValveRef.current.position.y = -intakeOpen * 0.5;
     if (exhaustValveRef.current) exhaustValveRef.current.position.y = -exhaustOpen * 0.5;
 
-    // 4. Combustion Logic - Null check added
+    // 4. Combustion Flash
     const normalized = (Math.sin(angle) + 1) / 2;
     if (fireRef.current) {
       const isPower = normalized > 0.9 && normalized < 0.98;
@@ -61,15 +59,13 @@ const CylinderUnit = ({ index, total }: { index: number, total: number }) => {
 
   return (
     <group>
-      {/* GLASS CYLINDER SLEEVE */}
+      {/* STATIC CYLINDER SLEEVE */}
       <mesh position={[0, 0, 0]}>
         <cylinderGeometry args={[SETTINGS.cylinderRadius, SETTINGS.cylinderRadius, SETTINGS.cylinderHeight, 32]} />
         <meshStandardMaterial 
-          color="#88ccff" 
+          color="#444" 
           transparent 
-          opacity={0.1} 
-          metalness={0.1} 
-          roughness={0} 
+          opacity={0.2} 
           side={THREE.DoubleSide} 
         />
       </mesh>
@@ -106,7 +102,7 @@ const CylinderUnit = ({ index, total }: { index: number, total: number }) => {
         </mesh>
         <mesh ref={fireRef} position={[0, 0.6, 0]}>
           <sphereGeometry args={[0.4, 32, 32]} />
-          <meshStandardMaterial emissive="#ff4400" emissiveIntensity={15} color="#ffaa00" />
+          <meshStandardMaterial color="#ff4400" />
         </mesh>
       </group>
 
@@ -151,15 +147,17 @@ const EngineSimulation = () => {
           ENGINE <span className="text-blue-500">X-4</span>
         </h1>
         <p className="text-slate-500 uppercase tracking-[0.3em] text-xs font-bold mt-1">
-          Clean-View Kinematics
+          Static Background Render
         </p>
       </div >
 
       <Canvas shadows>
         <PerspectiveCamera makeDefault position={[12, 8, 12]} />
-        <ambientLight intensity={0.6} />
+        
+        {/* Simple Static Lighting (No Environment) */}
+        <ambientLight intensity={0.7} />
         <spotLight position={[10, 15, 10]} angle={0.2} penumbra={1} intensity={2} castShadow />
-        <Environment preset="studio" />
+        <pointLight position={[-10, -10, -10]} color="#4444ff" intensity={0.5} />
 
         <group position={[0, 0, 0]}>
           <Crankshaft />
@@ -171,10 +169,6 @@ const EngineSimulation = () => {
         </group>
 
         <ContactShadows opacity={0.4} scale={20} blur={2} far={10} resolution={256} color="#000" />
-        
-        <EffectComposer>
-          <Bloom intensity={1} luminanceThreshold={0.8} mipmapBlur />
-        </EffectComposer>
         <OrbitControls makeDefault />
       </Canvas>
     </div>
