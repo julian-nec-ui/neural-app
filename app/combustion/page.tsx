@@ -5,19 +5,19 @@ import { useState, useEffect } from 'react';
 // --- ENGINE CONFIGURATION ---
 const CONFIG = {
   cylinderCount: 4,
-  crankRadius: 35,       // Radius of the crankshaft throw
-  rodLength: 110,        // Length of the connecting rod
+  crankRadius: 35,       
+  rodLength: 110,        
   cylinderWidth: 70,
-  spacing: 120,          // Distance between cylinder centers
-  crankY: 450,           // Center height of the crankshaft
-  speed: 0.04,           // Rotation speed
+  spacing: 120,          
+  crankY: 450,           
+  speed: 0.04,           
 };
 
 const STROKES = [
-  { name: 'Intake', color: '#3b82f6', desc: 'Air/Fuel In' },     // Blue
-  { name: 'Compression', color: '#eab308', desc: 'Compressing' }, // Yellow
-  { name: 'Power', color: '#ef4444', desc: 'Combustion' },      // Red
-  { name: 'Exhaust', color: '#64748b', desc: 'Gases Out' },      // Grey
+  { name: 'Intake', color: '#3b82f6', desc: 'Air/Fuel In' },     
+  { name: 'Compression', color: '#eab308', desc: 'Compressing' }, 
+  { name: 'Power', color: '#ef4444', desc: 'Combustion' },      
+  { name: 'Exhaust', color: '#64748b', desc: 'Gases Out' },      
 ];
 
 const Engine2D = () => {
@@ -26,7 +26,8 @@ const Engine2D = () => {
   useEffect(() => {
     let animationFrame: number;
     const update = () => {
-      setAngle((prev) => prev + CONFIG.speed);
+      // REVERSED MOVEMENT: Subtracting speed instead of adding
+      setAngle((prev) => prev - CONFIG.speed);
       animationFrame = requestAnimationFrame(update);
     };
     animationFrame = requestAnimationFrame(update);
@@ -40,7 +41,7 @@ const Engine2D = () => {
           V4 <span className="text-blue-500">MECHANICAL</span> SIM
         </h1>
         <p className="text-slate-500 uppercase tracking-[0.3em] text-xs font-bold">
-          Kinematic Rod & Piston Synchronization
+          Reverse-Rotation Kinematics
         </p>
       </div>
 
@@ -51,14 +52,13 @@ const Engine2D = () => {
           viewBox="0 0 600 600"
           className="overflow-visible"
         >
-          {/* 1. STATIC ENGINE BLOCK (Crankshaft Main Axis) */}
+          {/* STATIC ENGINE BLOCK (Crankshaft Main Axis) */}
           <line 
             x1="50" y1={CONFIG.crankY} x2="550" y2={CONFIG.crankY} 
             stroke="#1e293b" strokeWidth="16" strokeLinecap="round" 
           />
 
           {[0, 1, 2, 3].map((i) => {
-            // Stagger timing for firing order
             const cylinderAngle = angle + (i * Math.PI);
             
             // --- MATH: CRANK PIN POSITION ---
@@ -67,15 +67,17 @@ const Engine2D = () => {
             const pinY = CONFIG.crankY + Math.sin(cylinderAngle) * CONFIG.crankRadius;
 
             // --- MATH: PISTON POSITION ---
-            // The piston moves ONLY on the Y axis.
-            // We calculate Y based on the distance from the pin to the piston center.
-            const dx = pinX - centerX; // Horizontal offset of pin
+            const dx = pinX - centerX; 
             const dy = Math.sqrt(Math.pow(CONFIG.rodLength, 2) - Math.pow(dx, 2));
             const pistonY = pinY - dy;
             const pistonX = centerX;
 
-            // 4-Stroke Cycle Logic (0 to 4*PI)
-            const fullCycle = (cylinderAngle % (Math.PI * 4));
+            // --- 4-STROKE LOGIC (Normalized for reverse movement) ---
+            // We use ((a % n) + n) % n to ensure the result is always positive 
+            // regardless of rotation direction.
+            const cyclePeriod = Math.PI * 4; 
+            const fullCycle = ((cylinderAngle % cyclePeriod) + cyclePeriod) % cyclePeriod;
+            
             const intakeOpen = fullCycle < Math.PI ? 15 : 0;
             const exhaustOpen = fullCycle > Math.PI * 3 ? 15 : 0;
             const strokeIdx = Math.floor((fullCycle / Math.PI) % 4);
@@ -83,10 +85,10 @@ const Engine2D = () => {
 
             return (
               <g key={i}>
-                {/* STATIC CYLINDER SLEEVE (Does not move) */}
+                {/* STATIC CYLINDER SLEEVE */}
                 <rect 
                   x={pistonX - CONFIG.cylinderWidth/2} 
-                  y={pistonY - 120} // Keeps top of cylinder static relative to piston travel
+                  y={pistonY - 120} 
                   width={CONFIG.cylinderWidth} 
                   height={CONFIG.crankY - (pistonY - 120)} 
                   fill="none" 
@@ -95,7 +97,7 @@ const Engine2D = () => {
                   rx="4"
                 />
 
-                {/* VALVES (Fixed at the top of the sleeve) */}
+                {/* VALVES (Fixed at top) */}
                 <rect 
                   x={pistonX - 20} y={pistonY - 130} width="4" height={10 + intakeOpen} 
                   fill={intakeOpen ? "#3b82f6" : "#475569"} 
@@ -105,7 +107,7 @@ const Engine2D = () => {
                   fill={exhaustOpen ? "#ef4444" : "#475569"} 
                 />
 
-                {/* PISTON (Moves inside the sleeve) */}
+                {/* PISTON (Slides inside static sleeve) */}
                 <rect 
                   x={pistonX - CONFIG.cylinderWidth/2 + 4} 
                   y={pistonY} 
@@ -117,8 +119,7 @@ const Engine2D = () => {
                   strokeWidth="1"
                 />
 
-                {/* PISTON ROD (The Pendulum) */}
-                {/* Connects center-bottom of piston to the rotating pin */}
+                {/* PISTON ROD (Pendulum connection) */}
                 <line 
                   x1={pistonX} y1={pistonY + 40} 
                   x2={pinX} y2={pinY} 
@@ -127,7 +128,7 @@ const Engine2D = () => {
                   strokeLinecap="round" 
                 />
 
-                {/* CRANK PIN (The connection point to the crankshaft) */}
+                {/* CRANK PIN */}
                 <circle 
                   cx={pinX} cy={pinY} 
                   r="7" 
