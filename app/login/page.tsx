@@ -148,7 +148,7 @@ const LoginPage: React.FC = () => {
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500 group-focus-within:text-indigo-400 transition-colors">
                     <Mail size={24} style={{ color: "#909DF6" }} />
                   </div>
-                  <input type="email" name="email" className="w-full pl-11 pr-4 py-3.5 bg-slate-950/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 backdrop-blur-sm text-base hover:border-indigo-400/50" placeholder="name@company.com" value={formData.email} onChange={handleChange} required disabled={isLoading} />
+                  <input type="email" name="email" className="w-full pl-11 pr-4 py-3.5 bg-slate-950/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 backdrop-blur-sm text-base hover:border-indigo-500" placeholder="name@company.com" value={formData.email} onChange={handleChange} required disabled={isLoading} />
                 </div>
               </div>
 
@@ -161,7 +161,7 @@ const LoginPage: React.FC = () => {
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500 group-focus-within:text-indigo-400 transition-colors">
                     <Lock size={24} style={{ color: "#909DF6" }} />
                   </div>
-                  <input type={showPassword ? "text" : "password"} name="password" className="w-full pl-11 pr-12 py-3.5 bg-slate-950/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 backdrop-blur-sm text-base hover:border-indigo-400/50" placeholder="••••••••" value={formData.password} onChange={handleChange} required disabled={isLoading} />
+                  <input type={showPassword ? "text" : "password"} name="password" className="w-full pl-11 pr-12 py-3.5 bg-slate-950/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 backdrop-blur-sm text-base hover:border-indigo-500" placeholder="••••••••" value={formData.password} onChange={handleChange} required disabled={isLoading} />
                   <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-500 hover:text-indigo-400 transition-colors focus:outline-none">
                     {showPassword ? <EyeOff size={24} /> : <Eye size={24} />}
                   </button>
@@ -182,7 +182,7 @@ const LoginPage: React.FC = () => {
           <div className="p-6 bg-white/2 border-t border-white/10 text-center">
             <p className="text-slate-400 text-base">
               Don&apos;t have an account?{' '}
-              <Link href="/signup" className="text-indigo-400 font-semibold hover:text-indigo-300 transition-colors">
+              <Link href="/signup" className="text-indigo-400 font-semibold hover:text-indigo-400 transition-colors">
                 Create Account
               </Link>
             </p>
