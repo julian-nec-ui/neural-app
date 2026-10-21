@@ -107,9 +107,12 @@ export default function Engine() {
 
         {/* timing chain (left) — now spans camshaft height to crankshaft height */}
         <g>
-          <line x1={CHAIN_X} y1={CAM_Y} x2={CHAIN_X} y2={CRANK_Y}
-            stroke="#3b82f6" strokeWidth={10} strokeDasharray="6 8"
-            strokeDashoffset={-crankAngle * 1.5} opacity={0.9} />
+           {/* toothed timing chain: crank gear drives cam gear -> cam tied to crank */}
+         <line x1={CHAIN_X} y1={CAM_Y} x2={CHAIN_X} y2={CRANK_Y}
+           stroke="#1d4ed8" strokeWidth={12} strokeLinecap="round" opacity={0.9} />
+         <line x1={CHAIN_X} y1={CAM_Y} x2={CHAIN_X} y2={CRANK_Y}
+           stroke="#93c5fd" strokeWidth={12} strokeDasharray="4 10"
+           strokeDashoffset={-crankAngle * 1.5} opacity={0.9} />
           {/* cam gear at the left end of the camshaft */}
           <circle cx={CHAIN_X} cy={CAM_Y} r={26} fill="none" stroke="#3b82f6" strokeWidth={8}
             strokeDasharray="4 6" strokeDashoffset={-camAngle} />
