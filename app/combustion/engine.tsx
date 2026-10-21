@@ -13,13 +13,13 @@ const CHAIN_X = 55;            // Shifted left 10px more (from 90)
 const R = 55;                  // crank throw radius
 const L = 120;                 // connecting-rod length
 const BORE_W = 110;
-const BORE_TOP = 260;
-const BORE_BOTTOM = 430;
+const BORE_TOP = 260;          
+const BORE_BOTTOM = 430;       
 const PISTON_H = 40;
 const CYL_X = [250, 410, 570, 730]; // Shifted each cylinder left 10px more (from [260, 420, 580, 740])
 
 /* firing order 1-3-4-2 */
-const PHASE = [0, 0.75, 0.25, 0.5];
+const PHASE = [0, 0.75, 0.25, 0.5]; 
 
 /* ---------- helpers ---------- */
 function pistonPinY(thetaDeg: number) {
@@ -69,7 +69,7 @@ export default function Engine() {
       const dt = (now - last.current) / 1000;
       last.current = now;
       if (running) {
-        const cyclesPerSec = rpm / 60 / 2;
+        const cyclesPerSec = rpm / 60 / 2; 
         tRef.current = (tRef.current + dt * cyclesPerSec) % 1;
         setT(tRef.current);
       }
@@ -122,22 +122,19 @@ export default function Engine() {
         </defs>
 
         <g>
-          <line x1={CHAIN_X} y1={CAM_Y} x2={CHAIN_X} y2={CRANK_Y}
-            stroke="#1d4ed8" strokeWidth={12} strokeLinecap="round" opacity={0.9} />
-          <line x1={CHAIN_X} y1={CAM_Y} x2={CHAIN_X} y2={CRANK_Y}
-            stroke="#93c5fd" strokeWidth={12} strokeDasharray="4 10"
-            strokeDashoffset={-crankAngle * 1.2} opacity={0.9} />
+         <line x1={CHAIN_X} y1={CAM_Y} x2={CHAIN_X} y2={CRANK_Y}
+           stroke="#1d4ed8" strokeWidth={12} strokeLinecap="round" opacity={0.9} />
+         <line x1={CHAIN_X} y1={CAM_Y} x2={CHAIN_X} y2={CRANK_Y}
+           stroke="#93c5fd" strokeWidth={12} strokeDasharray="4 10"
+           strokeDashoffset={-crankAngle * 1.5} opacity={0.9} />
           <circle cx={CHAIN_X} cy={CAM_Y} r={26} fill="none" stroke="#3b82f6" strokeWidth={8}
-            strokeDasharray="4 6" strokeDashoffset={-camAngle * 0.8} />
+            strokeDasharray="4 6" strokeDashoffset={-camAngle} />
           <circle cx={CHAIN_X} cy={CRANK_Y} r={30} fill="none" stroke="#3b82f6" strokeWidth={8}
-            strokeDasharray="4 6" strokeDashoffset={-crankAngle * 1.2} />
+            strokeDasharray="4 6" strokeDashoffset={-crankAngle * 1.5} />
         </g>
 
-
         <line x1={CAM_LEFT} y1={CAM_Y} x2={CAM_RIGHT} y2={CAM_Y}
-          stroke="#2563eb" strokeWidth={14} strokeLinecap="round"
-          strokeDasharray="10 10" strokeDashoffset={-camAngle * 0.8} />
-
+          stroke="#2563eb" strokeWidth={14} strokeLinecap="round" />
 
         <g transform={`translate(${FLYWHEEL_X} ${CRANK_Y}) rotate(${flyAngle})`}>
           <circle r={62} fill="#7f1d1d" stroke="#ef4444" strokeWidth={4} />
@@ -149,8 +146,7 @@ export default function Engine() {
         </g>
 
         <path d={crankPathD}
-          stroke="#7f1d1d" strokeWidth={10} fill="none" strokeLinecap="round" strokeLinejoin="round" opacity={0.8}
-          strokeDasharray="10 10" strokeDashoffset={-crankAngle * 0.8} />
+          stroke="#7f1d1d" strokeWidth={10} fill="none" strokeLinecap="round" strokeLinejoin="round" opacity={0.8} />
 
         {CYL_X.map((cx, i) => {
           const p = (t + PHASE[i]) % 1;
