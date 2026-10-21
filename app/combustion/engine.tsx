@@ -96,12 +96,12 @@ export default function Engine() {
     };
   });
 
-  // Construct the crankshaft path: Start -> (Center -> Pin -> Center) * 4 -> End
+  // Construct the crankshaft path: Start -> (Center -> Pin -> Center) * 4 -> Extended Right
   let crankPathD = `M ${CHAIN_X} ${CRANK_Y}`;
   crankPins.forEach((pin) => {
     crankPathD += ` L ${pin.cx} ${CRANK_Y} L ${pin.x} ${pin.y} L ${pin.cx} ${CRANK_Y}`;
   });
-  crankPathD += ` L 930 ${CRANK_Y}`;
+  crankPathD += ` L 980 ${CRANK_Y}`; // Extended from 930 to 980
 
   return (
     <div className="w-full max-w-5xl bg-slate-800/60 rounded-2xl p-4 shadow-xl ring-1 ring-white/10">
