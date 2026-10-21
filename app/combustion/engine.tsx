@@ -54,6 +54,7 @@ const STROKE_LABEL: Record<Stroke, string> = {
   exhaust: "EXHAUST",
 };
 
+
 export default function Engine() {
   const [t, setT] = useState(0);
   const [rpm, setRpm] = useState(600);
@@ -148,8 +149,7 @@ export default function Engine() {
           const sparking = p > 0.47 && p < 0.55;
           const powerGlow = s === "power" ? Math.max(0, 1 - (p - 0.5) / 0.25) : 0;
 
-          const camI = camAngle + PHASE[i] * 360;
-          const camE = camAngle + PHASE[i] * 360 + 180;
+          const camNose = ((p % 0.5) - 0.125) * 720;   // nose down at intake AND exhaust peaks
 
           const crankPinX = cx + R * Math.sin((theta * Math.PI) / 180);
           const crankPinY = CRANK_Y - R * Math.cos((theta * Math.PI) / 180);
@@ -190,11 +190,9 @@ export default function Engine() {
               </g>
 
               {/* cam lobes on the lowered camshaft, resting on the valve stems */}
-              <g transform={`translate(${cx - 28} ${CAM_Y}) rotate(${camI})`}>
+              <g transform={`translate(${cx} ${CAM_Y}) rotate(${camNose})`}>
                 <ellipse rx={10} ry={18} fill="#2563eb" />
-              </g>
-              <g transform={`translate(${cx + 28} ${CAM_Y}) rotate(${camE})`}>
-                <ellipse rx={10} ry={18} fill="#2563eb" />
+                <path d="M0 18 L7 11 L-7 11 Z" fill="#2563eb" />   {/* nose → +y = down to valves */}
               </g>
 
               {/* spark plug */}
