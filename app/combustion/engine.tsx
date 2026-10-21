@@ -57,7 +57,7 @@ const STROKE_LABEL: Record<Stroke, string> = {
 
 export default function Engine() {
   const [t, setT] = useState(0);
-  const [rpm, setRpm] = useState(15); // Default 20rpm
+  const [rpm, setRpm] = useState(5); // Default 20rpm
   const [running, setRunning] = useState(true);
   const raf = useRef<number | null>(null);
   const last = useRef<number>(0);
