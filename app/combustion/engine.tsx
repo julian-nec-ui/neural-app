@@ -9,7 +9,9 @@ const CRANK_Y = 470;            // crankshaft centre line
 const R = 55;                  // crank throw radius
 const L = 120;                 // connecting-rod length
 const BORE_W = 110;
-const BORE_TOP = 210;
+const BORE_TOP = 260;          // FIXED cylinder top
+const BORE_BOTTOM = 430;       // FIXED cylinder bottom  -> bore size never changes
+const PISTON_H = 40;
 const CYL_X = [320, 480, 640, 800]; // physical cyl 1..4 (left → right)
 
 /* firing order 1-3-4-2 → phase offset within the 720° cycle */
@@ -26,10 +28,7 @@ function pistonPinY(thetaDeg: number) {
 
 // smooth valve lift (0..1) when a valve is "open" around a window centre
 function bump(p: number, centre: number, halfWidth: number) {
-  const d = Math.min(
-    Math.abs(p - centre),
-    1 - Math.abs(p - centre) // wrap
-  );
+  const d = Math.min(Math.abs(p - centre), 1 - Math.abs(p - centre)); // wrap
   if (d > halfWidth) return 0;
   return 0.5 * (1 + Math.cos((Math.PI * d) / halfWidth));
 }
@@ -68,8 +67,7 @@ export default function Engine() {
       const dt = (now - last.current) / 1000;
       last.current = now;
       if (running) {
-        // full 720° cycle at `rpm` engine speed
-        const cyclesPerSec = rpm / 60 / 2;
+        const cyclesPerSec = rpm / 60 / 2; // 720° = 2 crank revs
         tRef.current = (tRef.current + dt * cyclesPerSec) % 1;
         setT(tRef.current);
       }
@@ -82,7 +80,7 @@ export default function Engine() {
     };
   }, [running, rpm]);
 
-  const crankAngle = t * 720; // degrees over whole cycle
+  const crankAngle = t * 720;
   const camAngle = t * 360; // cam turns half of crank
   const flyAngle = crankAngle;
 
@@ -98,17 +96,19 @@ export default function Engine() {
             <stop offset="35%" stopColor="#fbbf24" />
             <stop offset="100%" stopColor="#ea580c" stopOpacity="0" />
           </radialGradient>
+          {/* clip each gas pocket to its fixed bore */}
+          {CYL_X.map((cx, i) => (
+            <clipPath id={`bore-${i}`} key={i}>
+              <rect x={cx - BORE_W / 2} y={BORE_TOP} width={BORE_W} height={BORE_BOTTOM - BORE_TOP} />
+            </clipPath>
+          ))}
         </defs>
 
         {/* timing chain (left) */}
         <g>
-          <line
-            x1={150} y1={120} x2={150} y2={CRANK_Y}
-            stroke="#3b82f6" strokeWidth={10}
-            strokeDasharray="6 8"
-            strokeDashoffset={-crankAngle * 1.5}
-            opacity={0.9}
-          />
+          <line x1={150} y1={120} x2={150} y2={CRANK_Y}
+            stroke="#3b82f6" strokeWidth={10} strokeDasharray="6 8"
+            strokeDashoffset={-crankAngle * 1.5} opacity={0.9} />
           <circle cx={150} cy={120} r={26} fill="none" stroke="#3b82f6" strokeWidth={8}
             strokeDasharray="4 6" strokeDashoffset={-crankAngle} />
           <circle cx={150} cy={CRANK_Y} r={30} fill="none" stroke="#3b82f6" strokeWidth={8}
@@ -116,7 +116,8 @@ export default function Engine() {
         </g>
 
         {/* camshaft bar (valve mechanism) */}
-        <line x1={230} y1={120} x2={860} y2={120} stroke="#2563eb" strokeWidth={14} strokeLinecap="round" />
+        <line x1={230} y1={120} x2={860} y2={120}
+          stroke="#2563eb" strokeWidth={14} strokeLinecap="round" />
 
         {/* flywheel (right) */}
         <g transform={`translate(930 ${CRANK_Y}) rotate(${flyAngle})`}>
@@ -128,8 +129,9 @@ export default function Engine() {
           <circle r={12} fill="#ef4444" />
         </g>
 
-        {/* crankshaft base */}
-        <line x1={150} y1={CRANK_Y} x2={930} y2={CRANK_Y} stroke="#7f1d1d" strokeWidth={10} opacity={0.5} />
+        {/* crankshaft base line */}
+        <line x1={150} y1={CRANK_Y} x2={930} y2={CRANK_Y}
+          stroke="#7f1d1d" strokeWidth={10} opacity={0.5} />
 
         {/* cylinders */}
         {CYL_X.map((cx, i) => {
@@ -139,41 +141,50 @@ export default function Engine() {
           const pinY = pistonPinY(theta);
           const crownY = pinY - 18;
 
-          const intakeLift = bump(p, 0.125, 0.12) * 14; // px
+          const intakeLift = bump(p, 0.125, 0.12) * 14;
           const exhaustLift = bump(p, 0.875, 0.12) * 14;
           const sparking = p > 0.47 && p < 0.55;
           const powerGlow = s === "power" ? Math.max(0, 1 - (p - 0.5) / 0.25) : 0;
 
-          // cam lobe angle per valve
           const camI = camAngle + PHASE[i] * 360;
           const camE = camAngle + PHASE[i] * 360 + 180;
 
-          const rodTopX = cx;
+          // crank pin + piston pin (rod stays tight to both)
           const crankPinX = cx + R * Math.sin((theta * Math.PI) / 180);
           const crankPinY = CRANK_Y - R * Math.cos((theta * Math.PI) / 180);
+          const pistonPinX = cx;
+          const pistonPinYv = pinY;
+
+          const gasHeight = Math.max(0, crownY - BORE_TOP); // only the gas pocket moves
 
           return (
             <g key={i}>
-              {/* bore + gas fill */}
-              <rect x={cx - BORE_W / 2} y={BORE_TOP} width={BORE_W} height={crownY - BORE_TOP}
-                fill={STROKE_FILL[s]} opacity={0.28} />
-              <rect x={cx - BORE_W / 2} y={BORE_TOP} width={BORE_W} height={crownY - BORE_TOP}
-                fill="none" stroke="#cbd5e1" strokeWidth={3} opacity={0.6} />
-              {powerGlow > 0 && (
-                <ellipse cx={cx} cy={BORE_TOP + 40} rx={BORE_W / 2 - 6} ry={50}
-                  fill="url(#fire)" opacity={powerGlow} />
-              )}
+              {/* travel guide (shows piston motion) */}
+              <line x1={cx} y1={BORE_TOP} x2={cx} y2={BORE_BOTTOM}
+                stroke="#475569" strokeWidth={1} strokeDasharray="3 5" opacity={0.5} />
+
+              {/* FIXED cylinder walls */}
+              <rect x={cx - BORE_W / 2} y={BORE_TOP} width={BORE_W} height={BORE_BOTTOM - BORE_TOP}
+                fill="none" stroke="#cbd5e1" strokeWidth={3} opacity={0.7} />
+
+              {/* gas pocket above the piston (clipped to the fixed bore) */}
+              <g clipPath={`url(#bore-${i})`}>
+                <rect x={cx - BORE_W / 2} y={BORE_TOP} width={BORE_W} height={gasHeight}
+                  fill={STROKE_FILL[s]} opacity={0.28} />
+                {powerGlow > 0 && (
+                  <ellipse cx={cx} cy={BORE_TOP + 45} rx={BORE_W / 2 - 6} ry={55}
+                    fill="url(#fire)" opacity={powerGlow} />
+                )}
+              </g>
 
               {/* head + valves */}
               <rect x={cx - BORE_W / 2} y={BORE_TOP - 22} width={BORE_W} height={22}
                 fill="#1e3a8a" opacity={0.8} />
-              {/* intake valve (left) */}
               <g transform={`translate(${cx - 28} ${BORE_TOP - 22 + intakeLift})`}>
                 <line x1={0} y1={-40} x2={0} y2={0} stroke="#3b82f6" strokeWidth={4} />
                 <ellipse cx={0} cy={0} rx={12} ry={4} fill="#3b82f6" />
                 <path d="M-6 -34 h12 M-6 -28 h12 M-6 -22 h12" stroke="#60a5fa" strokeWidth={1.5} />
               </g>
-              {/* exhaust valve (right) */}
               <g transform={`translate(${cx + 28} ${BORE_TOP - 22 + exhaustLift})`}>
                 <line x1={0} y1={-40} x2={0} y2={0} stroke="#3b82f6" strokeWidth={4} />
                 <ellipse cx={0} cy={0} rx={12} ry={4} fill="#3b82f6" />
@@ -187,25 +198,31 @@ export default function Engine() {
                 <ellipse rx={10} ry={16} fill="#2563eb" />
               </g>
               {/* spark plug */}
-              <line x1={cx} y1={BORE_TOP - 30} x2={cx} y2={BORE_TOP - 12} stroke="#e2e8f0" strokeWidth={3} />
+              <line x1={cx} y1={BORE_TOP - 30} x2={cx} y2={BORE_TOP - 12}
+                stroke="#e2e8f0" strokeWidth={3} />
               {sparking && (
                 <path d={`M${cx - 6} ${BORE_TOP - 8} L${cx} ${BORE_TOP} L${cx + 6} ${BORE_TOP - 6}`}
                   stroke="#fde047" strokeWidth={2} fill="none" />
               )}
 
-              {/* piston */}
-              <rect x={cx - BORE_W / 2 + 4} y={crownY} width={BORE_W - 8} height={40}
+              {/* piston (fixed size, slides in the fixed bore) */}
+              <rect x={cx - BORE_W / 2 + 4} y={crownY} width={BORE_W - 8} height={PISTON_H}
                 rx={4} fill="#e2e8f0" stroke="#94a3b8" strokeWidth={2} />
               <line x1={cx - BORE_W / 2 + 6} y1={crownY + 8} x2={cx + BORE_W / 2 - 6} y2={crownY + 8}
                 stroke="#94a3b8" strokeWidth={1.5} />
               <line x1={cx - BORE_W / 2 + 6} y1={crownY + 14} x2={cx + BORE_W / 2 - 6} y2={crownY + 14}
                 stroke="#94a3b8" strokeWidth={1.5} />
 
-              {/* connecting rod */}
-              <line x1={rodTopX} y1={pinY} x2={crankPinX} y2={crankPinY}
+              {/* connecting rod — tight joint piston↔crank */}
+              <line x1={pistonPinX} y1={pistonPinYv} x2={crankPinX} y2={crankPinY}
                 stroke="#dc2626" strokeWidth={9} strokeLinecap="round" />
-              {/* crank throw */}
-              <circle cx={crankPinX} cy={crankPinY} r={10} fill="#ef4444" stroke="#7f1d1d" strokeWidth={2} />
+              {/* small end (wrist pin) sits inside the piston */}
+              <circle cx={pistonPinX} cy={pistonPinYv} r={7}
+                fill="#fca5a5" stroke="#7f1d1d" strokeWidth={2} />
+              {/* big end wraps the rotating crank pin exactly */}
+              <circle cx={crankPinX} cy={crankPinY} r={11}
+                fill="#ef4444" stroke="#7f1d1d" strokeWidth={2} />
+              {/* main journal on the crank centreline */}
               <circle cx={cx} cy={CRANK_Y} r={12} fill="#7f1d1d" />
 
               {/* phase label */}
@@ -244,7 +261,6 @@ export default function Engine() {
           <span className="w-24 tabular-nums text-slate-200">{rpm} rpm</span>
         </label>
 
-        {/* legend */}
         <div className="ml-auto flex gap-3 text-xs">
           <Legend c="#3b82f6" t="Intake / valves" />
           <Legend c="#93c5fd" t="Compression" />
