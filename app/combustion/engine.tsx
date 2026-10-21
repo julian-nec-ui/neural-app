@@ -43,7 +43,7 @@ function strokeOf(p: number): Stroke {
 }
 
 const STROKE_FILL: Record<Stroke, string> = {
-  intake: "#0ea5e9", // Changed to Sky Blue (Tailwind sky-500)
+  intake: "#bae6fd", // Changed to Light Blue (Tailwind sky-200)
   compression: "#93c5fd",
   power: "#f97316",
   exhaust: "#9ca3af",
@@ -265,7 +265,7 @@ export default function Engine() {
         </label>
 
         <div className="ml-auto flex gap-3 text-xs">
-          <Legend c="#0ea5e9" t="Intake / valves" />
+          <Legend c="#bae6fd" t="Intake / valves" />
           <Legend c="#93c5fd" t="Compression" />
           <Legend c="#f97316" t="Power" />
           <Legend c="#9ca3af" t="Exhaust" />
