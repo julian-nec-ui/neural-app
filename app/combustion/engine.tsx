@@ -95,7 +95,7 @@ export default function Engine() {
     };
   });
 
-  const FLYWHEEL_X = 880; // Moved slightly further left from 930 to 880
+  const FLYWHEEL_X = 850; // Moved to 850 for a slightly tighter fit
   let crankPathD = `M ${CHAIN_X} ${CRANK_Y}`;
   crankPins.forEach((pin) => {
     crankPathD += ` L ${pin.cx} ${CRANK_Y} L ${pin.x} ${pin.y} L ${pin.cx} ${CRANK_Y}`;
