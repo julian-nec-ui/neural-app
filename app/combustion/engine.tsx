@@ -57,7 +57,7 @@ const STROKE_LABEL: Record<Stroke, string> = {
 
 export default function Engine() {
   const [t, setT] = useState(0);
-  const [rpm, setRpm] = useState(20); // Default 20rpm
+  const [rpm, setRpm] = useState(15); // Default 20rpm
   const [running, setRunning] = useState(true);
   const raf = useRef<number | null>(null);
   const last = useRef<number>(0);
@@ -254,7 +254,7 @@ export default function Engine() {
         <label className="flex items-center gap-2 text-sm">
           <span className="text-slate-300">Speed</span>
           <input
-            type="range" min={20} max={3000} step={10}
+            type="range" min={15} max={3000} step={10}
             value={rpm}
             onChange={(e) => setRpm(Number(e.target.value))}
             className="w-40 accent-blue-500"
