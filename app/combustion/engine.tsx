@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
-/* ---------- geometry constants (SVG user units) ---------- */
+/* ---------- geometry constants (SVG user units) ----------- */
 const VB_W = 1000;
 const VB_H = 600;
 const CRANK_Y = 470;            // crankshaft centre line
