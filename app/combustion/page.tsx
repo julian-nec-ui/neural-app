@@ -9,7 +9,7 @@ import { Settings2, Play, Pause, RotateCcw } from 'lucide-react';
 // --- Engineering Constants ---
 const STROKE = 1.2; 
 const CRANK_RADIUS = STROKE / 2; 
-const BASE_HEIGHT = 3;
+const BASE_HEIGHT = 2; // Lowered for better centering
 const ROD_LENGTH = 3.5;
 const CYL_SPACING = 2.2;
 
@@ -18,16 +18,22 @@ interface CylinderProps {
   angle: number;
 }
 
-// --- Component: Individual Cylinder ---
 const Cylinder = ({ index, angle }: CylinderProps) => {
   const offset = (index === 0 || index === 3) ? 0 : Math.PI;
   const currentAngle = angle + offset;
   const cyclePos = (currentAngle % (Math.PI * 4)); 
 
-  const yPos = Math.cos(currentAngle) * CRANK_RADIUS + BASE_HEIGHT;
-  const rodX = Math.sin(currentAngle) * CRANK_RADIUS;
-  const crankPinY = Math.cos(currentAngle) * CRANK_RADIUS + BASE_HEIGHT;
-  const rodY = (yPos + crankPinY) / 2;
+  // Piston position
+  const yPos = Math.cos(currentAngle) * CRANK_RADIUS + BASE_HEIGHT + 1.5;
+  
+  // Crank Pin position (The point where the rod meets the crankshaft)
+  const pinX = Math.sin(currentAngle) * CRANK_RADIUS;
+  const pinY = Math.cos(currentAngle) * CRANK_RADIUS + BASE_HEIGHT;
+  const pinZ = 0;
+
+  // Rod Midpoint for positioning the box
+  const rodMidX = pinX / 2;
+  const rodMidY = (yPos + pinY) / 2;
 
   const intakeOpen = cyclePos < Math.PI ? 0.4 : 0;
   const exhaustOpen = (cyclePos > Math.PI * 2 && cyclePos < Math.PI * 3) ? 0.4 : 0;
@@ -35,18 +41,28 @@ const Cylinder = ({ index, angle }: CylinderProps) => {
 
   return (
     <group position={[index * CYL_SPACING, 0, 0]}>
-      <mesh position={[0, BASE_HEIGHT + 1, 0]}>
+      {/* Cylinder Sleeve */}
+      <mesh position={[0, BASE_HEIGHT + 2, 0]}>
         <cylinderGeometry args={[0.81, 0.81, 3, 32, 1, true]} />
         <meshStandardMaterial color="#444444" transparent opacity={0.3} side={THREE.DoubleSide} />
       </mesh>
+
+      {/* Piston Head */}
       <mesh position={[0, yPos, 0]}>
         <cylinderGeometry args={[0.7, 0.7, 1, 32]} />
         <meshStandardMaterial color="#aaaaaa" metalness={0.8} roughness={0.2} />
       </mesh>
-      <mesh position={[rodX, rodY, 0]} rotation={[0, 0, Math.sin(currentAngle) * 0.2]}>
+
+      {/* Connecting Rod - Now anchored to the Pin */}
+      <mesh 
+        position={[rodMidX, rodMidY, 0]} 
+        rotation={[0, 0, Math.atan2(pinX, yPos - pinY)]}
+      >
         <boxGeometry args={[0.2, ROD_LENGTH, 0.2]} />
         <meshStandardMaterial color="#cc3333" />
       </mesh>
+
+      {/* Valves */}
       <mesh position={[-0.3, 6 - intakeOpen, 0]}>
         <cylinderGeometry args={[0.1, 0.1, 1.2, 16]} />
         <meshStandardMaterial color="#3498db" />
@@ -55,6 +71,8 @@ const Cylinder = ({ index, angle }: CylinderProps) => {
         <cylinderGeometry args={[0.1, 0.1, 1.2, 16]} />
         <meshStandardMaterial color="#3498db" />
       </mesh>
+
+      {/* Combustion Glow */}
       <mesh position={[0, yPos + 0.5, 0]} visible={isPowerStroke}>
         <sphereGeometry args={[0.5, 16, 16]} />
         <meshBasicMaterial color="#f1c40f" />
@@ -63,14 +81,38 @@ const Cylinder = ({ index, angle }: CylinderProps) => {
   );
 };
 
-// --- Component: Shafts ---
 const EngineShafts = ({ angle }: { angle: number }) => {
   return (
     <group>
-      <mesh rotation={[angle, 0, 0]} position={[0, BASE_HEIGHT, 0]}>
-        <cylinderGeometry args={[0.3, 0.3, CYL_SPACING * 4, 16]} />
-        <meshStandardMaterial color="#cc3333" />
+      {/* Main Crankshaft Body (The central axle) */}
+      <mesh position={[0, BASE_HEIGHT, 0]} rotation={[0, 0, 0]}>
+        <cylinderGeometry args={[0.2, 0.2, CYL_SPACING * 4, 16]} />
+        <meshStandardMaterial color="#aa2222" />
+        {/* We rotate the whole cylinder on its X axis to simulate rotation */}
+        <primitive object={new THREE.Object3D()} /> 
       </mesh>
+      
+      {/* Visual rotation for the Crankshaft axial body */}
+      <mesh position={[0, BASE_HEIGHT, 0]} rotation={[angle, 0, 0]}>
+        <cylinderGeometry args={[0.2, 0.2, CYL_SPACING * 4, 16]} />
+        <meshStandardMaterial color="#aa2222" />
+      </mesh>
+
+      {/* The actual Crank Pins (The parts the rods attach to) */}
+      {[0, 1, 2, 3].map((i) => {
+        const offset = (i === 0 || i === 3) ? 0 : Math.PI;
+        return (
+          <mesh 
+            key={`pin-${i}`} 
+            position={[i * CYL_SPACING, BASE_HEIGHT + Math.cos(angle + offset) * CRANK_RADIUS, Math.sin(angle + offset) * CRANK_RADIUS]}
+          >
+            <cylinderGeometry args={[0.2, 0.2, 0.5, 16]} />
+            <meshStandardMaterial color="#880000" />
+          </mesh>
+        );
+      })}
+
+      {/* Camshaft (Blue) - Perfectly aligned above the valves */}
       <mesh position={[0, 6.5, 0]} rotation={[angle / 2, 0, 0]}>
         <cylinderGeometry args={[0.2, 0.2, CYL_SPACING * 4, 16]} />
         <meshStandardMaterial color="#3498db" />
@@ -79,47 +121,23 @@ const EngineShafts = ({ angle }: { angle: number }) => {
   );
 };
 
-// --- NEW Component: The actual 3D Scene Logic ---
-// This component sits INSIDE the Canvas, so useFrame now works perfectly.
 const EngineScene = ({ isPlaying, speed, resetTrigger }: { isPlaying: boolean, speed: number, resetTrigger: number }) => {
   const angleRef = useRef(0);
-  const groupRef = useRef<THREE.Group>(null);
-
-  // Listen for reset trigger from parent
-  useFrame(() => {
-    if (resetTrigger > 0) {
-        // We can't easily change a prop from here, but we can reset the ref
-    }
-  });
-
-  // The animation loop
-  useFrame((state, delta) => {
-    if (isPlaying) {
-      // We use a ref for the angle instead of state to avoid 
-      // re-rendering the entire React tree 60 times per second.
-      angleRef.current += speed;
-    }
-
-    // Update the rotation of the group based on the ref
-    if (groupRef.current) {
-      // We don't rotate the whole group, but we use the value to drive children
-    }
-  });
-
-  // We use a separate state here just for the internal components to re-render
   const [internalAngle, setInternalAngle] = useState(0);
 
   useFrame(() => {
+    if (isPlaying) {
+      angleRef.current += speed;
+    }
     setInternalAngle(angleRef.current);
   });
 
-  // Handle reset by updating the ref
   React.useEffect(() => {
     angleRef.current = 0;
   }, [resetTrigger]);
 
   return (
-    <group position={[- (CYL_SPACING * 2), 0, 0]} ref={groupRef}>
+    <group position={[- (CYL_SPACING * 2), 0, 0]}>
       <EngineShafts angle={internalAngle} />
       {[0, 1, 2, 3].map((i) => (
         <Cylinder key={i} index={i} angle={internalAngle} />
@@ -128,7 +146,6 @@ const EngineScene = ({ isPlaying, speed, resetTrigger }: { isPlaying: boolean, s
   );
 };
 
-// --- Main Page Component ---
 export default function CombustionPage() {
   const [isPlaying, setIsPlaying] = useState(true);
   const [speed, setSpeed] = useState(0.03);
@@ -136,43 +153,29 @@ export default function CombustionPage() {
 
   return (
     <div className="w-full h-screen bg-zinc-900 flex flex-col relative overflow-hidden">
-      {/* UI Overlay */}
       <div className="absolute top-6 left-6 z-10 pointer-events-auto">
         <div className="bg-zinc-800/90 backdrop-blur-md p-6 rounded-2xl border border-zinc-700 text-white shadow-2xl w-80">
           <div className="flex items-center gap-2 mb-4">
             <Settings2 className="w-5 h-5 text-blue-400" />
             <h1 className="text-lg font-bold tracking-tight">Engine Controller</h1>
           </div>
-
           <div className="space-y-6">
             <div className="flex gap-2">
-              <button 
-                onClick={() => setIsPlaying(!isPlaying)} 
-                className="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 transition-colors py-2 rounded-lg font-medium"
-              >
+              <button onClick={() => setIsPlaying(!isPlaying)} className="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 transition-colors py-2 rounded-lg font-medium">
                 {isPlaying ? <Pause size={18} /> : <Play size={18} />}
                 {isPlaying ? 'Pause' : 'Start'}
               </button>
-              <button 
-                onClick={() => setResetTrigger(prev => prev + 1)} 
-                className="p-2 bg-zinc-700 hover:bg-zinc-600 rounded-lg transition-colors"
-              >
+              <button onClick={() => setResetTrigger(prev => prev + 1)} className="p-2 bg-zinc-700 hover:bg-zinc-600 rounded-lg transition-colors">
                 <RotateCcw size={18} />
               </button>
             </div>
-
             <div className="space-y-2">
               <div className="flex justify-between text-xs text-zinc-400 uppercase font-semibold">
                 <span>Rotation Speed</span>
                 <span>{Math.round(speed * 1000)} RPM</span>
               </div>
-              <input 
-                type="range" min="0.01" max="0.1" step="0.01" value={speed} 
-                onChange={(e) => setSpeed(parseFloat(e.target.value))} 
-                className="w-full h-2 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-blue-500" 
-              />
+              <input type="range" min="0.01" max="0.1" step="0.01" value={speed} onChange={(e) => setSpeed(parseFloat(e.target.value))} className="w-full h-2 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-blue-500" />
             </div>
-
             <div className="grid grid-cols-2 gap-2 text-xs">
               <div className="flex items-center gap-2 text-zinc-300"><div className="w-3 h-3 rounded-full bg-blue-500" /> Timing</div>
               <div className="flex items-center gap-2 text-zinc-300"><div className="w-3 h-3 rounded-full bg-red-500" /> Crank</div>
@@ -183,7 +186,6 @@ export default function CombustionPage() {
         </div>
       </div>
 
-      {/* 3D Viewport */}
       <div className="flex-1">
         <Canvas shadows>
           <PerspectiveCamera makeDefault position={[8, 6, 12]} />
@@ -191,9 +193,7 @@ export default function CombustionPage() {
           <Environment preset="city" />
           <ambientLight intensity={0.5} />
           <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} intensity={1} castShadow />
-          
           <EngineScene isPlaying={isPlaying} speed={speed} resetTrigger={resetTrigger} />
-          
           <ContactShadows opacity={0.4} scale={20} blur={2} far={4.5} />
         </Canvas>
       </div>
