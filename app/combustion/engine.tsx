@@ -254,7 +254,7 @@ export default function Engine() {
         <label className="flex items-center gap-2 text-sm">
           <span className="text-slate-300">Speed</span>
           <input
-            type="range" min={30} max={3000} step={10}
+            type="range" min={20} max={3000} step={10}
             value={rpm}
             onChange={(e) => setRpm(Number(e.target.value))}
             className="w-40 accent-blue-500"
