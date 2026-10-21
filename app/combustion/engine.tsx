@@ -149,7 +149,9 @@ export default function Engine() {
           const sparking = p > 0.47 && p < 0.55;
           const powerGlow = s === "power" ? Math.max(0, 1 - (p - 0.5) / 0.25) : 0;
 
-          const camNose = (p - 0.125) * 360;
+          const camNoseIn = (p - 0.125) * 360;  // intake lobe pushes at intake peak
+          const camNoseEx = (p - 0.875) * 360;  // exhaust lobe pushes at exhaust peak
+
 
           const crankPinX = cx + R * Math.sin((theta * Math.PI) / 180);
           const crankPinY = CRANK_Y - R * Math.cos((theta * Math.PI) / 180);
@@ -189,10 +191,15 @@ export default function Engine() {
                 <path d="M-6 -34 h12 M-6 -28 h12 M-6 -22 h12" stroke="#60a5fa" strokeWidth={1.5} />
               </g>
 
-              {/* cam lobes on the lowered camshaft, resting on the valve stems */}
-              <g transform={`translate(${cx} ${CAM_Y}) rotate(${camNose})`}>
+              {/* intake lobe, on top of the intake stem (cx - 28) */}
+              <g transform={`translate(${cx - 28} ${CAM_Y}) rotate(${camNoseIn})`}>
                 <ellipse rx={10} ry={18} fill="#2563eb" />
-                <path d="M0 18 L7 11 L-7 11 Z" fill="#2563eb" />   {/* nose → +y = down to valves */}
+                <path d="M0 18 L7 11 L-7 11 Z" fill="#2563eb" />   {/* nose → down onto stem */}
+              </g>
+              {/* exhaust lobe, on top of the exhaust stem (cx + 28) */}
+              <g transform={`translate(${cx + 28} ${CAM_Y}) rotate(${camNoseEx})`}>
+                <ellipse rx={10} ry={18} fill="#2563eb" />
+                <path d="M0 18 L7 11 L-7 11 Z" fill="#2563eb" />
               </g>
 
               {/* spark plug */}
