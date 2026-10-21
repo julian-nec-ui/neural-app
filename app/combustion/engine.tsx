@@ -7,16 +7,17 @@ const VB_W = 1000;
 const VB_H = 600;
 const CRANK_Y = 470;            // crankshaft centre line
 const CAM_Y = 182;             // camshaft bar
-const CAM_LEFT = 60;           
-const CAM_RIGHT = 760;         
-const CHAIN_X = 70;            
+const CAM_LEFT = 30;           // Shifted further left
+const CAM_RIGHT = 630;         // Adjusted to match the new cylinder positions
+const CHAIN_X = 40;            // Shifted further left
 const R = 55;                  // crank throw radius
 const L = 120;                 // connecting-rod length
 const BORE_W = 110;
 const BORE_TOP = 260;          
 const BORE_BOTTOM = 430;       
 const PISTON_H = 40;
-const CYL_X = [220, 380, 540, 700]; // Shifted left
+// Shifted all cylinders significantly left
+const CYL_X = [150, 310, 470, 630]; 
 
 /* firing order 1-3-4-2 */
 const PHASE = [0, 0.75, 0.25, 0.5]; 
@@ -57,7 +58,7 @@ const STROKE_LABEL: Record<Stroke, string> = {
 
 export default function Engine() {
   const [t, setT] = useState(0);
-  const [rpm, setRpm] = useState(20); // Default 20rpm
+  const [rpm, setRpm] = useState(20); 
   const [running, setRunning] = useState(true);
   const raf = useRef<number | null>(null);
   const last = useRef<number>(0);
@@ -95,12 +96,13 @@ export default function Engine() {
     };
   });
 
-  // Crankshaft ends at 930 to match the flywheel center
+  // Flywheel center shifted left to 850 to maintain proportion but leave right side open
+  const FLYWHEEL_X = 850;
   let crankPathD = `M ${CHAIN_X} ${CRANK_Y}`;
   crankPins.forEach((pin) => {
     crankPathD += ` L ${pin.cx} ${CRANK_Y} L ${pin.x} ${pin.y} L ${pin.cx} ${CRANK_Y}`;
   });
-  crankPathD += ` L 930 ${CRANK_Y}`;
+  crankPathD += ` L ${FLYWHEEL_X} ${CRANK_Y}`;
 
   return (
     <div className="w-full max-w-5xl bg-slate-800/60 rounded-2xl p-4 shadow-xl ring-1 ring-white/10">
@@ -136,8 +138,7 @@ export default function Engine() {
         <line x1={CAM_LEFT} y1={CAM_Y} x2={CAM_RIGHT} y2={CAM_Y}
           stroke="#2563eb" strokeWidth={14} strokeLinecap="round" />
 
-        {/* Flywheel moved to 930 to be fully visible within the 1000px viewBox */}
-        <g transform={`translate(930 ${CRANK_Y}) rotate(${flyAngle})`}>
+        <g transform={`translate(${FLYWHEEL_X} ${CRANK_Y}) rotate(${flyAngle})`}>
           <circle r={62} fill="#7f1d1d" stroke="#ef4444" strokeWidth={4} />
           {Array.from({ length: 24 }).map((_, i) => (
             <rect key={i} x={-3} y={-66} width={6} height={10} fill="#ef4444"
