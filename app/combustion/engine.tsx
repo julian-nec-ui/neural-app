@@ -7,16 +7,16 @@ const VB_W = 1000;
 const VB_H = 600;
 const CRANK_Y = 470;            // crankshaft centre line
 const CAM_Y = 182;             // camshaft bar
-const CAM_LEFT = 130;          // Shifted left 10px from 140
-const CAM_RIGHT = 850;         // Shifted left 10px from 860
-const CHAIN_X = 140;           // Shifted left 10px from 150
+const CAM_LEFT = 120;          // Shifted left another 10px (from 130)
+const CAM_RIGHT = 840;         // Shifted left another 10px (from 850)
+const CHAIN_X = 130;           // Shifted left another 10px (from 140)
 const R = 55;                  // crank throw radius
 const L = 120;                 // connecting-rod length
 const BORE_W = 110;
 const BORE_TOP = 260;          
 const BORE_BOTTOM = 430;       
 const PISTON_H = 40;
-const CYL_X = [310, 470, 630, 790]; // Shifted each cylinder left 10px
+const CYL_X = [300, 460, 620, 780]; // Shifted each cylinder left another 10px
 
 /* firing order 1-3-4-2 */
 const PHASE = [0, 0.75, 0.25, 0.5]; 
