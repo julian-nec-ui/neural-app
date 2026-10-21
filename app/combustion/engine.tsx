@@ -41,12 +41,14 @@ function strokeOf(p: number): Stroke {
   if (p < 0.75) return "power";
   return "exhaust";
 }
+
 const STROKE_FILL: Record<Stroke, string> = {
-  intake: "#3b82f6",
+  intake: "#0ea5e9", // Changed to Sky Blue (Tailwind sky-500)
   compression: "#93c5fd",
   power: "#f97316",
   exhaust: "#9ca3af",
 };
+
 const STROKE_LABEL: Record<Stroke, string> = {
   intake: "INTAKE",
   compression: "COMPRESSION",
@@ -263,7 +265,7 @@ export default function Engine() {
         </label>
 
         <div className="ml-auto flex gap-3 text-xs">
-          <Legend c="#3b82f6" t="Intake / valves" />
+          <Legend c="#0ea5e9" t="Intake / valves" />
           <Legend c="#93c5fd" t="Compression" />
           <Legend c="#f97316" t="Power" />
           <Legend c="#9ca3af" t="Exhaust" />
