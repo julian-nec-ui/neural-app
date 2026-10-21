@@ -86,6 +86,23 @@ export default function Engine() {
   const camAngle = t * 360;
   const flyAngle = crankAngle;
 
+  // Pre-calculate crank pin positions to build the crankshaft path
+  const crankPins = CYL_X.map((cx, i) => {
+    const theta = (crankAngle + PHASE[i] * 720) % 360;
+    return {
+      cx,
+      x: cx + R * Math.sin((theta * Math.PI) / 180),
+      y: CRANK_Y - R * Math.cos((theta * Math.PI) / 180),
+    };
+  });
+
+  // Construct the crankshaft path: Start -> (Center -> Pin -> Center) * 4 -> End
+  let crankPathD = `M ${CHAIN_X} ${CRANK_Y}`;
+  crankPins.forEach((pin) => {
+    crankPathD += ` L ${pin.cx} ${CRANK_Y} L ${pin.x} ${pin.y} L ${pin.cx} ${CRANK_Y}`;
+  });
+  crankPathD += ` L 930 ${CRANK_Y}`;
+
   return (
     <div className="w-full max-w-5xl bg-slate-800/60 rounded-2xl p-4 shadow-xl ring-1 ring-white/10">
       <svg
@@ -105,23 +122,20 @@ export default function Engine() {
           ))}
         </defs>
 
-        {/* timing chain (left) — now spans camshaft height to crankshaft height */}
+        {/* timing chain (left) */}
         <g>
-           {/* toothed timing chain: crank gear drives cam gear -> cam tied to crank */}
          <line x1={CHAIN_X} y1={CAM_Y} x2={CHAIN_X} y2={CRANK_Y}
            stroke="#1d4ed8" strokeWidth={12} strokeLinecap="round" opacity={0.9} />
          <line x1={CHAIN_X} y1={CAM_Y} x2={CHAIN_X} y2={CRANK_Y}
            stroke="#93c5fd" strokeWidth={12} strokeDasharray="4 10"
            strokeDashoffset={-crankAngle * 1.5} opacity={0.9} />
-          {/* cam gear at the left end of the camshaft */}
           <circle cx={CHAIN_X} cy={CAM_Y} r={26} fill="none" stroke="#3b82f6" strokeWidth={8}
             strokeDasharray="4 6" strokeDashoffset={-camAngle} />
-          {/* crank gear */}
           <circle cx={CHAIN_X} cy={CRANK_Y} r={30} fill="none" stroke="#3b82f6" strokeWidth={8}
             strokeDasharray="4 6" strokeDashoffset={-crankAngle * 1.5} />
         </g>
 
-        {/* camshaft bar — extended left to the wheel, lowered to touch the valves */}
+        {/* camshaft bar */}
         <line x1={CAM_LEFT} y1={CAM_Y} x2={CAM_RIGHT} y2={CAM_Y}
           stroke="#2563eb" strokeWidth={14} strokeLinecap="round" />
 
@@ -135,9 +149,9 @@ export default function Engine() {
           <circle r={12} fill="#ef4444" />
         </g>
 
-        {/* crankshaft base line */}
-        <line x1={150} y1={CRANK_Y} x2={930} y2={CRANK_Y}
-          stroke="#7f1d1d" strokeWidth={10} opacity={0.5} />
+        {/* Dynamic crankshaft with U-shaped throws */}
+        <path d={crankPathD}
+          stroke="#7f1d1d" strokeWidth={10} fill="none" strokeLinecap="round" strokeLinejoin="round" opacity={0.8} />
 
         {/* cylinders */}
         {CYL_X.map((cx, i) => {
@@ -152,25 +166,21 @@ export default function Engine() {
           const sparking = p > 0.47 && p < 0.55;
           const powerGlow = s === "power" ? Math.max(0, 1 - (p - 0.5) / 0.25) : 0;
 
-          const camNoseIn = (p - 0.125) * 360;  // intake lobe pushes at intake peak
-          const camNoseEx = (p - 0.875) * 360;  // exhaust lobe pushes at exhaust peak
+          const camNoseIn = (p - 0.125) * 360;
+          const camNoseEx = (p - 0.875) * 360;
 
-
-          const crankPinX = cx + R * Math.sin((theta * Math.PI) / 180);
-          const crankPinY = CRANK_Y - R * Math.cos((theta * Math.PI) / 180);
+          const crankPinX = crankPins[i].x;
+          const crankPinY = crankPins[i].y;
           const gasHeight = Math.max(0, crownY - BORE_TOP);
 
           return (
             <g key={i}>
-              {/* travel guide */}
               <line x1={cx} y1={BORE_TOP} x2={cx} y2={BORE_BOTTOM}
                 stroke="#475569" strokeWidth={1} strokeDasharray="3 5" opacity={0.5} />
 
-              {/* FIXED cylinder walls */}
               <rect x={cx - BORE_W / 2} y={BORE_TOP} width={BORE_W} height={BORE_BOTTOM - BORE_TOP}
                 fill="none" stroke="#cbd5e1" strokeWidth={3} opacity={0.7} />
 
-              {/* gas pocket (clipped to fixed bore) */}
               <g clipPath={`url(#bore-${i})`}>
                 <rect x={cx - BORE_W / 2} y={BORE_TOP} width={BORE_W} height={gasHeight}
                   fill={STROKE_FILL[s]} opacity={0.28} />
@@ -180,7 +190,6 @@ export default function Engine() {
                 )}
               </g>
 
-              {/* head + valves */}
               <rect x={cx - BORE_W / 2} y={BORE_TOP - 22} width={BORE_W} height={22}
                 fill="#1e3a8a" opacity={0.8} />
               <g transform={`translate(${cx - 28} ${BORE_TOP - 22 + intakeLift})`}>
@@ -194,18 +203,15 @@ export default function Engine() {
                 <path d="M-6 -34 h12 M-6 -28 h12 M-6 -22 h12" stroke="#60a5fa" strokeWidth={1.5} />
               </g>
 
-              {/* intake lobe, on top of the intake stem (cx - 28) */}
               <g transform={`translate(${cx - 28} ${CAM_Y}) rotate(${camNoseIn})`}>
                 <ellipse rx={10} ry={18} fill="#2563eb" />
-                <path d="M0 18 L7 11 L-7 11 Z" fill="#2563eb" />   {/* nose → down onto stem */}
+                <path d="M0 18 L7 11 L-7 11 Z" fill="#2563eb" />
               </g>
-              {/* exhaust lobe, on top of the exhaust stem (cx + 28) */}
               <g transform={`translate(${cx + 28} ${CAM_Y}) rotate(${camNoseEx})`}>
                 <ellipse rx={10} ry={18} fill="#2563eb" />
                 <path d="M0 18 L7 11 L-7 11 Z" fill="#2563eb" />
               </g>
 
-              {/* spark plug */}
               <line x1={cx} y1={BORE_TOP - 30} x2={cx} y2={BORE_TOP - 12}
                 stroke="#e2e8f0" strokeWidth={3} />
               {sparking && (
@@ -213,7 +219,6 @@ export default function Engine() {
                   stroke="#fde047" strokeWidth={2} fill="none" />
               )}
 
-              {/* piston */}
               <rect x={cx - BORE_W / 2 + 4} y={crownY} width={BORE_W - 8} height={PISTON_H}
                 rx={4} fill="#e2e8f0" stroke="#94a3b8" strokeWidth={2} />
               <line x1={cx - BORE_W / 2 + 6} y1={crownY + 8} x2={cx + BORE_W / 2 - 6} y2={crownY + 8}
@@ -221,7 +226,6 @@ export default function Engine() {
               <line x1={cx - BORE_W / 2 + 6} y1={crownY + 14} x2={cx + BORE_W / 2 - 6} y2={crownY + 14}
                 stroke="#94a3b8" strokeWidth={1.5} />
 
-              {/* connecting rod — tight piston↔crank joints */}
               <line x1={cx} y1={pinY} x2={crankPinX} y2={crankPinY}
                 stroke="#dc2626" strokeWidth={9} strokeLinecap="round" />
               <circle cx={cx} cy={pinY} r={7} fill="#fca5a5" stroke="#7f1d1d" strokeWidth={2} />
@@ -229,7 +233,6 @@ export default function Engine() {
                 fill="#ef4444" stroke="#7f1d1d" strokeWidth={2} />
               <circle cx={cx} cy={CRANK_Y} r={12} fill="#7f1d1d" />
 
-              {/* phase label */}
               <text x={cx} y={560} textAnchor="middle" fontSize={16}
                 fill={STROKE_FILL[s]} fontWeight={700}>
                 {STROKE_LABEL[s]}
@@ -246,7 +249,6 @@ export default function Engine() {
         </text>
       </svg>
 
-      {/* controls */}
       <div className="mt-4 flex flex-wrap items-center gap-4">
         <button
           onClick={() => setRunning((r) => !r)}
