@@ -7,16 +7,16 @@ const VB_W = 1000;
 const VB_H = 600;
 const CRANK_Y = 470;            // crankshaft centre line
 const CAM_Y = 182;             // camshaft bar
-const CAM_LEFT = 90;           // Shifted left 20px (from 110)
-const CAM_RIGHT = 810;         // Shifted left 20px (from 830)
-const CHAIN_X = 100;           // Shifted left 20px (from 120)
+const CAM_LEFT = 90;          
+const CAM_RIGHT = 810;         
+const CHAIN_X = 100;           
 const R = 55;                  // crank throw radius
 const L = 120;                 // connecting-rod length
 const BORE_W = 110;
 const BORE_TOP = 260;          
 const BORE_BOTTOM = 430;       
 const PISTON_H = 40;
-const CYL_X = [270, 430, 590, 750]; // Shifted each cylinder left 20px
+const CYL_X = [270, 430, 590, 750]; 
 
 /* firing order 1-3-4-2 */
 const PHASE = [0, 0.75, 0.25, 0.5]; 
@@ -95,7 +95,7 @@ export default function Engine() {
     };
   });
 
-  const FLYWHEEL_X = 930; // Flywheel stays in place
+  const FLYWHEEL_X = 925; // Moved left 5px from 930
   let crankPathD = `M ${CHAIN_X} ${CRANK_Y}`;
   crankPins.forEach((pin) => {
     crankPathD += ` L ${pin.cx} ${CRANK_Y} L ${pin.x} ${pin.y} L ${pin.cx} ${CRANK_Y}`;
