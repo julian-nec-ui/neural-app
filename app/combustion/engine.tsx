@@ -149,7 +149,7 @@ export default function Engine() {
           const sparking = p > 0.47 && p < 0.55;
           const powerGlow = s === "power" ? Math.max(0, 1 - (p - 0.5) / 0.25) : 0;
 
-          const camNose = ((p % 0.5) - 0.125) * 720;   // nose down at intake AND exhaust peaks
+          const camNose = (p - 0.125) * 360;
 
           const crankPinX = cx + R * Math.sin((theta * Math.PI) / 180);
           const crankPinY = CRANK_Y - R * Math.cos((theta * Math.PI) / 180);
