@@ -6,20 +6,21 @@ import { useEffect, useRef, useState } from "react";
 const VB_W = 1000;
 const VB_H = 600;
 const CRANK_Y = 470;            // crankshaft centre line
-const CAM_Y = 182;             // camshaft bar — lowered so lobes touch the valve stems
-const CAM_LEFT = 140;          // camshaft extended left to reach the timing‑chain wheel
-const CAM_RIGHT = 860;
-const CHAIN_X = 150;           // timing chain / cam‑gear x
+const CAM_Y = 182;             // camshaft bar
+const CAM_LEFT = 60;           // Shifted left from 140
+const CAM_RIGHT = 760;         // Shifted left from 860
+const CHAIN_X = 70;            // Shifted left from 150
 const R = 55;                  // crank throw radius
 const L = 120;                 // connecting-rod length
 const BORE_W = 110;
-const BORE_TOP = 260;          // FIXED cylinder top
-const BORE_BOTTOM = 430;       // FIXED cylinder bottom -> bore size never changes
+const BORE_TOP = 260;          
+const BORE_BOTTOM = 430;       
 const PISTON_H = 40;
-const CYL_X = [320, 480, 640, 800]; // physical cyl 1..4 (left → right)
+// Shifted all cylinders left by 100 units
+const CYL_X = [220, 380, 540, 700]; 
 
-/* firing order 1-3-4-2 → phase offset within the 720° cycle */
-const PHASE = [0, 0.75, 0.25, 0.5]; // index = physical cylinder 1..4
+/* firing order 1-3-4-2 */
+const PHASE = [0, 0.75, 0.25, 0.5]; 
 
 /* ---------- helpers ---------- */
 function pistonPinY(thetaDeg: number) {
@@ -57,7 +58,7 @@ const STROKE_LABEL: Record<Stroke, string> = {
 
 export default function Engine() {
   const [t, setT] = useState(0);
-  const [rpm, setRpm] = useState(600);
+  const [rpm, setRpm] = useState(20); // Default speed changed to 20rpm
   const [running, setRunning] = useState(true);
   const raf = useRef<number | null>(null);
   const last = useRef<number>(0);
@@ -69,7 +70,7 @@ export default function Engine() {
       const dt = (now - last.current) / 1000;
       last.current = now;
       if (running) {
-        const cyclesPerSec = rpm / 60 / 2; // 720° = 2 crank revs
+        const cyclesPerSec = rpm / 60 / 2; 
         tRef.current = (tRef.current + dt * cyclesPerSec) % 1;
         setT(tRef.current);
       }
@@ -86,7 +87,6 @@ export default function Engine() {
   const camAngle = t * 360;
   const flyAngle = crankAngle;
 
-  // Pre-calculate crank pin positions to build the crankshaft path
   const crankPins = CYL_X.map((cx, i) => {
     const theta = (crankAngle + PHASE[i] * 720) % 360;
     return {
@@ -96,12 +96,12 @@ export default function Engine() {
     };
   });
 
-  // Construct the crankshaft path: Start -> (Center -> Pin -> Center) * 4 -> Extended Right
+  // Crankshaft extended further to the right (to 990) to create space from Cyl 4
   let crankPathD = `M ${CHAIN_X} ${CRANK_Y}`;
   crankPins.forEach((pin) => {
     crankPathD += ` L ${pin.cx} ${CRANK_Y} L ${pin.x} ${pin.y} L ${pin.cx} ${CRANK_Y}`;
   });
-  crankPathD += ` L 980 ${CRANK_Y}`; // Extended from 930 to 980
+  crankPathD += ` L 990 ${CRANK_Y}`;
 
   return (
     <div className="w-full max-w-5xl bg-slate-800/60 rounded-2xl p-4 shadow-xl ring-1 ring-white/10">
@@ -122,7 +122,6 @@ export default function Engine() {
           ))}
         </defs>
 
-        {/* timing chain (left) */}
         <g>
          <line x1={CHAIN_X} y1={CAM_Y} x2={CHAIN_X} y2={CRANK_Y}
            stroke="#1d4ed8" strokeWidth={12} strokeLinecap="round" opacity={0.9} />
@@ -135,12 +134,11 @@ export default function Engine() {
             strokeDasharray="4 6" strokeDashoffset={-crankAngle * 1.5} />
         </g>
 
-        {/* camshaft bar */}
         <line x1={CAM_LEFT} y1={CAM_Y} x2={CAM_RIGHT} y2={CAM_Y}
           stroke="#2563eb" strokeWidth={14} strokeLinecap="round" />
 
-        {/* flywheel (right) */}
-        <g transform={`translate(930 ${CRANK_Y}) rotate(${flyAngle})`}>
+        {/* Flywheel shifted right to 960 to maintain distance from Cyl 4 */}
+        <g transform={`translate(960 ${CRANK_Y}) rotate(${flyAngle})`}>
           <circle r={62} fill="#7f1d1d" stroke="#ef4444" strokeWidth={4} />
           {Array.from({ length: 24 }).map((_, i) => (
             <rect key={i} x={-3} y={-66} width={6} height={10} fill="#ef4444"
@@ -149,11 +147,9 @@ export default function Engine() {
           <circle r={12} fill="#ef4444" />
         </g>
 
-        {/* Dynamic crankshaft with U-shaped throws */}
         <path d={crankPathD}
           stroke="#7f1d1d" strokeWidth={10} fill="none" strokeLinecap="round" strokeLinejoin="round" opacity={0.8} />
 
-        {/* cylinders */}
         {CYL_X.map((cx, i) => {
           const p = (t + PHASE[i]) % 1;
           const s = strokeOf(p);
