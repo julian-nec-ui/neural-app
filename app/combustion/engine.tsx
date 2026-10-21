@@ -43,7 +43,7 @@ function strokeOf(p: number): Stroke {
 }
 
 const STROKE_FILL: Record<Stroke, string> = {
-  intake: "#1A58B6", // Changed to Light Blue (Tailwind sky-200)
+  intake: "#5899FA", // Changed to Light Blue (Tailwind sky-200)
   compression: "#EAEBE6",
   power: "#F2EBE6",
   exhaust: "#F0F2F7",
