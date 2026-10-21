@@ -7,17 +7,16 @@ const VB_W = 1000;
 const VB_H = 600;
 const CRANK_Y = 470;            // crankshaft centre line
 const CAM_Y = 182;             // camshaft bar
-const CAM_LEFT = 30;           // Shifted further left
-const CAM_RIGHT = 630;         // Adjusted to match the new cylinder positions
-const CHAIN_X = 40;            // Shifted further left
+const CAM_LEFT = 100;          
+const CAM_RIGHT = 800;         
+const CHAIN_X = 110;           
 const R = 55;                  // crank throw radius
 const L = 120;                 // connecting-rod length
 const BORE_W = 110;
 const BORE_TOP = 260;          
 const BORE_BOTTOM = 430;       
 const PISTON_H = 40;
-// Shifted all cylinders significantly left
-const CYL_X = [150, 310, 470, 630]; 
+const CYL_X = [250, 410, 570, 730]; // Balanced position
 
 /* firing order 1-3-4-2 */
 const PHASE = [0, 0.75, 0.25, 0.5]; 
@@ -58,7 +57,7 @@ const STROKE_LABEL: Record<Stroke, string> = {
 
 export default function Engine() {
   const [t, setT] = useState(0);
-  const [rpm, setRpm] = useState(20); 
+  const [rpm, setRpm] = useState(20); // Default 20rpm
   const [running, setRunning] = useState(true);
   const raf = useRef<number | null>(null);
   const last = useRef<number>(0);
@@ -96,8 +95,7 @@ export default function Engine() {
     };
   });
 
-  // Flywheel center shifted left to 850 to maintain proportion but leave right side open
-  const FLYWHEEL_X = 850;
+  const FLYWHEEL_X = 930; // Flywheel moved back to the right, but fully visible
   let crankPathD = `M ${CHAIN_X} ${CRANK_Y}`;
   crankPins.forEach((pin) => {
     crankPathD += ` L ${pin.cx} ${CRANK_Y} L ${pin.x} ${pin.y} L ${pin.cx} ${CRANK_Y}`;
