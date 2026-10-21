@@ -6,11 +6,15 @@ import { useEffect, useRef, useState } from "react";
 const VB_W = 1000;
 const VB_H = 600;
 const CRANK_Y = 470;            // crankshaft centre line
+const CAM_Y = 182;             // camshaft bar — lowered so lobes touch the valve stems
+const CAM_LEFT = 140;          // camshaft extended left to reach the timing‑chain wheel
+const CAM_RIGHT = 860;
+const CHAIN_X = 150;           // timing chain / cam‑gear x
 const R = 55;                  // crank throw radius
 const L = 120;                 // connecting-rod length
 const BORE_W = 110;
 const BORE_TOP = 260;          // FIXED cylinder top
-const BORE_BOTTOM = 430;       // FIXED cylinder bottom  -> bore size never changes
+const BORE_BOTTOM = 430;       // FIXED cylinder bottom -> bore size never changes
 const PISTON_H = 40;
 const CYL_X = [320, 480, 640, 800]; // physical cyl 1..4 (left → right)
 
@@ -18,17 +22,14 @@ const CYL_X = [320, 480, 640, 800]; // physical cyl 1..4 (left → right)
 const PHASE = [0, 0.75, 0.25, 0.5]; // index = physical cylinder 1..4
 
 /* ---------- helpers ---------- */
-// slider-crank piston pin Y for a given crank angle θ (deg, 0 = TDC)
 function pistonPinY(thetaDeg: number) {
   const t = (thetaDeg * Math.PI) / 180;
   const cy = CRANK_Y - R * Math.cos(t);
-  const pin = cy - Math.sqrt(L * L - (R * Math.sin(t)) ** 2);
-  return pin;
+  return cy - Math.sqrt(L * L - (R * Math.sin(t)) ** 2);
 }
 
-// smooth valve lift (0..1) when a valve is "open" around a window centre
 function bump(p: number, centre: number, halfWidth: number) {
-  const d = Math.min(Math.abs(p - centre), 1 - Math.abs(p - centre)); // wrap
+  const d = Math.min(Math.abs(p - centre), 1 - Math.abs(p - centre));
   if (d > halfWidth) return 0;
   return 0.5 * (1 + Math.cos((Math.PI * d) / halfWidth));
 }
@@ -54,7 +55,7 @@ const STROKE_LABEL: Record<Stroke, string> = {
 };
 
 export default function Engine() {
-  const [t, setT] = useState(0); // cycle position 0..1 (720° crank)
+  const [t, setT] = useState(0);
   const [rpm, setRpm] = useState(600);
   const [running, setRunning] = useState(true);
   const raf = useRef<number | null>(null);
@@ -81,7 +82,7 @@ export default function Engine() {
   }, [running, rpm]);
 
   const crankAngle = t * 720;
-  const camAngle = t * 360; // cam turns half of crank
+  const camAngle = t * 360;
   const flyAngle = crankAngle;
 
   return (
@@ -96,7 +97,6 @@ export default function Engine() {
             <stop offset="35%" stopColor="#fbbf24" />
             <stop offset="100%" stopColor="#ea580c" stopOpacity="0" />
           </radialGradient>
-          {/* clip each gas pocket to its fixed bore */}
           {CYL_X.map((cx, i) => (
             <clipPath id={`bore-${i}`} key={i}>
               <rect x={cx - BORE_W / 2} y={BORE_TOP} width={BORE_W} height={BORE_BOTTOM - BORE_TOP} />
@@ -104,19 +104,21 @@ export default function Engine() {
           ))}
         </defs>
 
-        {/* timing chain (left) */}
+        {/* timing chain (left) — now spans camshaft height to crankshaft height */}
         <g>
-          <line x1={150} y1={120} x2={150} y2={CRANK_Y}
+          <line x1={CHAIN_X} y1={CAM_Y} x2={CHAIN_X} y2={CRANK_Y}
             stroke="#3b82f6" strokeWidth={10} strokeDasharray="6 8"
             strokeDashoffset={-crankAngle * 1.5} opacity={0.9} />
-          <circle cx={150} cy={120} r={26} fill="none" stroke="#3b82f6" strokeWidth={8}
-            strokeDasharray="4 6" strokeDashoffset={-crankAngle} />
-          <circle cx={150} cy={CRANK_Y} r={30} fill="none" stroke="#3b82f6" strokeWidth={8}
+          {/* cam gear at the left end of the camshaft */}
+          <circle cx={CHAIN_X} cy={CAM_Y} r={26} fill="none" stroke="#3b82f6" strokeWidth={8}
+            strokeDasharray="4 6" strokeDashoffset={-camAngle} />
+          {/* crank gear */}
+          <circle cx={CHAIN_X} cy={CRANK_Y} r={30} fill="none" stroke="#3b82f6" strokeWidth={8}
             strokeDasharray="4 6" strokeDashoffset={-crankAngle * 1.5} />
         </g>
 
-        {/* camshaft bar (valve mechanism) */}
-        <line x1={230} y1={120} x2={860} y2={120}
+        {/* camshaft bar — extended left to the wheel, lowered to touch the valves */}
+        <line x1={CAM_LEFT} y1={CAM_Y} x2={CAM_RIGHT} y2={CAM_Y}
           stroke="#2563eb" strokeWidth={14} strokeLinecap="round" />
 
         {/* flywheel (right) */}
@@ -149,17 +151,13 @@ export default function Engine() {
           const camI = camAngle + PHASE[i] * 360;
           const camE = camAngle + PHASE[i] * 360 + 180;
 
-          // crank pin + piston pin (rod stays tight to both)
           const crankPinX = cx + R * Math.sin((theta * Math.PI) / 180);
           const crankPinY = CRANK_Y - R * Math.cos((theta * Math.PI) / 180);
-          const pistonPinX = cx;
-          const pistonPinYv = pinY;
-
-          const gasHeight = Math.max(0, crownY - BORE_TOP); // only the gas pocket moves
+          const gasHeight = Math.max(0, crownY - BORE_TOP);
 
           return (
             <g key={i}>
-              {/* travel guide (shows piston motion) */}
+              {/* travel guide */}
               <line x1={cx} y1={BORE_TOP} x2={cx} y2={BORE_BOTTOM}
                 stroke="#475569" strokeWidth={1} strokeDasharray="3 5" opacity={0.5} />
 
@@ -167,7 +165,7 @@ export default function Engine() {
               <rect x={cx - BORE_W / 2} y={BORE_TOP} width={BORE_W} height={BORE_BOTTOM - BORE_TOP}
                 fill="none" stroke="#cbd5e1" strokeWidth={3} opacity={0.7} />
 
-              {/* gas pocket above the piston (clipped to the fixed bore) */}
+              {/* gas pocket (clipped to fixed bore) */}
               <g clipPath={`url(#bore-${i})`}>
                 <rect x={cx - BORE_W / 2} y={BORE_TOP} width={BORE_W} height={gasHeight}
                   fill={STROKE_FILL[s]} opacity={0.28} />
@@ -190,13 +188,15 @@ export default function Engine() {
                 <ellipse cx={0} cy={0} rx={12} ry={4} fill="#3b82f6" />
                 <path d="M-6 -34 h12 M-6 -28 h12 M-6 -22 h12" stroke="#60a5fa" strokeWidth={1.5} />
               </g>
-              {/* cam lobes */}
-              <g transform={`translate(${cx - 28} 120) rotate(${camI})`}>
-                <ellipse rx={10} ry={16} fill="#2563eb" />
+
+              {/* cam lobes on the lowered camshaft, resting on the valve stems */}
+              <g transform={`translate(${cx - 28} ${CAM_Y}) rotate(${camI})`}>
+                <ellipse rx={10} ry={18} fill="#2563eb" />
               </g>
-              <g transform={`translate(${cx + 28} 120) rotate(${camE})`}>
-                <ellipse rx={10} ry={16} fill="#2563eb" />
+              <g transform={`translate(${cx + 28} ${CAM_Y}) rotate(${camE})`}>
+                <ellipse rx={10} ry={18} fill="#2563eb" />
               </g>
+
               {/* spark plug */}
               <line x1={cx} y1={BORE_TOP - 30} x2={cx} y2={BORE_TOP - 12}
                 stroke="#e2e8f0" strokeWidth={3} />
@@ -205,7 +205,7 @@ export default function Engine() {
                   stroke="#fde047" strokeWidth={2} fill="none" />
               )}
 
-              {/* piston (fixed size, slides in the fixed bore) */}
+              {/* piston */}
               <rect x={cx - BORE_W / 2 + 4} y={crownY} width={BORE_W - 8} height={PISTON_H}
                 rx={4} fill="#e2e8f0" stroke="#94a3b8" strokeWidth={2} />
               <line x1={cx - BORE_W / 2 + 6} y1={crownY + 8} x2={cx + BORE_W / 2 - 6} y2={crownY + 8}
@@ -213,16 +213,12 @@ export default function Engine() {
               <line x1={cx - BORE_W / 2 + 6} y1={crownY + 14} x2={cx + BORE_W / 2 - 6} y2={crownY + 14}
                 stroke="#94a3b8" strokeWidth={1.5} />
 
-              {/* connecting rod — tight joint piston↔crank */}
-              <line x1={pistonPinX} y1={pistonPinYv} x2={crankPinX} y2={crankPinY}
+              {/* connecting rod — tight piston↔crank joints */}
+              <line x1={cx} y1={pinY} x2={crankPinX} y2={crankPinY}
                 stroke="#dc2626" strokeWidth={9} strokeLinecap="round" />
-              {/* small end (wrist pin) sits inside the piston */}
-              <circle cx={pistonPinX} cy={pistonPinYv} r={7}
-                fill="#fca5a5" stroke="#7f1d1d" strokeWidth={2} />
-              {/* big end wraps the rotating crank pin exactly */}
+              <circle cx={cx} cy={pinY} r={7} fill="#fca5a5" stroke="#7f1d1d" strokeWidth={2} />
               <circle cx={crankPinX} cy={crankPinY} r={11}
                 fill="#ef4444" stroke="#7f1d1d" strokeWidth={2} />
-              {/* main journal on the crank centreline */}
               <circle cx={cx} cy={CRANK_Y} r={12} fill="#7f1d1d" />
 
               {/* phase label */}
@@ -253,7 +249,7 @@ export default function Engine() {
         <label className="flex items-center gap-2 text-sm">
           <span className="text-slate-300">Speed</span>
           <input
-            type="range" min={60} max={3000} step={20}
+            type="range" min={30} max={3000} step={10}
             value={rpm}
             onChange={(e) => setRpm(Number(e.target.value))}
             className="w-40 accent-blue-500"
