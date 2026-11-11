@@ -1,5 +1,5 @@
-# Build and deploy a Nuxt site to GitHub Pages (pnpm)
-name: Deploy Nuxt site to Pages
+# Build and deploy a Next.js site to GitHub Pages (pnpm, static export)
+name: Deploy Next.js site to Pages
 
 on:
   push:
@@ -34,28 +34,24 @@ jobs:
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
-      - name: Restore cache
+      - name: Restore Next.js cache
         uses: actions/cache@v4
         with:
-          path: |
-            .output
-            .nuxt
-          key: ${{ runner.os }}-nuxt-build-${{ hashFiles('pnpm-lock.yaml') }}
+          path: .next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('**/*.js', '**/*.jsx', '**/*.ts', '**/*.tsx') }}
           restore-keys: |
-            ${{ runner.os }}-nuxt-build-
+            ${{ runner.os }}-nextjs-${{ hashFiles('pnpm-lock.yaml') }}-
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Static HTML export with Nuxt
-        run: pnpm run generate
-        env:
-          NUXT_APP_BASE_URL: /neural-app/
+      - name: Build (static export)
+        run: pnpm run build
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./.output/public
+          path: ./out
 
   deploy:
     environment:
