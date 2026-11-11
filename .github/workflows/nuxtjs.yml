@@ -45,8 +45,17 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # GitHub Pages serves only static files: the server routes (NextAuth API, middleware)
+      # are removed from this build's copy of the code. Your repository is not changed.
+      - name: Remove server-only routes (not supported on GitHub Pages)
+        run: |
+          rm -rf app/api src/app/api
+          rm -f middleware.ts middleware.js src/middleware.ts src/middleware.js
+
       - name: Build (static export)
         run: pnpm run build
+        env:
+          GITHUB_PAGES: "true"
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
