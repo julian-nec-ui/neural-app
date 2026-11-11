@@ -6,7 +6,10 @@ export const PUBLIC_PAGES = [
   '/reset-password',
   '/privacy',
   '/combustion',
-  '/engine'
+  '/engine',
+  '/math',
+  '/neural/molecule/water',
+  '/kafka'
 ];
 
 export const PUBLIC_API_ROUTES = [

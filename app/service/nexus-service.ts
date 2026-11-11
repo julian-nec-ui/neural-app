@@ -32,6 +32,7 @@ export const nexusService = {
   getAllNexusUsers (): Promise<AxiosResponse<NexusUser[]>> {
     return NEXUS_API.get('/nexus')
   },
+
   createNexusUser (
     nexusUser: NexusUserRequest
   ): Promise<AxiosResponse<NexusUser>> {
