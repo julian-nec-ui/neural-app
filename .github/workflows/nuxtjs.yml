@@ -52,6 +52,26 @@ jobs:
           rm -rf app/api src/app/api
           rm -f middleware.ts middleware.js src/middleware.ts src/middleware.js
 
+      # Pages that read cookies, headers or the session on the server cannot be static:
+      # they are left out of the GitHub Pages build (your repository is not changed).
+      - name: Remove pages that need a server
+        run: |
+          for dir in app src/app; do
+            [ -d "$dir" ] || continue
+            grep -rlE "next/headers|getServerSession|cookies\(\)|headers\(\)" "$dir" \
+              --include=page.tsx --include=page.ts --include=page.jsx --include=page.js \
+              --include=layout.tsx --include=layout.ts \
+              | while read -r f; do
+                  route_dir=$(dirname "$f")
+                  if [ "$route_dir" = "$dir" ]; then
+                    echo "::warning::$f needs a server but it is the root page/layout; leaving it"
+                  else
+                    echo "Removing $route_dir (uses server-only APIs)"
+                    rm -rf "$route_dir"
+                  fi
+                done
+          done
+
       - name: Build (static export)
         run: pnpm run build
         env:
