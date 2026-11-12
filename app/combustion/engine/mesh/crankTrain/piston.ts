@@ -3,7 +3,7 @@
 import { PISTON_H, TAU, VALVE_RH_EX, VALVE_RH_IN } from "../../core/constants";
 import type { FwMaterial, FwVec3 } from "../builder";
 import { MAT_CT_ALU, MAT_CT_ALU_CAST, MAT_CT_ANODIZED, MAT_CT_CLIP, MAT_CT_RELIEF, MAT_CT_EDGE, MAT_CT_EXPANDER, MAT_CT_GROOVE, MAT_CT_HOLE, MAT_CT_PIN, MAT_CT_PIN_END, MAT_CT_PLATE, MAT_CT_RING, MAT_CT_RING_DARK, MAT_CT_RING_MOLY, MAT_CT_SKIRT } from "../materials";
-import { VT } from "../valvetrain";
+import { IN_SIDE, VT } from "../valvetrain";
 import { CT, CT_PISTON_BACK_WALL, CT_PISTON_FRONT_WALL, CT_PISTON_STEPS } from "./dimensions";
 import type { MeshBuilder } from "../tubes";
 
@@ -53,7 +53,7 @@ export function buildPiston(b: MeshBuilder) {
       const pockets = [1, -1].flatMap((sigma) =>
         [-1, 1].map((sx) => ({
           cx: (sx * VT.xValve + (sigma > 0 && sx < 0 ? VT.leftIntakeShift : 0)) * 0.92,
-          cz: sigma * VT.zSeat * 0.86, // a little in from under the valve, toward the crown's middle
+          cz: sigma * IN_SIDE * VT.zSeat * 0.86, // a little in from under the valve, toward the crown's middle
           rim: (sigma > 0 ? VALVE_RH_IN : VALVE_RH_EX) + 7.5, // larger than the valve, as a deep cut is
         }))
       );

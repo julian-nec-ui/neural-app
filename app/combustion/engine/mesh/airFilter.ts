@@ -3,7 +3,7 @@
 import { TAU } from "../core/constants";
 import { vadd, vcross, vnorm, vscale, vsub } from "../math/vec3";
 import type { FwMaterial, FwVec3 } from "./builder";
-import { MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE, MAT_FILTER_CAP, MAT_FILTER_NET, MAT_FILTER_WRAP, MAT_FILTER_WRAP_DEEP, MAT_FILTER_WRAP_HI, MAT_FILTER_WIRE, MAT_FLANGE_BLACK, MAT_PIPE_BLACK, MAT_STEEL_BRIGHT } from "./materials";
+import { MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE, MAT_FILTER_CAP, MAT_FILTER_NET, MAT_FILTER_WRAP, MAT_FILTER_WRAP_B, MAT_FILTER_WRAP_B_DEEP, MAT_FILTER_WRAP_B_HI, MAT_FILTER_WRAP_DEEP, MAT_FILTER_WRAP_HI, MAT_FILTER_WIRE, MAT_FLANGE_BLACK, MAT_PIPE_BLACK, MAT_STEEL_BRIGHT } from "./materials";
 import { collar, curveFromPoints, sweepTube } from "./tubes";
 import type { MeshBuilder } from "./tubes";
 
@@ -24,6 +24,12 @@ const FOLD_SHARP = 4.5;
 // Light and shadow: every fold is shaded deeper in its valley and catches the light on its crest, the
 // wrapper is darker under the flange (which shades it) and toward the cap, and a soft shadow lies on the
 // floor beneath, falling away from the light. All of it quiet.
+// The wrapper's stripes: one per fold, along it from the flange to the cap, two pink-red and one bright blue in turn round it,
+// each from one valley to the next, so that every fold is one colour, crest and walls; each colour by shade, [deep,
+// plain, crest]
+const RING_RED: FwMaterial[] = [MAT_FILTER_WRAP_DEEP, MAT_FILTER_WRAP, MAT_FILTER_WRAP_HI];
+const RING_BLUE: FwMaterial[] = [MAT_FILTER_WRAP_B_DEEP, MAT_FILTER_WRAP_B, MAT_FILTER_WRAP_B_HI];
+
 export function buildAirFilter(b: MeshBuilder, e: FwVec3) {
   // The filter is built upright, hanging from the pipe's end, and turned through 45 degrees about
   // that end, so that it stands on the pipe's own axis: the pipe leaves the compressor, turns through
@@ -56,10 +62,10 @@ export function buildAirFilter(b: MeshBuilder, e: FwVec3) {
   const length = 80;
   const rTop = 46;
   const rBot = 34;
-  const pleats = 27; // broad folds: each blue crest twice as wide as it was
+  const pleats = 24; // broad, puffed folds (a multiple of three, so that the stripes' red, red, blue go round evenly)
   const rows = 96;
   const cols = pleats * 16;
-  const depth = 4.6; // how deep a fold is cut
+  const depth = 7.2; // how deep a fold is cut: puffed out, round
 
   const sm = (x: number) => {
     const k = Math.min(1, Math.max(0, x));
@@ -72,8 +78,8 @@ export function buildAirFilter(b: MeshBuilder, e: FwVec3) {
   const P = (t: number, th: number): FwVec3 => {
     const fade = sm(t / 0.055) * sm((1 - t) / 0.055);
     const w = Math.cos(pleats * th);
-    // a fold with a rounded crest and a sharper valley
-    const dip = Math.pow(0.5 - 0.5 * w, FOLD_SHARP); // broad, thick folds with narrow gaps between
+    // a fold puffed out round, as a cushion: a full half round of a crest, and a narrow, sharp valley between
+    const dip = 1 - Math.sqrt(Math.max(0, 1 - Math.pow(0.5 - 0.5 * w, FOLD_SHARP * 0.8)));
     const r = rTop + (rBot - rTop) * t - depth * dip * fade;
 
     return [cx + r * Math.cos(th), top + length * t, cz + r * Math.sin(th)];
@@ -93,7 +99,7 @@ export function buildAirFilter(b: MeshBuilder, e: FwVec3) {
   };
 
   // The grid of points, worked out once
-  type FilterVertex = { pos: FwVec3; nor: FwVec3; mat: FwMaterial; occ: number };
+  type FilterVertex = { pos: FwVec3; nor: FwVec3; kind: number; occ: number };
   const grid: FilterVertex[] = [];
 
   for (let i = 0; i <= rows; i++) {
@@ -112,10 +118,10 @@ export function buildAirFilter(b: MeshBuilder, e: FwVec3) {
       const toCap = 0.86 + 0.14 * sm((1 - t) / 0.12);
       const occ = shade * underFlange * toCap;
 
-      // Colour: bright on the crests, deep in the valleys
-      const mat = valley > 0.5 ? MAT_FILTER_WRAP_DEEP : w > 0.55 ? MAT_FILTER_WRAP_HI : MAT_FILTER_WRAP;
+      // Shade: bright on the crests (2), deep in the valleys (0)
+      const kind = valley > 0.5 ? 0 : w > 0.55 ? 2 : 1;
 
-      grid.push({ pos: P(t, th), nor: normalAt(t, th), mat, occ });
+      grid.push({ pos: P(t, th), nor: normalAt(t, th), kind, occ });
     }
   }
 
@@ -128,7 +134,11 @@ export function buildAirFilter(b: MeshBuilder, e: FwVec3) {
       const v11 = at(i + 1, j + 1);
       const v01 = at(i, j + 1);
 
-      for (const v of [v00, v10, v11, v00, v11, v01]) b.push(v.pos, v.nor, v.mat, v.occ);
+      // its stripe: the fold it is on, two red and one blue in turn round the wrapper, each edge sharp, in a valley
+      const per = cols / pleats;
+      const ring = Math.floor((j + 0.5 + per / 2) / per) % 3 === 2 ? RING_BLUE : RING_RED; // two red, one blue
+
+      for (const v of [v00, v10, v11, v00, v11, v01]) b.push(v.pos, v.nor, ring[v.kind], v.occ);
     }
   }
 

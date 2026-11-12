@@ -1,14 +1,16 @@
 // The intake plenum and runners, the exhaust collector, the air intake and filter.
 
-import { CT_X, HEAD_PORT_DZ, TAU } from "../core/constants";
+import { BANKS, CT_X, HEAD_PORT_DZ, TAU } from "../core/constants";
 import { vadd, vcross, vnorm, vscale, vsub } from "../math/vec3";
 import type { FwMaterial, FwVec3 } from "./builder";
-import { MAT_ALU_CAST, MAT_ALU_TURNED, MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE, MAT_EXH_GUNMETAL, MAT_HDR_BLUE, MAT_HDR_GOLD, MAT_HDR_PURPLE, MAT_IRON, MAT_PIPE_BLACK, MAT_TURBO_GRAIN, MAT_WELD } from "./materials";
-import { collar, curveAt, curveFromPoints, flangeBolt, flangeJoint, ovalFlare, pipeFlange, roundedCurve, subCurve, sweepTube } from "./tubes";
+import { MAT_ALU_CAST, MAT_ALU_TURNED, MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE, MAT_EXH_GUNMETAL, MAT_HDR_BLUE, MAT_HDR_FLANGE, MAT_HDR_GOLD, MAT_HDR_PURPLE, MAT_IRON, MAT_MANIFOLD_GREY, MAT_MANIFOLD_GREY_DEEP, MAT_PIPE_BLACK, MAT_STEEL_BRIGHT, MAT_TURBO_GRAIN, MAT_WELD } from "./materials";
+import { collar, curveAt, curveFromPoints, flangeJoint, ovalFlare, pipeFlange, roundedCurve, subCurve, sweepTube } from "./tubes";
 import type { Curve, MeshBuilder } from "./tubes";
 import { COLLECTOR_CONE, COLLECTOR_LEN, COMPRESSOR_OUTLET_LEN, HDR_CX, HDR_CZ, HDR_MOUTH_Y, PLENUM_Y, PLENUM_Z, PORT_Y, TB, collectorRadius, compressorCentre, turboWorld } from "./turbo";
-import { VT, valveX } from "./valvetrain";
+import { IN_SIDE, VT, valveX } from "./valvetrain";
 import { FILTER_TURN, buildAirFilter } from "./airFilter";
+import { lobedPlate } from "./shapes";
+import type { P2 } from "./shapes";
 
 /* ---- the plumbing, in world coordinates ---- */
 
@@ -36,40 +38,145 @@ export const INLET_MOUTH: FwVec3 = [HDR_CX, HDR_MOUTH_Y - 6 + COLLECTOR_LEN - 20
 export const INLET_FACING: FwVec3 = [0, -1, 0];
 
 
-// The intake manifold, in a bank's frame: a round cast collector outside the bank's middle, its axis across the bank,
-// its outer face a round flange parallel to the block, bolted to the cooled charge's pipe's own; out of its inner face,
-// in a ring, the six runners, interleaved, each its own way to its port, the shorter ways bowed up or down so that the
-// six are near one length
-// (brought 40 in toward the block, so that the cooled charge's pipe, running along the bank, turns in to it through one
-// plain right-angle elbow)
-export const COLLECTOR_HUB = { r: 54, zIn: 212, zOut: 244, ring: 32 }; // its radius; its inner and outer faces; the runners' ring
-export const HUB = { x: (CT_X[2] + CT_X[3]) / 2, y: -302, z: (COLLECTOR_HUB.zIn + COLLECTOR_HUB.zOut) / 2, r: 54, h: 32, throttle: 0 };
-const HUB_FLANGE = { r: 50, t: 7 }; // the joint's two plates
-export const PLENUM_INLET: FwVec3 = [HUB.x, HUB.y, COLLECTOR_HUB.zOut + 2 * HUB_FLANGE.t + 1]; // where the pipe ends, on its flange
+// The intake manifold, in the engine's frame, after a billet racing manifold (plenum.ts builds it): over the V, a long
+// plenum, its lower body with its sides chamfered in underneath, a double flange round its top, and on it the lid, bolted
+// down by two staggered rows of socket-head bolts: a domed lid of two long lobes with a shallow valley between them, tall
+// at the front, dipping at the middle and rising again in a hump toward the back, rounded off there like a dome. At its
+// front, one gate: a funnel opening into a big square flange, on it the throttle, and in front of the throttle a Y that
+// takes the cooled charge from both intercoolers. Out of its chamfered underside, on round six-bolt flanges, twelve
+// short, fat runners, six for each bank, all one length, down into the V and square into the ports on the heads' valley
+// sides, through a base rail bolted along each head; on each runner an injector's boss, and over each bank's six a fuel
+// rail. All of it machined from billet and blasted a fine matte grey.
+export const PLENUM = {
+  xf: CT_X[0] - 84, // its front
+  xr: CT_X[CT_X.length - 1] + 140, // its back, a little past the heads' ends, covering them
+  wF: 142, // its half width, at the flange: broad at the front
+  wB: 108, // and narrower at the back
+  hF: 134, // the lid's height at the front: tall and round
+  hB: 86, // and at the back
+  yLid: -443, // the flange's top, where the lid sits: low, the flange lying just over the heads' covers
+  yFlange: -430, // the flange's underside
+  yb: -375, // its body's flat bottom, deep in the V, just over the runners' base rails
+  yGate: -471, // the gate's axis
+  gateLen: 58, // how far the gate stands out in front of it
+  gateR: 58, // its bore
+  neckR: 58,
+  throttle: { r: 62, len: 56 },
+  xn: CT_X[0] - 84 - 58 - 2, // the throttle's back, against the gate's flange
+};
+
+const tAlong = (x: number) => Math.min(1, Math.max(0, (x - PLENUM.xf) / (PLENUM.xr - PLENUM.xf)));
+
+// The plan's half width at x: broad at the front, narrowing a little, evenly, toward the back; its corners rounded,
+// broadly at the back, a little at the front
+export function plenumW(x: number): number {
+  const { xf, xr, wF, wB } = PLENUM;
+  const base = (xx: number) => wF + (wB - wF) * Math.pow(tAlong(xx), 1.15);
+  const rb = 58;
+  const rf = 16;
+
+  if (x > xr - rb) return base(xr - rb) - rb + Math.sqrt(Math.max(0, rb * rb - (x - (xr - rb)) ** 2));
+  if (x < xf + rf) return base(xf + rf) - rf + Math.sqrt(Math.max(0, rf * rf - (xf + rf - x) ** 2));
+
+  return base(x);
+}
+
+// The lid's height over the flange at (x, z): tall and round at the front, coming down evenly toward the back; its two
+// lobes across with the valley between them; and its edges rolling down round on to the flange, more broadly in front
+export function lidHeight(x: number, z: number): number {
+  const { xf, xr, hF, hB } = PLENUM;
+  const W = plenumW(x) - 4;
+
+  if (Math.abs(z) >= W) return 0;
+
+  const t = tAlong(x);
+  const H = hF + (hB - hF) * Math.pow(t, 1.1);
+  const zl = 0.44 * W;
+  const wl = 0.75 * W;
+  const e = (c: number) => Math.sqrt(Math.max(0, 1 - ((z - c) / wl) ** 2));
+  const a = e(zl);
+  const b = e(-zl);
+  const lob = (a + b + Math.sqrt((a - b) ** 2 + 0.15 * 0.15)) / 2; // the two lobes, the valley between them soft
+  const d = Math.min(W - Math.abs(z), (xr - 4 - x) * 1.1, (x - xf) * 2.2);
+  const R = 50 - 18 * t;
+  const fall = d <= 0 ? 0 : Math.sqrt(Math.max(0, 1 - (1 - Math.min(d, R) / R) ** 2));
+
+  return H * lob * fall;
+}
+
+// The heads' outline where the plenum's body is fitted down on to them, one side (+z), in the engine's frame, [z, y]: the
+// cover's top, rounding down at its inner edge, and the valley wall under it, down to where the runners' rails are
+const HEAD_LINE: Array<[number, number]> = [[286, -350], [160, -423], [147, -425], [136, -423], [126, -416], [115, -402], [54, -304]];
+
+export function headY(z: number): number {
+  for (let k = 0; k + 1 < HEAD_LINE.length; k++) {
+    const [z0, y0] = HEAD_LINE[k];
+    const [z1, y1] = HEAD_LINE[k + 1];
+
+    if (z <= z0 && z >= z1) return y0 + ((y1 - y0) * (z0 - z)) / (z0 - z1);
+  }
+
+  return -304;
+}
+
+// The valley wall's z at height y
+const wallZ = (y: number) => 54 + ((115 - 54) * (y + 304)) / (-402 + 304);
+
+// The body's section at x, one side (+z), from the flange down: [z, y]: down from the flange to the head's cover, along
+// the cover and down the valley wall, let into them a little so that no gap shows anywhere, to its flat bottom over
+// the rails
+const SINK = 2;
+
+export function bodySection(x: number): Array<[number, number]> {
+  const W = plenumW(x) - 5;
+  const pts: Array<[number, number]> = [[W, PLENUM.yFlange]];
+
+  // (always as many points, so that the sections join along the plenum)
+  for (let k = 0; k <= 8; k++) {
+    const z = W + ((115 - W) * k) / 8;
+
+    pts.push([z - (k ? SINK : 0), headY(z) + SINK]);
+  }
+
+  const zb = wallZ(PLENUM.yb) - SINK;
+
+  pts.push([zb, PLENUM.yb]);
+
+  return pts;
+}
+
+// the gate's axis, at x
+export const plenumCentre = (_zs: number, x: number): FwVec3 => [x, PLENUM.yGate, 0];
+// where the cooled charge's pipes end, on the Y's two branches in front of the throttle, facing forward
+export const Y_BRANCH = { z: 54, len: 76, r: 31 }; // (a little over the cooled charge's pipes, 27)
+export const PLENUM_INLETS: FwVec3[] = [-1, 1].map((zs): FwVec3 => [PLENUM.xn - 12 - PLENUM.throttle.len - 6 - Y_BRANCH.len, PLENUM.yGate, zs * Y_BRANCH.z]);
+// the middle of each half of the plenum, where the charge is gathered for the runners
+export const PLENUM_MIDS: FwVec3[] = [-1, 1].map((zs): FwVec3 => [(PLENUM.xf + PLENUM.xr) / 2, -410, zs * 60]);
+// a point of the engine's frame in a bank's own frame, [y, z] (the same for both banks, whose frames are mirror images:
+// worked out with B's, and its +Z log)
+const inBank = (y: number, z: number): [number, number] => {
+  const inv = BANKS[1].mInv;
+
+  return [inv[4] * y + inv[7] * z, inv[5] * y + inv[8] * z];
+};
+// the intake's port face on the head's valley side, in a bank's frame (the heads widened)
+const IN_FACE = IN_SIDE * (97.4 + HEAD_PORT_DZ);
+
+const RAIL = { y0: PORT_Y - 36, y1: PORT_Y + 30, t: 11, tilt: (20 * Math.PI) / 180 };
+
+// The rail's tilted face, in a bank's frame: the middle of its face [y, z] and its outward axis [y, z] (turned
+// counterclockwise, seen from the front, by its wedge: up and out of the head's valley face, toward the plenum)
+export function railFace(): { E: [number, number]; dir: [number, number] } {
+  const zf = Math.abs(IN_FACE);
+  const sa = Math.sin(RAIL.tilt);
+  const ca = Math.cos(RAIL.tilt);
+
+  return { E: [PORT_Y - RAIL.t * sa, IN_SIDE * (zf + RAIL.t * ca)], dir: [-sa, IN_SIDE * ca] };
+}
 
 export const PIPES = (() => {
   const first = CT_X[0] - 26; // the intake plenum stops at the first and the last cylinder
   const last = CT_X[CT_X.length - 1] + 26;
-
-  const bezier = (p0: FwVec3, p1: FwVec3, p2: FwVec3, p3: FwVec3, n = 40) => {
-    const pts: FwVec3[] = [];
-
-    for (let k = 0; k <= n; k++) {
-      const t = k / n;
-      const w0 = (1 - t) * (1 - t) * (1 - t);
-      const w1 = 3 * (1 - t) * (1 - t) * t;
-      const w2 = 3 * (1 - t) * t * t;
-      const w3 = t * t * t;
-
-      pts.push([
-        p0[0] * w0 + p1[0] * w1 + p2[0] * w2 + p3[0] * w3,
-        p0[1] * w0 + p1[1] * w1 + p2[1] * w2 + p3[1] * w3,
-        p0[2] * w0 + p1[2] * w1 + p2[2] * w2 + p3[2] * w3,
-      ]);
-    }
-
-    return pts;
-  };
 
   // the turbine's inlet: an elbow whose mouth faces back along the bank (the module's +z), toward the collector, so that
   // the pipe from it comes straight in; it bends down through a right angle, broadly, into the turbine
@@ -79,40 +186,30 @@ export const PIPES = (() => {
 
   const plenum = curveFromPoints([[first, PLENUM_Y, PLENUM_Z], [last, PLENUM_Y, PLENUM_Z]], 6);
 
-  // ---- intake: six runners out of the collector's inner face, near one length ----
-  const order = CT_X.map((x, i) => [x, i] as [number, number]).sort((p, q) => p[0] - q[0]);
-  const ringAt = (i: number) => {
-    const rank = order.findIndex((o) => o[1] === i);
-    const a = Math.PI + (rank / CT_X.length) * TAU + 0.26; // round the ring, the front ones toward the front
+  // ---- intake: six short runners for each bank, all one length and one shape, each out of its manifold's log straight
+  // under its cylinder, down and out, and square into its port on the head's valley side ----
+  const intakeRunners = CT_X.map((x) => {
+    const W = (y: number, z: number): FwVec3 => {
+      const [by, bz] = inBank(y, z);
 
-    return [HUB.x + COLLECTOR_HUB.ring * Math.cos(a), HUB.y + COLLECTOR_HUB.ring * Math.sin(a)];
-  };
-  const way = (i: number, bow: number) => {
-    const x = CT_X[i];
-    const [sx, sy] = ringAt(i);
-    const z0 = COLLECTOR_HUB.zIn;
-    const zp = 128; // where the sweep straightens, square to the port
-    const at = (f: number) => z0 - f * (z0 - zp); // a share of the way in from the collector to there
+      return [x, by, bz];
+    };
+    const { E, dir } = railFace();
+    const at = (d: number): FwVec3 => [x, E[0] + dir[0] * d, E[1] + dir[1] * d];
 
-    // one long, smooth sweep: out of the collector, bowed a little, and square into the port
-    return curveFromPoints([[sx, sy, z0], ...bezier([sx, sy, at(0.12)], [sx + (x - sx) * 0.25, sy + bow, at(0.56)], [x, PORT_Y + bow * 0.35, at(0.42)], [x, PORT_Y, zp], 56), [x, PORT_Y, 98 + HEAD_PORT_DZ]], 3);
-  };
-  // near one length, not exactly: the shorter ones are bowed only gently, so that all six stay smooth
-  const longest = 0.9 * Math.max(...CT_X.map((_, i) => way(i, 0).total));
-  const intakeRunners = CT_X.map((_, i) => {
-    const sign = i % 2 === 0 ? -1 : 1; // bowed up and down in turn: interleaved
-    let lo = 0;
-    let hi = 130;
-
-    for (let k = 0; k < 22; k++) {
-      const m = (lo + hi) / 2;
-
-      if (way(i, sign * m).total < longest) lo = m;
-      else hi = m;
-    }
-
-    return way(i, sign * lo);
+    return roundedCurve([
+      W(-412, 64), // in the plenum's body, deep in the V
+      at(54), // short, down out of it, on the rail's tilted axis
+      at(24),
+      at(0), // square into the rail's tilted face
+      [x, PORT_Y, IN_SIDE * (98 + HEAD_PORT_DZ)], // and on into the port
+    ], 26, 3);
   });
+
+
+
+
+
 
   const runner = (cyl: number) => intakeRunners[cyl];
 
@@ -120,134 +217,157 @@ export const PIPES = (() => {
   // goes on from there to the intercooler is CHARGE_PIPES' ----
   const outlet = turboWorld([TB.half, compressorCentre(1), -COMPRESSOR_OUTLET_LEN]);
   const outletRun = curveFromPoints([outlet, [outlet[0], outlet[1] + OUTLET_DROP - HOT_BEND, outlet[2]]], 5);
-  const throttleEnd: FwVec3 = PLENUM_INLET; // where the cooled charge's pipe ends
+  const throttleEnd: FwVec3 = PLENUM_INLETS[1]; // where the cooled charge's pipe ends (B's)
 
   // The air intake leaves the compressor's inlet along the shaft, turns once, through 45 degrees, and
   // ends, pointing down and away at 45 degrees, in the air filter
   const intakeStart = turboWorld([135, 0, 0]);
-  const intake = roundedCurve(
-    [
-      intakeStart,
-      [intakeStart[0] - 130, intakeStart[1], intakeStart[2]],
-      // a smooth bend, down through FILTER_TURN, and on in that line to the filter
-      [intakeStart[0] - 130 - 95 * Math.cos(FILTER_TURN), intakeStart[1] + 95 * Math.sin(FILTER_TURN), intakeStart[2]],
-    ],
-    70, 10
-  );
+  const intake = roundedCurve([
+    intakeStart,
+    [intakeStart[0] - 130, intakeStart[1], intakeStart[2]],
+    // a smooth bend, down through FILTER_TURN, and on in that line to the filter
+    [intakeStart[0] - 130 - 95 * Math.cos(FILTER_TURN), intakeStart[1] + 95 * Math.sin(FILTER_TURN), intakeStart[2]],
+  ], 70, 10);
 
   return { log, plenum, runner, collectorEnd, outlet, outletRun, intake, throttleEnd };
 })();
 
 // The pipes' skins, drawn see-through: the air moving inside them can be seen.
-// A bank's intake runners, thick along their length and narrowed at the port like a throat (the distributor they
-// leave is solid: buildIntakeWelds)
+// A bank's intake runners: a bell mouth where each leaves the plenum, then full and round down into the V, narrowing as
+// it turns into the port, like a throat (the plenum they leave is solid: plenum.ts)
+export const runnerRadius = (u: number) =>
+  19 + 5 * Math.pow(Math.max(0, 1 - u / 0.14), 2) - 5 * Math.pow(Math.max(0, (u - 0.66) / 0.34), 1.5);
+
 export function buildIntakePipes(b: MeshBuilder) {
-  for (let i = 0; i < CT_X.length; i++) {
-    // thick along its length, narrowed at the port like a throat
-    sweepTube(b, PIPES.runner(i), (u) => 21 - 8 * Math.pow(Math.max(0, (u - 0.72) / 0.28), 1.6), MAT_ALU_CAST, { segments: 28 });
-  }
+  for (let i = 0; i < CT_X.length; i++) sweepTube(b, PIPES.runner(i), runnerRadius, MAT_MANIFOLD_GREY, { segments: 32 });
 }
 
-// The collector and the runners' roots, solid: the collector's drum, its ribs, and the round flange joint on its outer
-// face, parallel to the block; each runner welded into its inner face; and at the head, each runner's counter-flange: an
-// oval cone, the port's own shape, on a stadium flange held to the head by two bolts, with no weld to be seen
-// A square plate with its corners rounded, in the x-y plane about (x, y), from z0 to z1: half its side, the corners' radius
-function roundedSquare(b: MeshBuilder, x: number, y: number, z0: number, z1: number, half: number, rc: number, mat: FwMaterial) {
-  const ring: Array<[number, number, number, number]> = [];
-
-  for (const [cx, cy, a0] of [[1, -1, -Math.PI / 2], [1, 1, 0], [-1, 1, Math.PI / 2], [-1, -1, Math.PI]] as Array<[number, number, number]>) {
-    for (let k = 0; k <= 6; k++) {
-      const a = a0 + (k / 6) * (Math.PI / 2);
-
-      ring.push([cx * (half - rc) + rc * Math.cos(a), cy * (half - rc) + rc * Math.sin(a), Math.cos(a), Math.sin(a)]);
-    }
-  }
-
-  const n = ring.length;
-  const P = (k: number, z: number): FwVec3 => [x + ring[k % n][0], y + ring[k % n][1], z];
-  const N = (k: number): FwVec3 => [ring[k % n][2], ring[k % n][3], 0];
-
-  for (let k = 0; k < n; k++) {
-    for (const [p, q] of [[P(k, z0), N(k)], [P(k + 1, z0), N(k + 1)], [P(k + 1, z1), N(k + 1)], [P(k, z0), N(k)], [P(k + 1, z1), N(k + 1)], [P(k, z1), N(k)]] as Array<[FwVec3, FwVec3]>) {
-      b.push(p, q, mat, 1);
-    }
-  }
-
-  b.flatFan([x, y, z0], ring.map((_, k) => P(k, z0)), [0, 0, -1], mat);
-  b.flatFan([x, y, z1], ring.map((_, k) => P(k, z1)), [0, 0, 1], mat);
-}
-
-// A square plate with its corners chamfered, in the x-y plane about (x, y), from z0 to z1: half its side, and the chamfer
-function chamferedSquare(b: MeshBuilder, x: number, y: number, z0: number, z1: number, half: number, c: number, mat: FwMaterial) {
-  const h = half;
-  const ring: Array<[number, number]> = [[h - c, -h], [h, -h + c], [h, h - c], [h - c, h], [-h + c, h], [-h, h - c], [-h, -h + c], [-h + c, -h]];
-  const P = (q: [number, number], z: number): FwVec3 => [x + q[0], y + q[1], z];
-  const n = ring.length;
-
-  for (let k = 0; k < n; k++) {
-    const a = ring[k];
-    const d = ring[(k + 1) % n];
-
-    b.flatQuad(P(a, z0), P(d, z0), P(d, z1), P(a, z1), [(a[0] + d[0]) / 2, (a[1] + d[1]) / 2, 0], mat);
-  }
-
-  b.flatFan([x, y, z0], ring.map((q) => P(q, z0)), [0, 0, -1], mat);
-  b.flatFan([x, y, z1], ring.map((q) => P(q, z1)), [0, 0, 1], mat);
-}
-
+// The manifold's base, solid, for each bank, in its frame: a cast rail bolted along the head's valley face, over the
+// ports, each runner flaring into it, the port's own shape; bolts between the runners, above and below, and at its ends; at
+// its front end a cast boss with its threaded ports. On each runner, near the port, an injector's boss, its injector in
+// it, and along the six a black fuel rail, bolted down on to them, a fitting at each end
 export function buildIntakeWelds(b: MeshBuilder) {
-  const { x, y } = HUB;
-  const { r: R, zIn, zOut } = COLLECTOR_HUB;
-  const body = curveFromPoints([[x, y, zIn], [x, y, zOut]], 2);
+  const zf = Math.abs(IN_FACE);
+  const x0 = CT_X[0] - 66;
+  const x1 = CT_X[CT_X.length - 1] + 60;
+  const sa = Math.sin(RAIL.tilt);
+  const ca = Math.cos(RAIL.tilt);
+  // the rail turned about its middle on the head's face, counterclockwise: its bottom out, its face looking up and out;
+  // drawn as on the outer side, and turned over, square across the bank, on to the valley side
+  const turn = (p: FwVec3, n: FwVec3): [FwVec3, FwVec3] => {
+    const y = PORT_Y + (p[1] - PORT_Y) * ca - (p[2] - zf) * sa;
+    const z = zf + (p[1] - PORT_Y) * sa + (p[2] - zf) * ca;
+    const ny = n[1] * ca - n[2] * sa;
+    const nz = n[1] * sa + n[2] * ca;
 
-  sweepTube(b, body, () => R, MAT_ALU_CAST, { segments: 56, capStart: true });
-  collar(b, body, 3, R, R + 3, 6, MAT_ALU_TURNED, MAT_ALU_TURNED);
+    return IN_SIDE < 0 ? [[p[0], y, -z], [n[0], ny, -nz]] : [[p[0], y, z], [n[0], ny, nz]];
+  };
 
-  for (let k = 0; k < 10; k++) {
-    const a = (k / 10) * TAU;
+  b.setTurn(turn);
 
-    b.box(x + (R + 1) * Math.cos(a) - 3, x + (R + 1) * Math.cos(a) + 3, y + (R + 1) * Math.sin(a) - 3, y + (R + 1) * Math.sin(a) + 3, zIn + 6, zOut, MAT_ALU_TURNED);
+  b.box(x0, x1, RAIL.y0, RAIL.y1, zf, zf + RAIL.t, MAT_MANIFOLD_GREY);
+  b.box(x0 + 2, x1 - 2, RAIL.y0 + 2, RAIL.y1 - 2, zf + RAIL.t, zf + RAIL.t + 1.2, MAT_ALU_TURNED); // its machined face's edge
+
+  for (let i = 0; i < CT_X.length; i++) {
+    ovalFlare(b, CT_X[i], PORT_Y, zf + RAIL.t, 16, 23, 19, 14, MAT_MANIFOLD_GREY);
   }
 
-  // the joint: the collector's flange, a gasket, the pipe's flange, each a big square with its corners chamfered, held by
-  // eight bolts, at the corners and the middles of the sides, heads on the pipe's side, nuts on the collector's
-  const { t } = HUB_FLANGE;
-  const half = HUB_FLANGE.r + 10;
+  // the bolts: between the runners and at the ends, above and below
+  const bx = [x0 + 14, ...CT_X.slice(1).map((x, k) => (x + CT_X[k]) / 2), x1 - 14];
 
-  chamferedSquare(b, x, y, zOut, zOut + t, half, 16, MAT_EXH_GUNMETAL);
-  chamferedSquare(b, x, y, zOut + t, zOut + t + 1, half - 2, 15, MAT_PIPE_BLACK);
-  chamferedSquare(b, x, y, zOut + t + 1, zOut + 2 * t + 1, half, 16, MAT_EXH_GUNMETAL);
-
-  const pitch = half - 11;
-
-  for (const [bx, by] of [[-1, -1], [0, -1], [1, -1], [1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0]]) {
-    const k = bx !== 0 && by !== 0 ? 0.86 : 1; // the corner bolts a little in, off the chamfers
-
-    flangeBolt(b, [x + bx * pitch * k, y + by * pitch * k, zOut + 2 * t + 1], [0, 0, 1], 4.4, 0.3);
-    b.prismDir([x + bx * pitch * k, y + by * pitch * k, zOut], [0, 0, -1], [1, 0, 0], [0, 1, 0], 4.4, 4, 6, 0.2, MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE);
+  for (const x of bx) {
+    for (const y of [RAIL.y0 + 9, RAIL.y1 - 9]) socketCap(b, [x, y, zf + RAIL.t], [0, 0, 1], 5);
   }
+
+  // the boss at its front end, with two threaded ports in it
+  b.box(x0 - 22, x0 + 4, RAIL.y0 - 6, RAIL.y1 - 10, zf, zf + RAIL.t + 18, MAT_MANIFOLD_GREY);
+  for (const [y, k] of [[RAIL.y0 + 10, 0], [RAIL.y1 - 26, 1]] as Array<[number, number]>) {
+    b.prismDir([x0 - 22, y, zf + RAIL.t + 9], [-1, 0, 0], [0, 1, 0], [0, 0, 1], 7 + k, 1.5, 6, 0.4, MAT_ALU_TURNED, MAT_ALU_TURNED);
+    b.prismDir([x0 - 23.4, y, zf + RAIL.t + 9], [-1, 0, 0], [0, 1, 0], [0, 0, 1], 4.4, 0.8, 18, 0, MAT_PIPE_BLACK, MAT_PIPE_BLACK);
+  }
+
+  // the wedge, cast with the rail under its turned plate: the material added at its bottom that sets the new angle, from
+  // the head's face out to the plate's back, with its socket-head bolts down into the head through its foot
+  b.setTurn(IN_SIDE < 0 ? (p, n) => [[p[0], p[1], -p[2]], [n[0], n[1], -n[2]]] : null);
+
+  const rot = (y: number): [number, number] => [PORT_Y + (y - PORT_Y) * ca, zf + (y - PORT_Y) * sa];
+  const [ym, zm] = rot(PORT_Y);
+  const [yb, zb] = rot(RAIL.y1);
+  const sec: Array<[number, number]> = [[ym, zm], [yb, zb], [yb, zf], [ym, zf]];
+
+  for (let k = 0; k < 4; k++) {
+    const [ya, za] = sec[k];
+    const [yc, zc] = sec[(k + 1) % 4];
+    const l = Math.hypot(yc - ya, zc - za) || 1;
+
+    b.flatQuad([x0, ya, za], [x1, ya, za], [x1, yc, zc], [x0, yc, zc], [0, (zc - za) / l, -(yc - ya) / l], MAT_MANIFOLD_GREY);
+  }
+
+  for (const [x, dir] of [[x0, -1], [x1, 1]] as Array<[number, number]>) {
+    b.flatQuad([x, sec[0][0], sec[0][1]], [x, sec[1][0], sec[1][1]], [x, sec[2][0], sec[2][1]], [x, sec[3][0], sec[3][1]], [dir, 0, 0], MAT_MANIFOLD_GREY);
+  }
+
+  b.setTurn(null);
+
+  // the injectors' bosses, each on its runner near the port, leaning toward it; and the fuel rail over them
+  const tops: FwVec3[] = [];
 
   for (let i = 0; i < CT_X.length; i++) {
     const r = PIPES.runner(i);
+    const s = r.total - 52;
+    const p: FwVec3 = [0, 0, 0];
 
-    // each runner out of the collector's inner face, with a weld round it
-    sweepTube(b, subCurve(r, 0, 10, 2), () => 21, MAT_ALU_TURNED, { segments: 28 });
-    weld(b, r, 1.6, 21);
+    curveAt(r, s, p);
 
-    // and its counter-flange at the head
-    const cx = CT_X[i];
-    const zf = 97.4 + HEAD_PORT_DZ; // the head's port face (the heads widened)
+    const axis = vnorm([0, -0.86, -IN_SIDE * 0.5]); // up, leaning toward the port
+    const e1: FwVec3 = [1, 0, 0];
+    const e2 = vnorm([0, axis[2], -axis[1]]);
+    const rr = runnerRadius(s / r.total);
+    const base = vadd(p, vscale(axis, rr - 6));
 
-    b.box(cx - 21, cx + 21, PORT_Y - 19.5, PORT_Y + 19.5, zf, zf + 8.2, MAT_EXH_GUNMETAL);
-
-    for (const sx of [-21, 21]) {
-      b.prismDir([cx + sx, PORT_Y, zf], [0, 0, 1], [1, 0, 0], [0, 1, 0], 19.5, 8.2, 28, 0, MAT_EXH_GUNMETAL, MAT_EXH_GUNMETAL);
-    }
-
-    ovalFlare(b, cx, PORT_Y, zf + 8.2, 26, 24, 16, 13.2, MAT_ALU_TURNED);
-
-    for (const sx of [-33, 33]) flangeBolt(b, [cx + sx, PORT_Y, zf + 8.2], [0, 0, 1], 6, 0.25 * Math.sign(sx));
+    b.prismDir(base, axis, e1, e2, 9, 20, 24, 0, MAT_MANIFOLD_GREY, MAT_MANIFOLD_GREY); // the boss, cast with the runner
+    b.prismDir(vadd(base, vscale(axis, 20)), axis, e1, e2, 6.2, 9, 20, 0, MAT_PIPE_BLACK, MAT_PIPE_BLACK); // the injector
+    b.prismDir(vadd(base, vscale(axis, 23)), axis, e1, e2, 7, 2.2, 20, 0, MAT_STEEL_BRIGHT, MAT_STEEL_BRIGHT); // its clip
+    tops.push(vadd(base, vscale(axis, 32)));
   }
+
+  // the rail: a black square bar along the six, a bolt down through it beside every second injector, and a fitting at
+  // each end
+  const ry = tops[0][1];
+  const rz = tops[0][2];
+  const ra = CT_X[0] - 46;
+  const rb = CT_X[CT_X.length - 1] + 40;
+
+  // a broad billet bar, fine grooves milled along its top, socket-head bolts down through it, its ends bored and threaded
+  b.box(ra, rb, ry - 9, ry + 9, rz - 13, rz + 13, MAT_MANIFOLD_GREY);
+  for (let k = 0; k < 7; k++) {
+    const zg = rz - 10.5 + k * 3.5;
+
+    b.box(ra + 3, rb - 3, ry - 9.5, ry - 9, zg - 0.6, zg + 0.6, MAT_MANIFOLD_GREY_DEEP);
+  }
+
+  for (let i = 0; i < CT_X.length; i += 2) {
+    const x = (CT_X[i] + CT_X[i + 1]) / 2;
+
+    socketCap(b, [x, ry - 9.5, rz], [0, -1, 0], 4.4);
+    b.box(x - 7, x + 7, ry + 9, ry + 24, rz - 5, rz + 5, MAT_MANIFOLD_GREY); // its stand, down to the runners
+  }
+
+  for (const [x, dir] of [[ra, -1], [rb, 1]] as Array<[number, number]>) {
+    b.prismDir([x, ry, rz], [dir, 0, 0], [0, 1, 0], [0, 0, 1], 7.5, 0.6, 24, 0, MAT_PIPE_BLACK, MAT_PIPE_BLACK); // its bore
+    b.prismDir([x, ry, rz], [dir, 0, 0], [0, 1, 0], [0, 0, 1], 9.5, 0.4, 24, 0, MAT_ALU_TURNED, MAT_ALU_TURNED); // the thread's chamfer
+  }
+}
+
+// A socket-head cap screw's head at p, facing `dir`: a black round head, chamfered, its hex socket dark in it
+export function socketCap(b: MeshBuilder, p: FwVec3, dir: FwVec3, r: number) {
+  const d = vnorm(dir);
+  const e1 = vnorm(vcross(d, Math.abs(d[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0]));
+  const e2 = vcross(d, e1);
+
+  b.prismDir(p, d, e1, e2, r, r * 0.9, 20, 0, MAT_PIPE_BLACK, MAT_PIPE_BLACK);
+  b.prismDir(vadd(p, vscale(d, r * 0.9)), d, e1, e2, r * 0.82, r * 0.12, 20, 0, MAT_PIPE_BLACK, MAT_CT_NUT_SIDE);
+  b.prismDir(vadd(p, vscale(d, r * 1.02 - 0.3)), d, e1, e2, r * 0.42, 0.4, 6, 0.3, MAT_CT_NUT_SIDE, MAT_CT_NUT_SIDE);
 }
 
 // A turbocharger module's air intake, from the compressor up to the filter
@@ -411,20 +531,39 @@ export function buildCollectorFittings(b: MeshBuilder) {
   // flange, and the two are bolted together, a gasket between: rounded squares of dark metal, eight bolts
   {
     const [mx, my, mz] = INLET_MOUTH;
-    const half = 44;
+    const half = 54; // (round the exhaust's one pipe, 43.5 across its half)
 
     // built level about the origin, its up local z, and set on the mouth
     b.setTurn((p, n) => [[mx + p[0], my - p[2], mz + p[1]], [n[0], -n[2], n[1]]]);
-    roundedSquare(b, 0, 0, -9, 0, half, 12, MAT_TURBO_GRAIN); // the turbine's own flange, cast with its housing
-    roundedSquare(b, 0, 0, 0, 1, half - 2, 11, MAT_PIPE_BLACK);
-    roundedSquare(b, 0, 0, 1, 9, half, 12, MAT_EXH_GUNMETAL);
+    // round, with three ears, as the header's own end flange is: the turbine's cast one under, a gasket, the pipe's
+    // machined plate over, and three studs with their nuts
+    const ring: P2[] = [];
 
-    for (const [bx, by] of [[-1, -1], [0, -1], [1, -1], [1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0]]) {
-      const k = bx !== 0 && by !== 0 ? 0.84 : 1;
-      const px = bx * 33 * k;
-      const py = by * 33 * k;
+    for (let i = 0; i < 180; i++) {
+      const a = (i / 180) * TAU;
+      let r = half - 4;
 
-      flangeBolt(b, [px, py, 9], [0, 0, 1], 4.2, 0.3);
+      for (let k = 0; k < 3; k++) {
+        const d = Math.atan2(Math.sin(a - (k * TAU) / 3 - 0.5), Math.cos(a - (k * TAU) / 3 - 0.5));
+
+        r = Math.max(r, half + 8 - 40 * d * d);
+      }
+
+      ring.push([r * Math.cos(a), r * Math.sin(a)]);
+    }
+
+    lobedPlate(b, ring, -9, 0, 1.2, MAT_TURBO_GRAIN);
+    lobedPlate(b, ring.map(([x, y]) => [x * 0.97, y * 0.97] as P2), 0, 1, 0.2, MAT_PIPE_BLACK);
+    lobedPlate(b, ring, 1, 10, 1.4, MAT_HDR_FLANGE);
+
+    for (let k = 0; k < 3; k++) {
+      const a = (k * TAU) / 3 + 0.5;
+      const px = (half + 1) * Math.cos(a);
+      const py = (half + 1) * Math.sin(a);
+
+      b.prismDir([px, py, 10], [0, 0, 1], [1, 0, 0], [0, 1, 0], 5.6, 0.8, 18, 0, MAT_STEEL_BRIGHT, MAT_STEEL_BRIGHT);
+      b.prismDir([px, py, 10.8], [0, 0, 1], [1, 0, 0], [0, 1, 0], 5, 5, 6, a, MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE);
+      b.prismDir([px, py, 15.8], [0, 0, 1], [1, 0, 0], [0, 1, 0], 2.6, 7, 14, 0, MAT_STEEL_BRIGHT, MAT_STEEL_BRIGHT);
       b.prismDir([px, py, -9], [0, 0, -1], [1, 0, 0], [0, 1, 0], 4.2, 4, 6, 0.2, MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE);
     }
 
@@ -483,7 +622,6 @@ export function buildTurboFittings(b: MeshBuilder) {
   pipeFlange(b, intake, false, 30, MAT_ALU_TURNED);
   collar(b, intake, intake.total * 0.55, 20, 22.5, 4, MAT_ALU_TURNED);
   collar(b, intake, intake.total - 3, 20, 24.5, 6, MAT_ALU_TURNED);
-
   // The air filter, hanging from the intake's open end: a K&N-style cone
   buildAirFilter(b, intake.pts[intake.pts.length - 1]);
 }

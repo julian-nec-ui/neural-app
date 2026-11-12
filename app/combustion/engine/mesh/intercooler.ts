@@ -7,7 +7,7 @@ import type { FwMaterial, FwVec3 } from "./builder";
 import { MODULES, modulePoint } from "./exhaust";
 import type { TModule } from "./exhaust";
 import { MAT_ALU_TURNED, MAT_CASE_GREY, MAT_EXH_GUNMETAL, MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE, MAT_FIN_BACK, MAT_IC_FIN, MAT_IC_FIN_DEEP, MAT_IC_PLATE, MAT_IC_RUBBER, MAT_IC_TANK, MAT_IC_TUBE, MAT_PIPE_BLACK, MAT_STEEL_BRIGHT, MAT_WELD } from "./materials";
-import { OUTLET_DROP, PIPES, PLENUM_INLET, PORT_JOINT, weld } from "./plumbing";
+import { OUTLET_DROP, PIPES, PLENUM_INLETS, PORT_JOINT, weld } from "./plumbing";
 import { curveAt, curveFromPoints, flangeJoint, roundedCurve, sweepTube } from "./tubes";
 import type { Curve, MeshBuilder } from "./tubes";
 import { IC, IC_HALF } from "./turbo";
@@ -460,9 +460,6 @@ export function icPlace(zs: number, p: FwVec3): FwVec3 {
   return [q[0], q[1] + IC_DROP, q[2]]; // and lowered, straight down, leaning as it did
 }
 
-// the cooled charge pipe's elbow at the distributor: a plain mandrel-bent right angle, its centre line on this radius
-// (one and a half times the pipe's), welded in between the straight run and the short stub into the flange
-export const COOL_ELBOW_R = 40;
 const PORT_NECK_R = 19; // the cast neck it stands on
 
 // the outlet's neck, cast with the tank: how far it starts inside the tank, and how far out its flange stands
@@ -487,41 +484,25 @@ export const CHARGE_PIPES = (() => {
     return roundedCurve([o, B([ob[0], ob[1] + OUTLET_DROP + 14, ob[2]]), B([pb[0], pb[1], pb[2] - 52]), port], 44, 5);
   };
 
-  // The cold pipe: out of the high tank's port, straight back along the bank's intake side, level with the distributor,
-  // and at its middle one plain right angle, an elbow of COOL_ELBOW_R, turning it square in to the distributor's flange,
-  // which is parallel to the block, through a short straight stub
+  // The cold pipe: out of the high tank's port, up the front of the engine and in, toward the middle, and at the height
+  // of the plenum on top of the V, one bend back, square into its throttle's mouth, which faces forward (plumbing.ts,
+  // plenum.ts)
   const cool = (bank: Bank, zSign: number) => {
     const start = icPlace(zSign, [IC.x + 41, IC_STAND_Y + COOL_OUT_DY, zSign * IC_CHARGE_OUT_Z]);
-    const inv = bank.mInv;
-    const sb: FwVec3 = [start[0], inv[4] * start[1] + inv[7] * start[2], inv[5] * start[1] + inv[8] * start[2]];
-    const [ex, ey, ez] = PLENUM_INLET;
-    const B = (x: number, y: number, z: number) => bankPoint(bank, x + bank.dx, y, z);
-    const R = COOL_ELBOW_R;
-    const zRun = sb[2]; // the run's distance out from the bank's axis, that of the tank's outlet
-    const pts: FwVec3[] = [start];
+    const inlet = PLENUM_INLETS[zSign < 0 ? 0 : 1];
+    const xu = Math.min(start[0], inlet[0]) - 62; // the front of its rise, behind the turbochargers
+    const yLow = start[1] - 22; // its run in, across the front, low
+    const k0: FwVec3 = [xu, yLow, start[2]];
+    const k1: FwVec3 = [xu, yLow, inlet[2]];
+    const k2: FwVec3 = [xu, inlet[1], inlet[2]];
+    const c = roundedCurve([start, k0, k1, k2, inlet], 50, 4);
+    // the bend at the top, a mandrel-bent piece welded in: from where the rise comes near it to where it leaves it
+    const near = (p: FwVec3, d: number) => c.pts.map((q, k) => [Math.hypot(q[0] - p[0], q[1] - p[1], q[2] - p[2]), k]).filter(([l]) => l < d).map(([, k]) => k);
+    const s0 = c.cum[Math.min(...near(k2, 70))];
+    const s1 = c.cum[Math.max(...near(k2, 70))];
 
-    // the straight run, along the bank, to where the elbow starts (its level eased to the flange's on the way)
-    for (let k = 1; k <= 24; k++) {
-      const t = k / 24;
-      const e = t * t * (3 - 2 * t);
-
-      pts.push(B(sb[0] + (ex - R - sb[0]) * t, sb[1] + (ey - sb[1]) * e, zRun));
-    }
-
-    // the elbow: a true quarter circle about (ex - R, zRun - R)
-    for (let k = 1; k <= 24; k++) {
-      const a = (k / 24) * (Math.PI / 2);
-
-      pts.push(B(ex - R + R * Math.sin(a), ey, zRun - R + R * Math.cos(a)));
-    }
-
-    // the stub, square into the flange
-    pts.push(B(ex, ey, ez));
-
-    const c = curveFromPoints(pts, 3);
-    const s0 = c.total - (zRun - R - ez) - (Math.PI / 2) * R;
-
-    COOL_ELBOW.push({ s0, s1: s0 + (Math.PI / 2) * R });
+    COOL_ELBOW.push({ s0, s1 });
+    void bank;
 
     return c;
   };
@@ -569,8 +550,8 @@ export function buildChargeCouplers(b: MeshBuilder) {
     const bi = CHARGE_PIPES.cool.indexOf(c);
     const { s0, s1 } = COOL_ELBOW[bi];
 
-    // its elbow is a mandrel-bent piece welded in: a bead where it starts and where it ends, and one more where the stub
-    // goes into the pipe's flange, on the distributor
+    // its U is a mandrel-bent piece welded in: a bead where it starts and where it ends, and one more where the pipe goes
+    // into the throttle's mouth, on the plenum
     weld(b, c, s0, COOL_R);
     weld(b, c, s1, COOL_R);
     weld(b, c, c.total - 2.2, COOL_R);

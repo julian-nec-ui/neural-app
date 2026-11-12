@@ -4,20 +4,24 @@ import { BANKS, CHAIN_X_WORLD, CT_X, FLYWHEEL_WORLD_X, HEAD_PORT_DZ, ORIENT, TAU
 import type { Bank } from "../core/constants";
 import { vadd, vcross, vnorm, vscale, vsub } from "../math/vec3";
 import type { FwVec3 } from "./builder";
-import { MAT_ALU_CAST, MAT_ALU_TURNED, MAT_EXH_GUNMETAL, MAT_HDR_BLUE, MAT_HDR_BRONZE, MAT_IRON, MAT_PIPE_BLACK, MAT_STEEL_BRIGHT, MAT_WELD } from "./materials";
+import { MAT_ALU_TURNED, MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE, MAT_EXH_GUNMETAL, MAT_HDR_BLUE, MAT_HDR_BRONZE, MAT_HDR_FLANGE, MAT_HEAT_SHIELD, MAT_INJ_BRASS, MAT_PIPE_BLACK, MAT_STEEL_BRIGHT, MAT_WELD } from "./materials";
+import { lobedPlate } from "./shapes";
+import type { P2 } from "./shapes";
 import { tintedStretches, weld } from "./plumbing";
-import { collar, curveFromPoints, flangeBolt, ovalFlare, roundedCurve, subCurve, sweepTube } from "./tubes";
+import { collar, curveAt, curveFromPoints, ovalFlare, roundedCurve, subCurve, sweepTube } from "./tubes";
 import type { Curve, MeshBuilder } from "./tubes";
 import { HDR_CX, HDR_CZ, HDR_MOUTH_Y, PORT_Y, TURBO, turboWorld } from "./turbo";
 import { INLET_FACING, INLET_MOUTH } from "./plumbing";
+import { IN_SIDE } from "./valvetrain";
 
-// ---- THE EXHAUST, IN THE V, OVER THE TOP TO TWO TURBOCHARGERS AT THE FRONT. Each bank's exhaust leaves the head on the
-// valley side. Its six ports lead into a bundle of six thick runners that rise beside the head's valley edge and run
-// forward over the top of the bank, stacked two by two, to its turbocharger at the front, ahead of the timing drive, at
-// the height of the cams; there they gather and drop into the turbine's cone from above. Each turbocharger is set in its
-// bank's own frame, so that it leans with the bank: its shaft across the bank, the turbine on the valley side under the
-// cone, the compressor on the intake side. The runners of the front cylinders, nearest the turbocharger, first loop back
-// and then forward, so that the six are nearer one length and their pulses reach the turbine more evenly. ----
+// ---- THE EXHAUST, ON THE OUTSIDE, FORWARD TO TWO TURBOCHARGERS AT THE FRONT (the cold V: the intake is in the V, on
+// top of it, plumbing.ts). Each bank's exhaust leaves the head on its outer side, as a naturally aspirated racing V8's
+// does. Its six ports lead into six runners that drop out and down beside the head into a collector low on the bank's
+// outer side; from there one pipe runs forward along the bank and, at the front, rises in an arch over its compressor
+// and comes down into the turbine's cone from above. Each turbocharger is set in its bank's own frame, so that it leans
+// with the bank: its shaft across the bank, the turbine on the valley side under the cone, the compressor on the outer
+// side. The runners of the front cylinders, nearest the turbocharger, run back to the collector first, so that the six
+// are nearer one length and their pulses reach the turbine more evenly. ----
 const TURBINE_B: FwVec3 = [CHAIN_X_WORLD - 150, -365, -40]; // the turbine's middle, in its bank's frame
 const DOWNPIPE_Y = 262; // the level of the exhaust's run back under the engine, and of the silencers and tails: one line
 export const TAIL_X = FLYWHEEL_WORLD_X + 140; // where they end, behind the flywheel
@@ -62,92 +66,80 @@ export const CONE_MOUTHS: FwVec3[] = MODULES.map((m) => modulePoint(m, INLET_MOU
 // and the way into each, in the engine's frame: forward, along the bank
 const MOUTH_IN: FwVec3[] = MODULES.map((m) => vnorm(vsub(modulePoint(m, vsub(INLET_MOUTH, vscale(INLET_FACING, 10))), modulePoint(m, INLET_MOUTH))));
 
-// A stub, in a bank's own frame: straight out of the port's flange, into the valley, where the runner goes on from it
-const STUB_END_Z = -122 - HEAD_PORT_DZ; // (the head's port face is HEAD_PORT_DZ out from where it was, the heads widened)
-export const exhaustStub = (cx: number) => curveFromPoints([[cx, PORT_Y, -104 - HEAD_PORT_DZ], [cx, PORT_Y, STUB_END_Z]], 3);
+// The exhaust's side of each head: the outer one, the intake's being the valley's (valvetrain.ts, IN_SIDE)
+const EX = -IN_SIDE;
 
-// ---- the runners: for each bank, its six, in the engine's frame, and the short collector they gather into ----
-const RUNNER_R = 19; // a runner's radius, along most of it
-const RUNNER_NECK = 12.5; // and at the port, where it is narrowed, as the port's throat is
-const NECK_LEN = 70; // how far along the runner it takes to open out to its full width
-const COLLECTOR_R = 30; // the collector's
-// A runner's radius at distance s along it: narrow at the port, opening out smoothly
-export const runnerRadius = (s: number) => {
-  const k = Math.min(1, Math.max(0, s / NECK_LEN));
+// The flange plates at the ports: their inner face on the head's port face, their outer face PLATE_T out from it; out of
+// each port a cone, the port's oval opening out to the round primary, FLARE_LEN long; the primary goes on from its end
+const PLATE_T = 14;
+const FACE = 97.4 + HEAD_PORT_DZ + PLATE_T; // the plates' outer face (drawn on the valley side, turned over)
+const FLARE_LEN = 24;
+const SZ = FACE + FLARE_LEN; // where the primary starts, straight out of its cone
 
-  return RUNNER_NECK + (RUNNER_R - RUNNER_NECK) * k * k * (3 - 2 * k);
-};
+// A stub, in a bank's own frame: straight out of the port, outward, to where the primary goes on from it
+const STUB_END_Z = EX * SZ;
+export const exhaustStub = (cx: number) => curveFromPoints([[cx, PORT_Y, EX * (104 + HEAD_PORT_DZ)], [cx, PORT_Y, STUB_END_Z]], 3);
+
+// ---- THE HEADERS, after a Formula 1 V12's (Honda's RA121E): on each bank six primaries, each from its own small flange
+// on its port, out, and in one long, smooth sweep down and forward, nested one inside the next: the front cylinder's,
+// nearest the collector, the shortest and highest, each one behind it dropping a little lower and running a little
+// further out, so that none crosses another. They come together, parallel, packed in two rows of three, into one
+// 6-into-1 collector at the front of the bank, and the collector's cone runs on into the one pipe that rises in a broad
+// arch onto the turbine's flange. Every pipe runs on from the one before it with no step: each goes in, a little way,
+// past the mouth of the collector it is welded into. Wrapped in embossed heat shield ----
+const PR = 25.5; // a primary's radius
+const MAIN_R = 43.5; // the one pipe's, on to the turbine
+export const runnerRadius = (_s: number) => PR;
+const GAP = 2 * PR + 1.6; // the primaries' axes, side by side in the bundle
+const ROW_Y = [PORT_Y + 126, PORT_Y + 126 + GAP]; // the bundle's two rows: the upper, the lower (in the bank's frame)
+const COL_Z = [200, 200 + GAP, 200 + 2 * GAP]; // and its three columns, from the head outward
+// each cylinder's place in the bundle: by pairs, front to rear, a column each, the rear one of each pair under the front
+const SLOT = CT_X.map((_, c) => ({ y: ROW_Y[c % 2], z: COL_Z[Math.floor(c / 2)] }));
+const YC = (ROW_Y[0] + ROW_Y[1]) / 2; // the collector's axis
+const ZC = COL_Z[1];
+const COLL_X = CT_X[0] - 50; // the collector's mouth, ahead of the front cylinder
+const COLL_R0 = Math.hypot(GAP, GAP / 2) + PR + 3; // round the six
+const COLL_LEN = 110; // its cone, from its mouth to the one pipe
+const INSET = 12; // how far each pipe goes on, past the mouth of the collector it is welded into
 
 export type BankRunners = {
-  runners: Curve[]; // by cylinder, front to rear, each from its stub's end into the collector
-  collectors: Curve[]; // the collector and the one pipe on from it, forward, into the cone
+  runners: Curve[]; // by cylinder: the whole way of its gas, from the stub to the one pipe (for the flow)
+  collectors: Curve[]; // the one pipe, from the collector into the turbine's flange
+  primaries: Curve[];
+  merges: Curve[]; // the 6-into-1 collector's cone
 };
 
-const MID = (CT_X[1] + CT_X[2]) / 2; // the collector's place along the bank: one cylinder toward the front, nearer the turbine
-const COLLECTOR_LEN = 120; // the collector's tapering body, from where the six come in to where the one pipe leaves
-const COLLECTOR_SWELL = 14; // how much fatter it is at its back, where the six come in, than the pipe
-
 export const EXHAUST_RUNNERS: BankRunners[] = BANKS.map((bank: Bank, bi: number) => {
-  const B = (x: number, y: number, z: number): FwVec3 => bankPoint(bank, x, y, z);
+  // a point of the bank's own frame, x as the cylinders' (the bank's shift along the engine added), z outward
+  const B = (x: number, y: number, z: number): FwVec3 => bankPoint(bank, x + bank.dx, y, EX * z);
   const mouth = CONE_MOUTHS[bi];
-  // the collector in the V, beside the bank's head and no higher than its top, pointing forward, as the pipes run: its
-  // back, where the six come in
-  const cy = -392;
-  const cz = -142;
-  const back: FwVec3 = [MID + bank.dx + COLLECTOR_LEN / 2, cy, cz];
-  const front: FwVec3 = [back[0] - COLLECTOR_LEN, cy, cz];
+  const inDir = MOUTH_IN[bi];
 
-  // the one pipe: from the collector straight forward along the bank; near the turbine it rises in an arch, over, and
-  // comes down in an arch, square onto the turbine's level flange
-  const inDir = MOUTH_IN[bi]; // down, into the flange
-  const inv = bank.mInv;
-  const mb: FwVec3 = [mouth[0], inv[4] * mouth[1] + inv[7] * mouth[2], inv[5] * mouth[1] + inv[8] * mouth[2]];
-  const A = B(mb[0] + 190, cy, cz);
-  const P1 = B(mb[0] + 70, cy - 70, cz);
-  const P2 = vadd(mouth, vscale(inDir, -170));
-  const arch: FwVec3[] = [];
+  const primaries = CT_X.map((x, c) => {
+    const { y, z } = SLOT[c];
+    // out of its cone, then down, and over in one sweep, out to its column, forward along the bundle
+    const pts: FwVec3[] = [B(x, PORT_Y, SZ), B(x, PORT_Y, SZ + 30), B(c === 0 ? COLL_X + 40 : x - 85, y, z), B(COLL_X - INSET, y, z)];
 
-  for (let k = 1; k <= 40; k++) {
-    const t = k / 40;
-    const w = [(1 - t) ** 3, 3 * (1 - t) ** 2 * t, 3 * (1 - t) * t * t, t ** 3];
-
-    arch.push([0, 1, 2].map((j) => A[j] * w[0] + P1[j] * w[1] + P2[j] * w[2] + mouth[j] * w[3]) as FwVec3);
-  }
-
-  const run = roundedCurve([B(back[0], cy, cz), B(front[0], cy, cz), A], 60, 3);
-  const pipe = curveFromPoints([...run.pts, ...arch], 3);
-
-  // where each of the six comes into the collector's back: a ring of six round its middle
-  const entry = (i: number): FwVec3 => {
-    const a = (i / 6) * TAU + 0.5;
-
-    return [back[0] + 4, cy + 34 * Math.cos(a), cz + 34 * Math.sin(a)];
-  };
-
-  // Each runner rises from its port and runs along a lane of its own in the V, beside the head and never above its top,
-  // toward the collector, and comes into it from behind. The two in front of it run back past it on lanes close to the
-  // head; the rear four come forward on lanes further out in the V, two by two.
-  const runners = CT_X.map((x0, i) => {
-    const cx = x0 + bank.dx;
-    const front = i < 2;
-    const laneZ = front ? -116 : -140 - 34 * (i % 2);
-    const laneY = front ? -386 - 42 * i : -380 - 40 * Math.floor((i - 2) / 2);
-    const e = entry(i);
-    const behind = back[0] + 45 + 10 * i; // where each turns into the collector, behind it
-    const s0 = B(cx, PORT_Y, STUB_END_Z);
-    const p1: FwVec3 = [cx, PORT_Y - 6, STUB_END_Z - 44];
-    const toward = Math.sign(behind - cx) || -1; // the way to the collector
-    const pts: FwVec3[] = [s0, B(p1[0], p1[1], p1[2])];
-
-    // up out of the port and, in one easy S, on toward the collector at once: no way out and back first
-    if (Math.abs(behind - cx) > 150) pts.push(B(cx + toward * 70, laneY, laneZ));
-
-    pts.push(B(behind, laneY, laneZ), B(behind - 30, e[1] + (laneY - e[1]) * 0.25, e[2]), B(e[0] + 30, e[1], e[2]), B(e[0], e[1], e[2]));
-
-    return roundedCurve(pts, 38, 3);
+    return roundedCurve(pts, c === 0 ? 40 : 85, 4);
   });
 
-  return { runners, collectors: [pipe] };
+  const merges = [curveFromPoints([B(COLL_X, YC, ZC), B(COLL_X - COLL_LEN, YC, ZC)], 3)];
+
+  // the one pipe: straight on out of the collector a little way, then up in a broad arch over the compressor, and down
+  // square onto the turbine's flange: every bend round, the pipe running on from the collector with no step
+  const inv = bank.mInv;
+  const mb: FwVec3 = [mouth[0] - bank.dx, inv[4] * mouth[1] + inv[7] * mouth[2], inv[5] * mouth[1] + inv[8] * mouth[2]];
+  const x0 = COLL_X - COLL_LEN;
+  const main = roundedCurve([
+    B(x0 + INSET, YC, ZC),
+    B(x0 - 30, YC, ZC),
+    B(Math.min(x0 - 40, mb[0] + 60), -540, (EX * mb[2] + ZC) / 2 + 30),
+    vadd(mouth, vscale(inDir, -130)),
+    mouth,
+  ], 70, 4);
+  const runners = primaries.map((p) => curveFromPoints([...p.pts, ...merges[0].pts, main.pts[0]], 4));
+
+  return { runners, collectors: [main], primaries, merges };
 });
 
 // The exhaust: each turbine has its own pipe, all the way to its own silencer (an oval box, as a car's has), and on, out
@@ -275,67 +267,68 @@ function buildMufflers(b: MeshBuilder) {
   }
 }
 
+// A smooth swell from r0 down to r1 along a body of length L
+const swell = (r0: number, r1: number) => (u: number) => {
+  const k = Math.min(1, Math.max(0, u));
+
+  return r1 + (r0 - r1) * (1 - k * k * (3 - 2 * k));
+};
+
+// The primaries, wrapped in heat shield
 export function buildExhaustLogs(b: MeshBuilder) {
   for (const bank of EXHAUST_RUNNERS) {
-    for (const runner of bank.runners) {
-      const t = runner.total;
-      const base = () => MAT_ALU_CAST; // grey metal, as the intake's runners are
-
-      for (const [s0, s1, mat] of tintedStretches(0, t, [], base)) {
-        sweepTube(b, subCurve(runner, s0, s1, 3), (q) => runnerRadius(s0 + q * (s1 - s0)), mat, { segments: 28 });
-      }
-
-      collar(b, runner, 3, RUNNER_NECK, RUNNER_NECK + 6, 6, MAT_IRON, MAT_IRON);
-
-      // a weld where the runner meets the collector, standing proud, with the colours of heat beside it
-      weld(b, runner, t - 3, RUNNER_R, SEEN);
-    }
-
+    for (const p of bank.primaries) sweepTube(b, p, () => PR, MAT_HEAT_SHIELD, { segments: 30 });
   }
 }
 
-// The collector and the one pipe from it into the turbine's cone: drawn see-through, one grey metal, as the intake's
-// pipes are, with no colours of heat
+// The collector and the one pipe on into the turbine: wrapped in heat shield too
 export function buildTurboFeed(b: MeshBuilder) {
   for (const bank of EXHAUST_RUNNERS) {
-    // the collector: a fat, tapering body where the six come in, then the one pipe on into the cone
-    for (const c of bank.collectors) {
-      const body = (q: number) => {
-        const k = Math.min(1, q / COLLECTOR_LEN);
-
-        return COLLECTOR_R + COLLECTOR_SWELL * (1 - k * k * (3 - 2 * k));
-      };
-
-      sweepTube(b, c, (u) => body(u * c.total), MAT_ALU_CAST, { segments: 36, capStart: true });
-      // the collector's back: a plate the six are welded into, a weld round its edge, and one where it narrows to the pipe
-      collar(b, c, 4, COLLECTOR_R + COLLECTOR_SWELL - 1, COLLECTOR_R + COLLECTOR_SWELL + 5, 9, MAT_IRON, MAT_IRON);
-      weld(b, c, 10, COLLECTOR_R + COLLECTOR_SWELL - 0.5, SEEN);
-      weld(b, c, COLLECTOR_LEN - 2, COLLECTOR_R + 0.5, SEEN);
-      collar(b, c, COLLECTOR_LEN + 6, COLLECTOR_R, COLLECTOR_R + 5, 7, MAT_STEEL_BRIGHT, MAT_STEEL_BRIGHT);
-      collar(b, c, c.total - 18, COLLECTOR_R, COLLECTOR_R + 5, 7, MAT_STEEL_BRIGHT, MAT_STEEL_BRIGHT);
-    }
+    for (const m of bank.merges) sweepTube(b, m, swell(COLL_R0, MAIN_R), MAT_HEAT_SHIELD, { segments: 64, capStart: true });
+    sweepTube(b, bank.collectors[0], () => MAIN_R, MAT_HEAT_SHIELD, { segments: 40 });
   }
 }
 
-// Where the runners meet the collector, solid, so that it shows from every side: each runner opens out in a short cone
-// as it comes into the collector's back, a weld bead where the cone starts and one where it meets the plate
-const ENTRY_CONE = 36;
+// An oxygen sensor's bung, welded on a pipe at s and standing out of it toward `out`: a round boss, and the sensor's hex
+// and body screwed in (or its plug)
+function o2Bung(b: MeshBuilder, pipe: Curve, s: number, r: number, out: FwVec3, sensor: boolean) {
+  const at: FwVec3 = [0, 0, 0];
+  const dir: FwVec3 = [0, 0, 0];
 
+  curveAt(pipe, s, at, dir);
+
+  const d = vnorm(vsub(out, vscale(dir, out[0] * dir[0] + out[1] * dir[1] + out[2] * dir[2])));
+  const e1 = vnorm(vcross(d, Math.abs(d[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0]));
+  const e2 = vcross(d, e1);
+  const base = vadd(at, vscale(d, r - 4));
+
+  b.prismDir(base, d, e1, e2, 9, 10, 24, 0, MAT_HDR_FLANGE, MAT_HDR_FLANGE);
+  b.prismDir(vadd(base, vscale(d, 10)), d, e1, e2, 7.4, 1.2, 20, 0, MAT_PIPE_BLACK, MAT_PIPE_BLACK);
+  b.prismDir(vadd(base, vscale(d, 11.2)), d, e1, e2, 7.2, 6, 6, 0.3, MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE);
+
+  if (sensor) {
+    const top = vadd(base, vscale(d, 17.2));
+
+    b.prismDir(top, d, e1, e2, 4.8, 22, 16, 0, MAT_PIPE_BLACK, MAT_PIPE_BLACK);
+    sweepTube(b, roundedCurve([vadd(top, vscale(d, 22)), vadd(top, vscale(d, 34)), vadd(vadd(top, vscale(d, 40)), vscale(dir, 30))], 10, 3), () => 1.6, MAT_PIPE_BLACK, { segments: 8, capEnd: true });
+  }
+}
+
+// Solid on every view: the welds where the pipes meet, the oxygen sensors' bungs
 export function buildManifoldWelds(b: MeshBuilder) {
-  for (const bank of EXHAUST_RUNNERS) {
-    for (const runner of bank.runners) {
-      const t = runner.total;
+  for (const [bi, bank] of EXHAUST_RUNNERS.entries()) {
+    const bk = BANKS[bi];
+    const out = vnorm(vsub(bankPoint(bk, 0, -0.35, EX), bankPoint(bk, 0, 0, 0)));
 
-      sweepTube(b, subCurve(runner, t - ENTRY_CONE, t, 2), (u) => RUNNER_R + 9 * u * u, MAT_ALU_TURNED, { segments: 28 });
-      weld(b, runner, t - ENTRY_CONE, RUNNER_R, SEEN);
-      weld(b, runner, t - 2.5, RUNNER_R + 9, SEEN);
-    }
+    // where each pipe goes into the mouth of the cone it is welded into, and where each cone runs into its pipe
+    for (const p of bank.primaries) weld(b, p, p.total - INSET, PR);
+    for (const m of bank.merges) weld(b, m, COLL_LEN - 2, MAIN_R);
 
-    // the collector's back plate, and the weld round its edge, solid too
-    const c = bank.collectors[0];
+    // and on the one pipe: a sensor, and a second bung beside it, plugged
+    const main = bank.collectors[0];
 
-    collar(b, c, 2, COLLECTOR_R + COLLECTOR_SWELL - 2, COLLECTOR_R + COLLECTOR_SWELL + 6, 5, MAT_IRON, MAT_IRON);
-    weld(b, c, 7, COLLECTOR_R + COLLECTOR_SWELL, SEEN);
+    o2Bung(b, main, 50, MAIN_R, out, true);
+    o2Bung(b, main, 96, MAIN_R, out, false);
   }
 }
 
@@ -376,58 +369,84 @@ export function buildTurbineArc(b: MeshBuilder) {
   }
 }
 
-// The stubs: from each port's flange to the log
+// The stubs: from each port to the primary, wrapped as it is
 export function buildExhaustStubs(b: MeshBuilder) {
   for (const cx of CT_X) {
-    sweepTube(b, exhaustStub(cx), () => RUNNER_NECK + 1, MAT_ALU_CAST, { segments: 24 });
+    sweepTube(b, exhaustStub(cx), () => PR - 1, MAT_HEAT_SHIELD, { segments: 28 });
   }
 }
 
-// The welds on the exhaust's pipes show only their upper half, the half that is seen: the other half, behind the pipe, is
-// left out, so that it does not show through the see-through pipes as a cut section
-const SEEN: FwVec3 = [0, -1, 0];
-
-const FLARE_LEN = 26; // the cone out of each flange
-const FLARE_OVAL = { x: 24, y: 16 }; // the oval it starts from, at the flange's face: the port's shape
+const FLARE_OVAL = { x: 30, y: 23 }; // the oval the cone starts from, at the flange's face: the port's shape
 
 function portFlare(b: MeshBuilder, cx: number) {
-  const z0 = -105.6 - HEAD_PORT_DZ;
-  const rEnd = RUNNER_NECK + 1;
+  const z0 = -FACE;
 
-  ovalFlare(b, cx, PORT_Y, z0, -FLARE_LEN, FLARE_OVAL.x, FLARE_OVAL.y, rEnd, MAT_ALU_TURNED);
+  ovalFlare(b, cx, PORT_Y, z0, -FLARE_LEN - 1, FLARE_OVAL.x, FLARE_OVAL.y, PR, MAT_HEAT_SHIELD);
 
   // the bead along the oval at the face: TIG ripples
   const ring: FwVec3[] = [];
 
-  for (let i = 0; i <= 60; i++) {
-    const th = Math.PI + (i / 60) * Math.PI; // the upper half only: the half that shows
+  for (let i = 0; i <= 96; i++) {
+    const th = (i / 96) * TAU;
 
-    ring.push([cx + (FLARE_OVAL.x + 0.6) * Math.cos(th), PORT_Y + (FLARE_OVAL.y + 0.6) * Math.sin(th), z0 - 1.4]);
+    ring.push([cx + (FLARE_OVAL.x + 0.8) * Math.cos(th), PORT_Y + (FLARE_OVAL.y + 0.8) * Math.sin(th), z0 - 1.6]);
   }
 
   const bead = curveFromPoints(ring, 1.2);
 
-  sweepTube(b, bead, (u) => 1.7 + 0.42 * Math.sin((u * bead.total) / 3.1 * TAU), MAT_WELD, { segments: 8 });
-  weld(b, curveFromPoints([[cx, PORT_Y, z0 - FLARE_LEN + 4], [cx, PORT_Y, z0 - FLARE_LEN - 4]], 1), 4, rEnd, SEEN);
+  sweepTube(b, bead, (u) => 2.1 + 0.5 * Math.sin((u * bead.total) / 3.4 * TAU), MAT_WELD, { segments: 8 });
 }
 
-// The flanges at the ports: a stadium of cast iron, with two studs and nuts, and a gasket behind it
-export function buildExhaustFlanges(b: MeshBuilder) {
-  for (const cx of CT_X) {
-    b.box(cx - 21, cx + 21, PORT_Y - 19.5, PORT_Y + 19.5, -105.6 - HEAD_PORT_DZ, -97.4 - HEAD_PORT_DZ, MAT_EXH_GUNMETAL);
+// A port's own flange, as on the Formula 1 engine: a small, thick plate, a rounded oblong round the port, with an ear at
+// each upper corner for its two studs
+function portFlange(x: number): { outline: P2[]; bolts: P2[] } {
+  const hw = 40; // its half width, along the head
+  const hh = 31; // its half height
+  const rc = 14; // its corners' rounding
+  const ears: Array<[number, number]> = [[x - 33, PORT_Y - 22], [x + 33, PORT_Y - 22]];
+  const pts: P2[] = [];
 
-    for (const sx of [-21, 21]) {
-      b.prismDir([cx + sx, PORT_Y, -97.4 - HEAD_PORT_DZ], [0, 0, -1], [1, 0, 0], [0, 1, 0], 19.5, 8.2, 28, 0, MAT_EXH_GUNMETAL, MAT_EXH_GUNMETAL);
+  for (const [cx, cy, a0] of [[hw - rc, hh - rc, 0], [-(hw - rc), hh - rc, Math.PI / 2], [-(hw - rc), -(hh - rc), Math.PI], [hw - rc, -(hh - rc), Math.PI * 1.5]] as Array<[number, number, number]>) {
+    // at the two upper corners, the ears: rounder, standing out a little
+    const ear = cy < 0;
+    const r = ear ? rc + 4 : rc;
+
+    for (let k = 0; k <= 10; k++) {
+      const a = a0 + (k / 10) * (Math.PI / 2);
+
+      pts.push([x + cx + r * Math.cos(a) + (ear ? Math.sign(cx) * 2 : 0), PORT_Y + cy + r * Math.sin(a) - (ear ? 2 : 0)]);
     }
-
-    b.prismDir([cx, PORT_Y, -97.2 - HEAD_PORT_DZ], [0, 0, 1], [1, 0, 0], [0, 1, 0], 2, 0.2, 4, 0, MAT_PIPE_BLACK, MAT_PIPE_BLACK);
-
-    // where the pipe comes out of the flange, solid: a cone that starts as an oval, the port's own shape, at the
-    // flange's face, and narrows to the round pipe, with a weld bead along the oval against the face and another where
-    // the cone ends
-    portFlare(b, cx);
-
-    // two bolts, through the flange's two holes, into the head
-    for (const sx of [-33, 33]) flangeBolt(b, [cx + sx, PORT_Y, -105.6 - HEAD_PORT_DZ], [0, 0, -1], 5.6, 0.25 * Math.sign(sx));
   }
+
+  return { outline: pts, bolts: ears };
 }
+
+export function buildExhaustFlanges(b: MeshBuilder) {
+  // (drawn as on the valley side, and turned over, square across the bank, on to the exhaust's side)
+  const flip = EX > 0;
+
+  for (const x of CT_X) {
+    const { outline, bolts } = portFlange(x);
+
+    // the plate: built facing +z, from the head out, turned so that its face is toward -z
+    b.setTurn((p, n) => {
+      const z = -(FACE - PLATE_T) - p[2];
+
+      return [[p[0], p[1], flip ? -z : z], [n[0], n[1], flip ? n[2] : -n[2]]];
+    });
+    lobedPlate(b, outline, 0, PLATE_T, 2.2, MAT_HDR_FLANGE);
+    b.setTurn(flip ? (p, n) => [[p[0], p[1], -p[2]], [n[0], n[1], -n[2]]] : null);
+
+    // its two studs: a brass nut on each, as on the photograph's
+    for (const [bx, by] of bolts) {
+      b.prismDir([bx, by, -FACE], [0, 0, -1], [1, 0, 0], [0, 1, 0], 8.2, 1.2, 20, 0, MAT_STEEL_BRIGHT, MAT_STEEL_BRIGHT);
+      b.prismDir([bx, by, -FACE - 1.2], [0, 0, -1], [1, 0, 0], [0, 1, 0], 6.6, 6.5, 6, 0.3 * bx, MAT_INJ_BRASS, MAT_INJ_BRASS);
+      b.prismDir([bx, by, -FACE - 7.7], [0, 0, -1], [1, 0, 0], [0, 1, 0], 3.2, 3, 14, 0, MAT_STEEL_BRIGHT, MAT_STEEL_BRIGHT);
+    }
+  }
+
+  for (const cx of CT_X) portFlare(b, cx);
+
+  b.setTurn(null);
+}
+  

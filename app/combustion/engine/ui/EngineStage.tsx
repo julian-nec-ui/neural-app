@@ -397,12 +397,28 @@ export function EngineStage() {
       return Math.hypot(a.x - b.x, a.y - b.y);
     };
 
+    // a double tap on a touch screen does what a double click does (touch screens do not always send one)
+    let lastTap = { t: 0, x: 0, y: 0 };
+    let lastTapDone = -1e9;
+
     const onDown = (event: PointerEvent) => {
       frameEl.setPointerCapture(event.pointerId);
       pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
       camera.setDragging(true);
 
       if (pointers.size === 2) pinch = spread();
+
+      if (event.pointerType === "touch" && pointers.size === 1) {
+        const now = performance.now();
+
+        if (now - lastTap.t < 320 && Math.hypot(event.clientX - lastTap.x, event.clientY - lastTap.y) < 30) {
+          camera.nextView();
+          lastTapDone = now;
+          lastTap = { t: 0, x: 0, y: 0 };
+        } else {
+          lastTap = { t: now, x: event.clientX, y: event.clientY };
+        }
+      }
     };
 
     const onMove = (event: PointerEvent) => {
@@ -439,7 +455,10 @@ export function EngineStage() {
     };
 
     // A double click steps through the views, in the buttons' order (the button of the view shown is lit)
-    const onDouble = () => {
+    const onDouble = (event: MouseEvent) => {
+      // (on a touch screen the double tap has done it already)
+      if ((event as PointerEvent).pointerType === "touch" || performance.now() - lastTapDone < 400) return;
+
       camera.nextView();
     };
 
@@ -478,6 +497,7 @@ export function EngineStage() {
   return (
     <div
       ref={frameRef}
+      className="ak-stage"
       style={{
         position: "relative",
         width: "100%",

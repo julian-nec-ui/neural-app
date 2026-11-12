@@ -460,7 +460,8 @@ export function createEngineRenderer(
           gl.polygonOffset(0, -((CAM_NEAR_DEPTH * 7) / (dist * dist)) * 16777216);
         }
 
-        ghostInBank(bank, bankPart(bank, "headText"), 1);
+        // (the signature and the firing order: on the solid engine only, taken away on the see-through one)
+        if (!SCENE_OPTIONS.seeThrough) ghostInBank(bank, bankPart(bank, "headText"), 1);
 
         if (headSolid) gl.disable(gl.POLYGON_OFFSET_FILL);
       }

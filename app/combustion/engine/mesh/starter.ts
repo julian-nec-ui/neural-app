@@ -6,11 +6,19 @@ import { vcross, vnorm, vsub } from "../math/vec3";
 import type { FwMaterial, FwVec3 } from "./builder";
 import {
   MAT_ALU_CAST, MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE, MAT_INJ_BRASS, MAT_STEEL_BRIGHT, MAT_ST_BLACKPL, MAT_ST_BRONZE,
-  MAT_ST_CABLE, MAT_ST_COMM, MAT_ST_COPPER, MAT_ST_CUT, MAT_ST_ENAMEL, MAT_ST_LAM, MAT_ST_MICA, MAT_ST_PINION,
+  MAT_ST_CABLE, MAT_ST_COMM, MAT_ST_COPPER, MAT_ST_COPPER_DEEP, MAT_ST_CUT, MAT_ST_ENAMEL, MAT_ST_LAM, MAT_ST_MICA, MAT_ST_PINION,
   MAT_ST_PLASTIC, MAT_ST_RUBBER, MAT_ST_SOL, MAT_ST_TOOTH, MAT_ST_YOKE, MAT_ST_YOKE_IN, MAT_VT_SPRING, MAT_WASHER,
   MAT_ALU_TURNED, MAT_ST_SENSOR_MAG, MAT_ST_SENSOR_MAG2, MAT_ST_PCB,
   MAT_ST_TRACE, MAT_ST_IC, MAT_ST_SMD, MAT_ST_LEAD_U, MAT_ST_LEAD_V, MAT_ST_LEAD_W,
+  MAT_BENDIX,
+  MAT_BENDIX_DEEP,
+  MAT_FIN_GREY_CREST,
+  MAT_FIN_LIGHT,
+  MAT_FIN_LIGHT_CREST,
+  MAT_FIN_LIGHT_ROOT,
+  MAT_FIN_GREY,
 } from "./materials";
+import { finSection } from "./plenum";
 import { PINION_TOOTH, ST_D, ST_TEETH } from "./gearing";
 import { annulus, curveFromPoints, roundedCurve, sweepTube } from "./tubes";
 import type { MeshBuilder } from "./tubes";
@@ -201,6 +209,24 @@ export const ST_PIV_A = 100;
 export const ST_PIV_Q = -71.6;
 export const ST_PHI_MAX = 0.4537; // how far the fork turns, 26 degrees
 const ST_POLES = 8; // the speed sensor magnet's poles
+// The motor is made longer than it was drawn: everything between ST_STRETCH.a0 and a1 along the axis (the yoke, the stator
+// and rotor, the solenoid) is drawn ST_STRETCH.k times as long, and everything behind it moved back with it
+export const ST_STRETCH = { a0: 130, a1: 270, k: 1.4 };
+export const stA = (a: number) => {
+  const { a0, a1, k } = ST_STRETCH;
+
+  return a <= a0 ? a : a <= a1 ? a0 + (a - a0) * k : a + (a1 - a0) * (k - 1);
+};
+// the stretch, as a turn for the builder: positions along the axis remapped, normals tilted to suit
+export const stretchTurn = (p: FwVec3, n: FwVec3): [FwVec3, FwVec3] => {
+  const { a0, a1, k } = ST_STRETCH;
+  const inside = p[0] > a0 && p[0] < a1;
+  const nx = inside ? n[0] / k : n[0];
+  const l = Math.hypot(nx, n[1], n[2]) || 1;
+
+  return [[stA(p[0]), p[1], p[2]], [nx / l, n[1] / l, n[2] / l]];
+};
+
 const ST_SLOTS = 24; // the stator's slots, all round
 const ST_BARS = 22; // the rotor cage's bars
 // the induction motor: its rotor's stack, its bars' and its rings' radius; the stator's stack, its bore, the bottom of its
@@ -289,11 +315,11 @@ function pinionTeeth(b: MeshBuilder, a0: number, a1: number) {
 // ---- the pinion, with the clutch's hub and its six rollers: it turns at the ring gear's pace ----
 export function buildStarterPinion(b: MeshBuilder) {
   pinionTeeth(b, -11, 8);
-  annulus(b, [-11.2, 0, 0], [-1, 0, 0], 11, 12.8, MAT_ST_BRONZE, 28);
+  annulus(b, [-11.8, 0, 0], [-1, 0, 0], 11, 12.8, MAT_ST_BRONZE, 28);
 
   // the hub, with six shallow pockets for the rollers
-  b.revolve({ x0: 8, r0: 17.5, x1: 16, r1: 17.5, n: [0, 1], m: MAT_ST_PINION, steps: 36 });
-  toothedDisc(b, 16, 56, 0, 0, 17.5, 15.2, 6, 1.0, 0.82, MAT_ST_PINION, MAT_ST_PINION, MAT_STEEL_BRIGHT);
+  b.revolve({ x0: 8, r0: 17.5, x1: 16, r1: 17.5, n: [0, 1], m: MAT_BENDIX, steps: 72 });
+  toothedDisc(b, 16, 56, 0, 0, 17.5, 15.2, 6, 1.0, 0.82, MAT_BENDIX, MAT_BENDIX, MAT_BENDIX);
 
   for (let k = 0; k < 6; k++) {
     const th = ((k + 0.5) * Math.PI) / 3;
@@ -307,31 +333,54 @@ export function buildStarterPinion(b: MeshBuilder) {
 }
 
 // ---- the drive: the clutch's shell, its spring, and the collar the fork pushes; it turns with the shaft and slides along it ----
-export function buildStarterDrive(b: MeshBuilder) {
-  arcBand(b, 16, 60, [24.5, 24.5], [29, 29], 0, ST_HALF, 0, 0, MAT_STEEL_BRIGHT, MAT_ST_YOKE_IN, MAT_ST_CUT);
-  arcBand(b, 14, 18, [17.6, 17.6], [29, 29], 0, ST_HALF, 0, 0, MAT_STEEL_BRIGHT, MAT_ST_YOKE_IN, MAT_ST_CUT, 24);
-  arcBand(b, 56, 62, [11.2, 11.2], [29, 29], 0, ST_HALF, 0, 0, MAT_STEEL_BRIGHT, MAT_ST_YOKE_IN, MAT_ST_CUT, 24);
+// the clutch's shell, from t0 round to t1, with its knurl
+function driveShell(b: MeshBuilder, t0: number, t1: number) {
+  // cooling fins along it, as on the nose round it
+  noseFins(b, t0, t1, () => 30, DRIVE_FINS);
+
+  arcBand(b, 16, 60, [24.5, 24.5], [29, 29], t0, t1, 0, 0, MAT_BENDIX, MAT_ST_YOKE_IN, MAT_ST_CUT);
+  arcBand(b, 14, 18, [17.6, 17.6], [29, 29], t0, t1, 0, 0, MAT_BENDIX, MAT_ST_YOKE_IN, MAT_ST_CUT, 24);
+  arcBand(b, 56, 62, [11.2, 11.2], [29, 29], t0, t1, 0, 0, MAT_BENDIX, MAT_ST_YOKE_IN, MAT_ST_CUT, 24);
 
   // the knurl on the shell
   for (let k = 0; k < 14; k++) {
-    const t = 0.12 + (k * (Math.PI - 0.24)) / 13;
+    const t = t0 + 0.12 + (k * (t1 - t0 - 0.24)) / 13;
 
-    arcBand(b, 18, 56, [29, 29], [30, 30], t - 0.035, t + 0.035, 0, 0, MAT_ST_PINION, MAT_ST_PINION, MAT_ST_PINION, 2);
+    arcBand(b, 18, 56, [29, 29], [30, 30], t - 0.035, t + 0.035, 0, 0, MAT_BENDIX, MAT_BENDIX, MAT_BENDIX, 2);
   }
+}
+
+// ---- the other half of the clutch's shell, the half the cut takes away: drawn only on the plain, solid engine, so that the
+// drive is whole and closed there, and nothing open on it seems to move as the view turns ----
+export function buildStarterDriveShell(b: MeshBuilder) {
+  driveShell(b, ST_HALF, TAU);
+
+  // and a plain, smooth sleeve over the whole clutch, its knurl and its spring, up to the collar: their fine ribs and
+  // the spring's coil, seen as the view turns, looked as if they were spinning (a barber's pole); a smooth drum does not
+  b.revolve({ x0: 14.4, r0: 30.4, x1: 97.4, r1: 30.4, n: [0, 1], m: MAT_BENDIX, steps: 72 });
+  annulus(b, [14.4, 0, 0], [-1, 0, 0], 17.4, 30.4, MAT_BENDIX, 72);
+  annulus(b, [97.4, 0, 0], [1, 0, 0], 25.6, 30.4, MAT_BENDIX, 72);
+  // and the fins along the whole sleeve, all round
+  noseFins(b, 0, TAU, () => 30.4, { ...DRIVE_FINS, a1: 94 });
+}
+
+export function buildStarterDrive(b: MeshBuilder) {
+  driveShell(b, 0, ST_HALF);
 
   // the spring between the shell and the collar, on its two seats
-  annulus(b, [62, 0, 0], [1, 0, 0], 12, 25, MAT_WASHER, 32);
+  annulus(b, [62.8, 0, 0], [1, 0, 0], 12, 25, MAT_WASHER, 32);
   coilAlong(b, [64, 0, 0], [94, 0, 0], 20, 2.2, 7, MAT_VT_SPRING);
   annulus(b, [96, 0, 0], [-1, 0, 0], 12, 25, MAT_WASHER, 32);
 
-  // the collar, its groove, and a thrust ring behind it
-  b.revolve({ x0: 98, r0: 26, x1: 98, r1: 30, n: [-1, 0], m: MAT_STEEL_BRIGHT, steps: 36 });
-  b.revolve({ x0: 98, r0: 30, x1: 103, r1: 30, n: [0, 1], m: MAT_STEEL_BRIGHT, steps: 36 });
-  b.revolve({ x0: 103, r0: 30, x1: 106, r1: 24, n: [0.89, 0.45], m: MAT_STEEL_BRIGHT, steps: 36 });
-  b.revolve({ x0: 106, r0: 24, x1: 109, r1: 30, n: [-0.89, 0.45], m: MAT_STEEL_BRIGHT, steps: 36 });
-  b.revolve({ x0: 109, r0: 30, x1: 114, r1: 30, n: [0, 1], m: MAT_STEEL_BRIGHT, steps: 36 });
-  b.revolve({ x0: 114, r0: 26, x1: 114, r1: 30, n: [1, 0], m: MAT_STEEL_BRIGHT, steps: 36 });
-  annulus(b, [114.2, 0, 0], [1, 0, 0], 11.5, 26, MAT_ST_BRONZE, 32);
+  // the collar, its groove, and a thrust ring behind it: grey metal with a fine sandpaper grit, matte, no polished bands
+  // that seem to run round it as the view turns
+  b.revolve({ x0: 98, r0: 26, x1: 98, r1: 30, n: [-1, 0], m: MAT_BENDIX, steps: 72 });
+  b.revolve({ x0: 98, r0: 30, x1: 103, r1: 30, n: [0, 1], m: MAT_BENDIX, steps: 72 });
+  b.revolve({ x0: 103, r0: 30, x1: 106, r1: 24, n: [0.89, 0.45], m: MAT_BENDIX, steps: 72 });
+  b.revolve({ x0: 106, r0: 24, x1: 109, r1: 30, n: [-0.89, 0.45], m: MAT_BENDIX, steps: 72 });
+  b.revolve({ x0: 109, r0: 30, x1: 114, r1: 30, n: [0, 1], m: MAT_BENDIX, steps: 72 });
+  b.revolve({ x0: 114, r0: 26, x1: 114, r1: 30, n: [1, 0], m: MAT_BENDIX, steps: 72 });
+  annulus(b, [114.9, 0, 0], [1, 0, 0], 11.5, 26, MAT_BENDIX_DEEP, 32); // (clear of the collar's face, so that the two do not flicker)
 }
 
 // ---- the shaft with the outer rotor and its sensor magnet: it turns ----
@@ -513,6 +562,59 @@ export function buildStarterFork(b: MeshBuilder) {
   for (const sg of [-1, 1]) annulus(b, F3(106, sg * 9.2, ST_SQ), N3(0, sg, 0), 4.4, 6.2, MAT_WASHER, 16);
 }
 
+type FinSet = { count: number; a0: number; a1: number; t: number; h: number };
+
+const NOSE_FINS: FinSet = { count: 22, a0: 18, a1: 108, t: 4.2, h: 7.5 };
+// the same fins on the bendix's drum, smaller, as it is: along its clutch's shell (and, on the solid engine, the sleeve)
+// and on the solenoid, the coil that throws the bendix forward: the same fins along its case, all round its own axis
+const SOLENOID_FINS: FinSet = { count: 20, a0: 136, a1: 302, t: 7.6, h: 3.6 };
+const DRIVE_FINS: FinSet = { count: 18, a0: 18, a1: 56, t: 3.4, h: 5.5 };
+
+function noseFins(b: MeshBuilder, t0: number, t1: number, noseR: (a: number) => number, F: FinSet = NOSE_FINS, cq = 0, light = false) {
+  // the solenoid's in a lighter, brighter metal
+  const tone = (m: FwMaterial) => (!light ? m : m === MAT_FIN_GREY ? MAT_FIN_LIGHT : m === MAT_FIN_GREY_CREST ? MAT_FIN_LIGHT_CREST : MAT_FIN_LIGHT_ROOT);
+  const n = 30;
+  const NOSE_FINS = F;
+
+  for (let f = 0; f < NOSE_FINS.count; f++) {
+    const t = ((f + 0.5) / NOSE_FINS.count) * TAU;
+
+    if (t < t0 || t >= t1) continue;
+
+    const rows: Array<Array<{ p: FwVec3; n: FwVec3; m: FwMaterial }>> = [];
+
+    for (let k = 0; k <= n; k++) {
+      const a = NOSE_FINS.a0 + ((NOSE_FINS.a1 - NOSE_FINS.a0) * k) / n;
+      const ends = Math.min(1, (a - NOSE_FINS.a0) / 10, (NOSE_FINS.a1 - a) / 10);
+      const e = Math.sqrt(Math.max(0, ends));
+      const h = Math.max(0.4, NOSE_FINS.h * e);
+      const w = NOSE_FINS.t * (0.6 + 0.4 * e);
+      const p0 = onAxis(a, noseR(a) - 0.6, t);
+
+      p0[2] += cq; // (about the solenoid's own axis, when it is the solenoid's)
+      const nn = radialAt(t);
+      const side = tangentAt(t);
+
+      rows.push(finSection(w, h).map((q) => ({
+        p: [p0[0], p0[1] + side[1] * q.p[0] + nn[1] * q.p[1], p0[2] + side[2] * q.p[0] + nn[2] * q.p[1]] as FwVec3,
+        n: vnorm([0, side[1] * q.n[0] + nn[1] * q.n[1], side[2] * q.n[0] + nn[2] * q.n[1]]),
+        m: tone(q.m),
+      })));
+    }
+
+    for (let k = 0; k < n; k++) {
+      const A = rows[k];
+      const B = rows[k + 1];
+
+      for (let j = 0; j + 1 < A.length; j++) {
+        const m = A[j].m === A[j + 1].m ? A[j].m : tone(MAT_FIN_GREY);
+
+        for (const q of [A[j], B[j], B[j + 1], A[j], B[j + 1], A[j + 1]]) b.push(q.p, q.n, m, 1);
+      }
+    }
+  }
+}
+
 // The housings, as a band of angle from t0 to t1 round the axis: the nose with its ribs and its bearing boss, the flange,
 // the motor's yoke with its flanges and seam, the end cap with its ribs and its bearing, and the solenoid's case, its rim,
 // its end plate, its cap and the rubber boot. The body has their lower half (the cut); the shell, the upper half
@@ -524,12 +626,13 @@ function starterHousings(b: MeshBuilder, t0: number, t1: number, yoke = true) {
   const ribsIn = (ts: number[]) => ts.map((t) => t0 + t).filter((t) => t < t1);
 
   // the nose, open at the front, in two cones, with its ribs, and the bearing boss behind the collar
-  band(12, 62, [32, 38], [37, 43], 0, MAT_ALU_CAST, MAT_ST_YOKE_IN);
-  band(62, 112, [38, 46], [43, 52], 0, MAT_ALU_CAST, MAT_ST_YOKE_IN);
+  // (the bendix's end, as it is seen: one solid colour, matte, with a fine sandy grit, as the drive inside it)
+  band(12, 62, [32, 38], [37, 43], 0, MAT_BENDIX, MAT_ST_YOKE_IN, 72);
+  band(62, 112.5, [38, 46.2], [43, 52.1], 0, MAT_BENDIX, MAT_ST_YOKE_IN, 72);
 
-  for (const t of ribsIn([0.35, 0.95, 1.57, 2.19, 2.79])) {
-    arcBand(b, 40, 108, [noseR(40), noseR(108)], [noseR(40) + 7, noseR(108) + 3], t - 0.045, t + 0.045, 0, 0, MAT_ALU_CAST, MAT_ALU_CAST, MAT_ST_CUT, 2);
-  }
+  // cooling fins along it, all round, as on the intake's lid: metallic grey with a fine sandpaper grit, each with its
+  // fillet, its walls and its rounded crest, standing out of the drum, rising out of it at each end
+  noseFins(b, t0, t1, noseR);
 
   band(112, 118, [11.4, 11.4], [49, 49], 0, MAT_ALU_CAST, MAT_ST_YOKE_IN);
   band(114, 124, [11.4, 11.4], [17, 17], 0, MAT_ST_BRONZE, MAT_ST_BRONZE, 24);
@@ -537,7 +640,7 @@ function starterHousings(b: MeshBuilder, t0: number, t1: number, yoke = true) {
 
   // the flange, and the gasket against the wall
   band(62, 74, [43.4, 45.2], [66, 66], 0, MAT_ALU_CAST, MAT_ALU_CAST);
-  arcBand(b, 61.2, 62, [43.4, 43.4], [66, 66], t0, t1, 0, 0, MAT_ST_RUBBER, MAT_ST_RUBBER, MAT_ST_RUBBER, 24);
+  arcBand(b, 61.2, 61.85, [43.4, 43.4], [65.6, 65.6], t0, t1, 0, 0, MAT_ST_RUBBER, MAT_ST_RUBBER, MAT_ST_RUBBER, 24);
 
   // the motor: the yoke with its seam (see-through on the cut starter: starterYoke), and its flanges
   if (yoke) starterYokeBand(b, t0, t1);
@@ -546,9 +649,9 @@ function starterHousings(b: MeshBuilder, t0: number, t1: number, yoke = true) {
   band(276, 282, [49, 49], [58, 58], 0, MAT_ALU_CAST, MAT_ALU_CAST);
 
   // the end cap, its wall, its ribs and its bearing boss
-  band(282, 332, [48, 43], [54, 48], 0, MAT_ALU_CAST, MAT_ST_YOKE_IN);
-  band(332, 342, [14, 14], [44, 44], 0, MAT_ALU_CAST, MAT_ST_YOKE_IN);
-  band(342, 362, [10, 10], [20, 20], 0, MAT_ALU_CAST, MAT_ST_YOKE_IN);
+  band(281.5, 332, [48, 43], [54, 48], 0, MAT_ALU_CAST, MAT_ST_YOKE_IN);
+  band(331.5, 342, [14, 14], [43.6, 43.6], 0, MAT_ALU_CAST, MAT_ST_YOKE_IN);
+  band(341.5, 362, [10, 10], [20, 20], 0, MAT_ALU_CAST, MAT_ST_YOKE_IN);
   band(342, 360, [10.6, 10.6], [12.2, 12.2], 0, MAT_ST_BRONZE, MAT_ST_BRONZE, 24);
 
   for (const t of ribsIn([0.4, 1.0, 1.57, 2.14, 2.74])) {
@@ -557,16 +660,17 @@ function starterHousings(b: MeshBuilder, t0: number, t1: number, yoke = true) {
 
   // the solenoid: its end plate, its case with the crimped rim, its cap and the cap's black end, and the rubber boot
   band(126, 134, [8, 8], [36, 36], SQ, MAT_ALU_CAST, MAT_ALU_CAST, 32);
-  band(126, 268, [30, 30], [36, 36], SQ, MAT_ST_SOL, MAT_ST_YOKE_IN);
+  band(126.6, 268, [30, 30], [35.7, 35.7], SQ, MAT_ST_SOL, MAT_ST_YOKE_IN);
   band(266, 270, [34, 34], [37.6, 37.6], SQ, MAT_ST_SOL, MAT_ST_YOKE_IN, 28);
-  band(268, 306, [32, 32], [36, 36], SQ, MAT_ST_SOL, MAT_ST_YOKE_IN);
+  band(268, 306.6, [32, 32], [36, 36], SQ, MAT_ST_SOL, MAT_ST_YOKE_IN);
   band(306, 312, [6, 6], [36, 36], SQ, MAT_ST_BLACKPL, MAT_ST_BLACKPL);
+  noseFins(b, t0, t1, (a) => (a < 268 ? 35.7 : 36), SOLENOID_FINS, SQ, true);
   band(118, 134, [7.6, 11], [9.6, 13], SQ, MAT_ST_RUBBER, MAT_ST_RUBBER, 24);
 }
 
 // The motor's yoke, the steel tube round the stator, with its seam
 function starterYokeBand(b: MeshBuilder, t0: number, t1: number) {
-  arcBand(b, 112, 282, [49, 49], [54, 54], t0, t1, 0, 0, MAT_ST_YOKE, MAT_ST_YOKE_IN, MAT_ST_CUT, 40);
+  arcBand(b, 112.6, 281.4, [49, 49], [54, 54], t0, t1, 0, 0, MAT_ST_YOKE, MAT_ST_YOKE_IN, MAT_ST_CUT, 40); // (its ends inside the flanges: no face shared with theirs)
   arcBand(b, 190, 192, [54, 54], [54.7, 54.7], t0, t1, 0, 0, MAT_ST_YOKE_IN, MAT_ST_YOKE_IN, MAT_ST_CUT, 32);
 }
 
@@ -654,8 +758,8 @@ export function buildStarterBody(b: MeshBuilder) {
   }
 
   // The coils, one at each slot: its turns, each a loop round the back iron, rounded at its four corners
-  const TURNS = 4; // side by side, in each layer
-  const strand = 0.78;
+  const TURNS = 6; // side by side, in each layer
+  const strand = 0.66;
   const rIn = (layer: number) => S.rSlot - 1.1 - layer * 1.75; // the turns' radius in the slot, the inner layer deepest
   const rOutC = (layer: number) => S.rOut + 1.1 + layer * 1.75; // and over the outside
   const loop = (tIn: number, tOut: number, layer: number): FwVec3[] => {
@@ -692,16 +796,18 @@ export function buildStarterBody(b: MeshBuilder) {
     for (let layer = 0; layer < 2; layer++) {
       for (let i = 0; i < TURNS; i++) {
         const f = i - (TURNS - 1) / 2;
-        const tIn = tc + (f * 2 * strand * 1.04 + (layer ? strand * 0.5 : 0)) / rIn(layer);
-        const tOut = tc + (f * 2.6) / rOutC(layer);
+        const tIn = tc + (f * 2 * strand * 1.06 + (layer ? strand * 0.5 : 0)) / rIn(layer);
+        const tOut = tc + (f * 1.85) / rOutC(layer);
+        // each turn its own shade of copper, as enamelled wire catches the light, a fine dark gap between neighbours
+        const tone = [MAT_ST_COPPER, MAT_ST_ENAMEL, MAT_ST_COPPER_DEEP][(i + layer * 2 + k) % 3];
 
-        sweepTube(b, curveFromPoints(loop(tIn, tOut, layer), 1.6), () => strand, layer === 0 ? MAT_ST_COPPER : MAT_ST_ENAMEL, { segments: 6 });
+        sweepTube(b, curveFromPoints(loop(tIn, tOut, layer), 2.4), () => strand, tone, { segments: 5 });
       }
     }
 
     // the coil's tape, in its phase's colour, round its turns on the outside, near each end
     const tape = [MAT_ST_LEAD_U, MAT_ST_LEAD_V, MAT_ST_LEAD_W][phase];
-    const w = (TURNS * 2.6) / 2 + 1.2;
+    const w = (TURNS * 1.85) / 2 + 1.2;
 
     for (const a of [S.a0 + 5, S.a1 - 9]) {
       arcBand(b, a, a + 4, r2(rOutC(1) + strand - 0.1), r2(rOutC(1) + strand + 0.5), tc - w / rOutC(1), tc + w / rOutC(1), 0, 0, tape, tape, tape, 6);
@@ -778,7 +884,7 @@ export function buildStarterBody(b: MeshBuilder) {
     annulus(b, [342, p, q], [-1, 0, 0], 3.6, 9, MAT_WASHER, 20);
     annulus(b, [349.2, p, q], [1, 0, 0], 3.6, 8.5, MAT_ST_YOKE_IN, 20);
 
-    for (const a of [112, 276, 332]) b.prismDir([a, p, q], [1, 0, 0], [0, 1, 0], [0, 0, 1], 8.5, 6, 14, 0, MAT_ALU_CAST, MAT_ALU_CAST);
+    for (const a of [112, 276, 332]) b.prismDir([a + 0.4, p, q], [1, 0, 0], [0, 1, 0], [0, 0, 1], 8.5, 5.2, 14, 0, MAT_ALU_CAST, MAT_ALU_CAST); // (inside the flanges' faces)
   }
 
   // the solenoid, above the motor, cut open: its case with a crimped rim, its two windings, its fixed core

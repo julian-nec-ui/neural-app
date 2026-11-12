@@ -44,6 +44,10 @@ export const VT = {
 
 export const VT_TILT = Math.atan2(VT.zCam - VT.zSeat, VT.stemRise);
 
+// Which side of each head the intake valves, their camshaft and their ports are on: -1 the valley's (the cold V: the air
+// comes in from the plenum on top of the V), the exhaust on the outer side, out to the turbochargers
+export const IN_SIDE = -1;
+
 /* ---------------- cam profile ---------------- */
 
 // The lobe is a tangent cam: the base circle, a round nose of radius camNose,

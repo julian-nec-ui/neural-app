@@ -51,6 +51,27 @@ function fitting(b: MeshBuilder, c: Curve, s: number, r: number) {
   b.prismDir([at[0] + dir[0] * 8, at[1] + dir[1] * 8, at[2] + dir[2] * 8], dir, e1, e2, r + 2.4, 5, 20, 0, MAT_STEEL_BRIGHT, MAT_STEEL_BRIGHT);
 }
 
+const TEE = { r: 13, half: 30, boss: 14 }; // the body's radius and half its length, how far the boss stands out of it
+
+function buildTee(b: MeshBuilder, c: FwVec3) {
+  const [x, y] = c;
+  const ax: FwVec3 = [0, 0, 1];
+
+  // the body, round ends rolled
+  b.prismDir([x, y, -TEE.half], ax, [1, 0, 0], [0, 1, 0], TEE.r, TEE.half * 2, 40, 0, MAT_SUMP_CAST, MAT_SUMP_CAST);
+  for (const zs of [-1, 1]) {
+    b.prismDir([x, y, zs * TEE.half], [0, 0, zs], [1, 0, 0], [0, 1, 0], TEE.r - 2, 2, 40, 0, MAT_SUMP_ALU, MAT_SUMP_ALU);
+  }
+  // the boss, toward the cooler, and its square flange with four bolts
+  b.prismDir([x, y, 0], [1, 0, 0], [0, 1, 0], [0, 0, 1], TEE.r - 1, TEE.r + TEE.boss - 5, 36, 0, MAT_SUMP_CAST, MAT_SUMP_CAST);
+  const fx = x + TEE.r + TEE.boss - 5;
+  const hf = 17;
+
+  b.box(fx, fx + 5, y - hf, y + hf, -hf, hf, MAT_SUMP_ALU);
+
+  for (const [dy, dz] of [[-1, -1], [-1, 1], [1, -1], [1, 1]]) flangeBolt(b, [fx + 5, y + dy * 11.5, dz * 11.5], [1, 0, 0], 3.4, 0.3);
+}
+
 function buildPump(b: MeshBuilder, s: number) {
   const { y, z: zp, h } = SUMP_PUMP;
   const z = s * zp;
@@ -224,7 +245,7 @@ export function buildDrySump(b: MeshBuilder, which: "shell" | "solid") {
     // the scavenged oil: out of the pump's end cap, and round under it to where the two pumps' oil comes together
     const ret = line(b, [[back + 6, y, pz], [merge[0], y, pz], [merge[0], merge[1], s * 40], merge], 30, 8);
     // the cooled oil, from where it divides in front of the cooler, under the pump, up its outer side into the pressure stage
-    const feed = line(b, [split, [split[0], split[1] - 30, s * 60], [-338, y + h + 20, s * 60], [-338, y + h + 20, pz + s * (h + 14)], [-338, y, pz + s * (h + 6)]], 26, 8);
+    const feed = line(b, [[split[0], split[1], s * TEE.half], [split[0], split[1], s * (TEE.half + 14)], [split[0], split[1] - 30, s * 60], [-338, y + h + 20, s * 60], [-338, y + h + 20, pz + s * (h + 14)], [-338, y, pz + s * (h + 6)]], 26, 8);
     // and the pressure stage feeds the main gallery at the front main bearing
     const gallery = line(b, [[-338, y - h - 6, pz], [-338, 96, s * 80], [-360, 42, s * 30]], 24, 7);
 
@@ -234,7 +255,12 @@ export function buildDrySump(b: MeshBuilder, which: "shell" | "solid") {
 
   // one pipe into the cooler, and one out of it
   const inLine = line(b, [merge, COOLER_IN], 20, 10);
-  const outLine = line(b, [COOLER_OUT, split], 20, 10);
+  const outLine = line(b, [COOLER_OUT, [split[0] + TEE.r + TEE.boss, split[1], 0]], 20, 10);
+
+  // where it divides: a cast tee, its body across the engine, a fitting at each end for the two feeds, and the boss the
+  // cooler's line comes into, bolted on with a square flange
+  solid(() => buildTee(b, split));
+  paths.push({ pts: [split, [split[0], split[1], -TEE.half], split, [split[0], split[1], TEE.half]], r: 8 });
 
   // through the cooler: from its inlet down into each tube, along it, and out of it to the outlet
   for (const ty of COOLER_TUBES) {

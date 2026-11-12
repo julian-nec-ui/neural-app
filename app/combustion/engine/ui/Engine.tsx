@@ -36,6 +36,46 @@ const VIEW_BUTTONS: Array<[ViewName, string]> = VIEW_ORDER.map((name) => [name, 
 // ---- THE SLIDERS: metallic tracks, filled up to the knob, and for a knob an upright pedal, lit in the colour it is at. Speed fills in metallic green,
 // metallic yellow from 66% of the top speed, and from 85% the air filters' brick red; Turn in metallic blue
 
+// The layout, by the screen it is on. On a computer: the whole engine fits the window, 99% of its width and height, the
+// stage taking what the controls leave, the controls in three columns under it. On a tablet or a phone (narrow, or short,
+// held sideways): the page scrolls; the stage keeps a good height of its own, and the controls stack under it, each
+// group full width and centred, the buttons a size a finger can find
+const LAYOUT_CSS = `
+.ak-root { width: 99vw; height: 99vh; display: flex; flex-direction: column; box-sizing: border-box; }
+.ak-row1 { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; column-gap: 16px; }
+.ak-hints { justify-self: end; }
+.ak-right { margin-left: auto; }
+@media (max-width: 1024px), (max-height: 640px) {
+  .ak-root { width: 100%; max-width: 100vw; height: auto; min-height: 100dvh; padding: 10px; border-radius: 14px; }
+  .ak-stage { flex: none !important; height: min(62dvh, 118vw); min-height: 280px !important; }
+  .ak-row1 { grid-template-columns: minmax(0, 1fr); justify-items: center; row-gap: 10px; }
+  .ak-sliders { justify-content: center; }
+  .ak-hints { justify-self: center; width: auto !important; text-align: center; max-width: 34rem !important; }
+  .ak-row2 { flex-direction: column; align-items: stretch; }
+  .ak-left { display: flex; width: 100%; }
+  .ak-play { flex-wrap: wrap; justify-content: center; }
+  .ak-options { flex-wrap: wrap; justify-content: center; }
+  .ak-options > button { flex: 1 1 auto; }
+  .ak-right { margin-left: 0; align-items: stretch !important; width: 100%; }
+  .ak-firing, .ak-legend { justify-content: center !important; }
+  .ak-root [role="group"] { justify-content: center; }
+  .ak-root button { min-height: 34px; }
+}
+@media (max-height: 640px) and (orientation: landscape) {
+  .ak-stage { height: 86dvh; }
+}
+@media (max-width: 600px) {
+  .ak-play { flex-direction: column; align-items: stretch; }
+  .ak-play > div { justify-content: center; }
+  .ak-options > span { flex: 1 1 100%; text-align: center; }
+  .ak-options > button { flex: 1 1 calc(50% - 4px); }
+}
+@media (max-width: 480px) {
+  .ak-root { padding: 6px; border-radius: 10px; }
+  .ak-root button { font-size: 12px !important; padding-left: 10px; padding-right: 10px; }
+}
+`;
+
 const RANGE_CSS = `
 .ak-range { -webkit-appearance: none; appearance: none; height: 8px; border-radius: 999px; outline: none; cursor: pointer;
   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.7), 0 1px 0 rgba(255, 255, 255, 0.06); }
@@ -451,22 +491,21 @@ export default function Engine() {
       <CameraContext.Provider value={camera}>
         {/* The whole engine fits the window: 99% of its width, 99% of its height; the stage takes what the controls leave */}
         <div
-          className="mx-auto rounded-2xl bg-black p-4 shadow-2xl ring-1 ring-white/10"
-          style={{ width: "99vw", height: "99vh", display: "flex", flexDirection: "column" }}
+          className="ak-root mx-auto rounded-2xl bg-black p-4 shadow-2xl ring-1 ring-white/10"
         >
           <StartContext.Provider value={{ toggle: toggleEngine, on: engineOn, starting }}>
             <EngineStage />
           </StartContext.Provider>
 
           <style>{RANGE_CSS}</style>
+          <style>{LAYOUT_CSS}</style>
 
           {/* The controls, in groups. First line: the two sliders on the left, and the dials in the middle of the page: three
               columns, the outer two of equal share, so that the middle dial's centre is on the page's middle */}
           <div
-            className="mt-4 grid items-center gap-x-4 gap-y-2"
-            style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto minmax(0, 1fr)", alignItems: "center", columnGap: 16 }}
+            className="ak-row1 mt-4 grid items-center gap-x-4 gap-y-2"
           >
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-2" style={{ display: "flex", flexWrap: "wrap", alignItems: "center", columnGap: 16 }}>
+            <div className="ak-sliders flex flex-wrap items-center gap-x-4 gap-y-2" style={{ display: "flex", flexWrap: "wrap", alignItems: "center", columnGap: 16 }}>
             <label className="flex items-center gap-2 text-sm text-slate-300">
               <span>Speed</span>
 
@@ -507,9 +546,8 @@ export default function Engine() {
 
             {/* the hints, on the right: as wide as the firing order below, so that they start where it does */}
             <div
-              className="text-slate-500"
+              className="ak-hints text-slate-500"
               style={{
-                justifySelf: "end",
                 width: firingWidth || undefined,
                 maxWidth: "100%", // never over the dials: narrower then, and it wraps
                 fontSize: "clamp(9px, 1vw, 11px)",
@@ -517,7 +555,7 @@ export default function Engine() {
                 lineHeight: 1.3,
               }}
             >
-              Drag to turn the engine, over it or under it · wheel to zoom · double-click for the next view
+              Drag to turn the engine, over it or under it · wheel or pinch to zoom · double-click or double-tap for the next view
               <div style={{ marginTop: 5 }}>Crank : cam = 2 : 1 · One shared animation clock</div>
             </div>
 
@@ -525,9 +563,9 @@ export default function Engine() {
 
           {/* Then: play and reset with the switches right after them on one line, the views under them; the switches stretch
               so that Transparent ends where Starter does. The firing order and the legend are on their right */}
-          <div className="mt-3 flex flex-wrap items-stretch gap-x-6 gap-y-2">
-          <div className="inline-flex flex-col items-stretch justify-between gap-2" style={{ justifyContent: "space-between" }}>
-            <div className="flex items-center gap-2" style={{ display: "flex", gap: 8 }}>
+          <div className="ak-row2 mt-3 flex flex-wrap items-stretch gap-x-6 gap-y-2">
+          <div className="ak-left inline-flex flex-col items-stretch justify-between gap-2" style={{ justifyContent: "space-between" }}>
+            <div className="ak-play flex items-center gap-2" style={{ display: "flex", gap: 8 }}>
               <div className="flex items-center gap-1 rounded-lg bg-slate-900 p-1 ring-1 ring-white/10">
                 <button
                   type="button"
@@ -555,7 +593,7 @@ export default function Engine() {
               <div
                 role="group"
                 aria-label="Options"
-                className="flex flex-1 items-center gap-1 rounded-lg bg-slate-900 p-1 ring-1 ring-white/10"
+                className="ak-options flex flex-1 items-center gap-1 rounded-lg bg-slate-900 p-1 ring-1 ring-white/10"
                 style={{ flex: 1 }}
               >
                 <span className="px-1.5 text-[10px] font-semibold uppercase tracking-widest text-slate-500">Options</span>
@@ -632,12 +670,12 @@ export default function Engine() {
             {/* On the right, against the stage's edge: the firing order on the switches' line, the legend at the bottom, level with the views.
                 The cylinders' numbers in the order they fire, each with the crank angle (of 720) it fires at; A's in blue,
                 B's in orange; the last to fire is lit */}
-            <div className="ml-auto flex flex-col items-end justify-between gap-2" style={{ marginLeft: "auto", justifyContent: "space-between" }}>
+            <div className="ak-right ml-auto flex flex-col items-end justify-between gap-2" style={{ justifyContent: "space-between" }}>
   <div
                 ref={firingRef}
                 role="group"
                 aria-label="Firing order"
-                className="flex flex-wrap items-center justify-end gap-1 rounded-lg bg-slate-900 p-1 ring-1 ring-white/10"
+                className="ak-firing flex flex-wrap items-center justify-end gap-1 rounded-lg bg-slate-900 p-1 ring-1 ring-white/10"
               >
                 <span className="px-2 text-[10px] font-semibold uppercase tracking-widest text-slate-500">Firing order</span>
 
@@ -657,7 +695,7 @@ export default function Engine() {
                   </span>
                 ))}
               </div>
-                <div className="flex flex-wrap items-center justify-end gap-x-2 gap-y-1 text-xs" style={{ minHeight: 34 }}>
+                <div className="ak-legend flex flex-wrap items-center justify-end gap-x-2 gap-y-1 text-xs" style={{ minHeight: 34 }}>
                   <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-500">Legend:</span>
                   <Legend color="#12A5FF" label="Intake" />
                   <Legend color="#FFB800" label="Compression" />

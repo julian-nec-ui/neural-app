@@ -3,16 +3,17 @@
 import { BANKS, CRANK_DIRECTION, driveShift, CT_X, CYLS, FLYWHEEL_WORLD_X, INJ, L, LINER_H, ORIENT, PLUG, R } from "../core/constants";
 import type { Bank } from "../core/constants";
 import { normalizeCycle } from "../core/numbers";
+import { SCENE_OPTIONS } from "../core/options";
 import type { FwVec3 } from "../mesh/builder";
 import { MODULES, modulePoint } from "../mesh/exhaust";
 import type { TModule } from "../mesh/exhaust";
 import { FAN_PAIR } from "../mesh/fan";
 import { IC_CORE_Z, IC_INNER_Z, IC_OUTER_Z, IC_STAND_Y, icPlace } from "../mesh/intercooler";
-import { ST_AT, ST_PHI_MAX, ST_PIV_A, ST_PIV_Q, ST_SQ } from "../mesh/starter";
+import { ST_AT, ST_PHI_MAX, ST_PIV_A, ST_PIV_Q, ST_SQ, stA } from "../mesh/starter";
 import { CAM_RC, IDLER_Y, PRIMARY, SECONDARY, VT_PITCH, VT_RC, primaryDx } from "../mesh/timingChain/chainPath";
 import type { Chain } from "../mesh/timingChain/chainPath";
 import { IC, IC_HALF, TURBO } from "../mesh/turbo";
-import { VT, VT_LIFT_PEAK, VT_TILT, camLift, valveX } from "../mesh/valvetrain";
+import { IN_SIDE, VT, VT_LIFT_PEAK, VT_TILT, camLift, valveX } from "../mesh/valvetrain";
 import { FLY_RANGE, FW_MARK_OFFSET_DEG, HEAD_RANGE, TRAIN_MESH, bankPart } from "./meshes";
 import type { EngineFrame } from "../sim/clock";
 import { STARTER, stPlunger, stSlide, starterArm, starterPin, starterTrack } from "../sim/starter";
@@ -124,7 +125,7 @@ function computeBankCommands(frame: EngineFrame, bank: Bank) {
     emitInBank(bank, r.sparkPlug, 1, 0, CT_X[k] + dx + PLUG.x, VT.ySeat, PLUG.z);
   }
 
-  // The flanges at the ports, and the welds where the intake runners leave the distributor and meet the head
+  // The flanges at the ports, and the welds where the intake runners leave the plenum and meet the head
   emitInBank(bank, r.exhaustFlanges, 1, 0, dx, 0, 0);
   emitInBank(bank, r.intakeWelds, 1, 0, dx, 0, 0);
 
@@ -132,8 +133,8 @@ function computeBankCommands(frame: EngineFrame, bank: Bank) {
   const cc = Math.cos(camAlpha);
   const cs = Math.sin(camAlpha);
 
-  emitInBank(bank, bankPart(bank, "camIn"), cc, cs, dx, VT.yCam, VT.zCam);
-  emitInBank(bank, bankPart(bank, "camEx"), cc, cs, dx, VT.yCam, -VT.zCam);
+  emitInBank(bank, bankPart(bank, "camIn"), cc, cs, dx, VT.yCam, IN_SIDE * VT.zCam);
+  emitInBank(bank, bankPart(bank, "camEx"), cc, cs, dx, VT.yCam, -IN_SIDE * VT.zCam);
 
   // Valves: two intake and two exhaust per cylinder
   for (let k = 0; k < CT_X.length; k++) {
@@ -145,18 +146,19 @@ function computeBankCommands(frame: EngineFrame, bank: Bank) {
       // The tappet rides on the real profile; the valve slides along its tilted
       // axis, so its travel is the vertical lift divided by cos(tilt)
       const lift = camLift(p, peak) / cosT;
-      const spin1 = sigma * sinT;
+      const zs = sigma * IN_SIDE; // the side of the head this valve is on
+      const spin1 = zs * sinT;
       const valve = sigma > 0 ? r.valveIn : r.valveEx;
 
       for (let sxi = 0; sxi < 2; sxi++) {
         const x = valveX(k, sigma, sxi === 0 ? -1 : 1) + dx;
 
-        emitInBank(bank, r.valveStatic, cosT, spin1, x, y0, sigma * VT.zSeat);
-        emitInBank(bank, sigma > 0 ? r.seatIn : r.seatEx, 1, 0, x, y0, sigma * VT.zSeat);
-        emitInBank(bank, valve, cosT, spin1, x, y0 + lift * cosT, sigma * (VT.zSeat - lift * sinT));
+        emitInBank(bank, r.valveStatic, cosT, spin1, x, y0, zs * VT.zSeat);
+        emitInBank(bank, sigma > 0 ? r.seatIn : r.seatEx, 1, 0, x, y0, zs * VT.zSeat);
+        emitInBank(bank, valve, cosT, spin1, x, y0 + lift * cosT, zs * (VT.zSeat - lift * sinT));
         emitInBank(
           bank, r.spring, cosT, spin1,
-          x, y0 - 27.5 * cosT, sigma * (VT.zSeat + 27.5 * sinT),
+          x, y0 - 27.5 * cosT, zs * (VT.zSeat + 27.5 * sinT),
           (VT.springFree - lift) / VT.springFree
         );
       }
@@ -280,11 +282,13 @@ export function computeSceneCommands(frame: EngineFrame): DrawCmd[] {
     emit(r.starterBody, 1, 0, bx, by, bz, 1, ORIENT.STARTER);
     emit(r.starterShaft, Math.cos(arm), Math.sin(arm), bx, by, bz, 1, ORIENT.STARTER);
     emit(r.starterDrive, Math.cos(arm), Math.sin(arm), bx + slide, by, bz, 1, ORIENT.STARTER);
+    // the drive's shell whole on the solid engine; cut open, to show its rollers, only on the see-through one
+    if (!SCENE_OPTIONS.seeThrough) emit(r.starterDriveShell, Math.cos(arm), Math.sin(arm), bx + slide, by, bz, 1, ORIENT.STARTER);
     emit(r.starterPinion, Math.cos(pin), Math.sin(pin), bx + slide, by, bz, 1, ORIENT.STARTER);
     emit(r.starterPlunger, 1, 0, bx - plunge, by, bz, 1, ORIENT.STARTER);
     emit(r.starterDisc, 1, 0, bx - Math.min(plunge, 8), by, bz, 1, ORIENT.STARTER);
 
-    const sp = at(240 + plunge, 0, ST_SQ);
+    const sp = at(stA(240) + plunge, 0, ST_SQ);
 
     emit(r.starterSpring, 1, 0, sp[0], sp[1], sp[2], (20 - plunge) / 20, ORIENT.STARTER_AXIAL);
 
@@ -292,6 +296,11 @@ export function computeSceneCommands(frame: EngineFrame): DrawCmd[] {
 
     emit(r.starterFork, Math.cos(phi), Math.sin(phi), pv[0], pv[1], pv[2], 1, ORIENT.STARTER_FORK);
   }
+
+  // The intake plenum on top of the V: on the solid engine only; on the see-through one it is taken away, to see in
+  if (!SCENE_OPTIONS.seeThrough) emit(r.vPlenum, 1, 0, 0, 0, 0);
+  // and the intake manifold under it, on both: its logs, flanges and throttles
+  emit(r.intakeManifold, 1, 0, 0, 0, 0);
 
   // The intercoolers, one on each side of the engine (see icPlace): each core, the fan on its outer face, its two tanks
   for (const zs of [-1, 1]) {

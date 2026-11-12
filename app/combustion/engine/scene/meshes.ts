@@ -9,6 +9,7 @@ import { buildDownpipes, buildExhaustFlanges, buildExhaustLogs, buildExhaustStub
 import { FW_DIM, FW_VERTICES } from "../mesh/flywheel";
 import { buildDeck, buildDeckSlab, buildHeadShell, buildHeadSolid, buildHeadTopFittings, buildLinerRim } from "../mesh/head";
 import { buildHeadText } from "../mesh/headText";
+import { buildIntakeManifold, buildVPlenum } from "../mesh/plenum";
 import { buildInjector, buildSparkPlug } from "../mesh/injectionIgnition";
 import { buildBlock } from "../mesh/block";
 import { buildDrySump } from "../mesh/drySump";
@@ -17,7 +18,7 @@ import { buildSmallFan } from "../mesh/fan";
 import { buildBlowOffValves, buildChargeCouplers, buildChargePipes, buildCoolPipes, buildIntercooler, buildIntercoolerTank } from "../mesh/intercooler";
 import { MAT_VT_HEAD_EX, MAT_VT_HEAD_IN, MAT_VT_VALVE_EX, MAT_VT_VALVE_IN } from "../mesh/materials";
 import { buildCollector, buildCollectorFittings, buildIntakePipes, buildIntakeWelds, buildTurboFittings, buildTurboIntakePipe } from "../mesh/plumbing";
-import { buildStarterBody, buildStarterDisc, buildStarterDrive, buildStarterFork, buildStarterPinion, buildStarterPlunger, buildStarterShaft, buildStarterShell, buildStarterSpring, buildStarterYoke } from "../mesh/starter";
+import { stretchTurn, buildStarterBody, buildStarterDisc, buildStarterDrive, buildStarterDriveShell, buildStarterFork, buildStarterPinion, buildStarterPlunger, buildStarterShaft, buildStarterShell, buildStarterSpring, buildStarterYoke } from "../mesh/starter";
 import { CAM_RC, CHAIN_TEETH, MARK_ANGLE, PRIMARY, SECONDARY, VT_RC, primaryDx } from "../mesh/timingChain/chainPath";
 import { buildChainLink } from "../mesh/timingChain/chainLink";
 import { buildChainShoes } from "../mesh/timingChain/chainGuides";
@@ -34,8 +35,8 @@ export const PART_NAMES = [
   "headShell", "headShellB", "headSolid", "headSolidB", "headTop", "headTopB", "linerRim", "turboHousing", "turboCasing", "intakePipes", "turboIntakePipe", "collector",
   "turboFilter", "seatIn", "seatEx", "turboWheelC", "turboWheelT", "collectorFittings", "turboFittings",
   "intercooler", "blowOffValves", "manifoldWelds", "intakeWelds", "turbineArc", "timingCover", "starterShell", "starterYoke", "drySump", "drySumpShell", "block", "icTank", "icTankB", "icTankLow", "icTankLowB", "icTankBare", "icTankBareB", "fanShroud", "fanRotor", "chargePipes", "coolPipes", "chargeCouplers", "exhaustLogs", "turboFeed", "exhaustStubs",
-  "exhaustFlanges", "downpipes", "starterBody", "starterShaft", "starterDrive", "starterPinion", "starterPlunger",
-  "starterDisc", "starterSpring", "starterFork", "headTextA", "headTextB", "sprocketCrank", "sprocketCam",
+  "exhaustFlanges", "downpipes", "starterBody", "starterShaft", "starterDrive", "starterDriveShell", "starterPinion", "starterPlunger",
+  "starterDisc", "starterSpring", "starterFork", "headTextA", "headTextB", "vPlenum", "intakeManifold", "sprocketCrank", "sprocketCam",
   "chainInner", "chainOuter", "blade", "bladeFar", "bladePrimary", "bladePrimaryB", "sprocketIdler", "sprocketIdlerSmall", "injector", "sparkPlug",
 ] as const;
 
@@ -57,6 +58,12 @@ function buildHeadMesh(): HeadMesh {
   const b = createMeshBuilder(48);
   const parts: Partial<Record<PartName, [number, number]>> = {};
 
+  // a starter part built along its axis, drawn with the motor made longer (starter.ts, ST_STRETCH)
+  const stretched = (f: () => void) => {
+    b.setTurn(stretchTurn);
+    f();
+    b.setTurn(null);
+  };
   const part = (name: PartName, build: () => void) => {
     const start = b.out.length / FW_STRIDE;
     build();
@@ -101,12 +108,14 @@ function buildHeadMesh(): HeadMesh {
   part("manifoldWelds", () => buildManifoldWelds(b));
   part("turbineArc", () => buildTurbineArc(b));
   part("timingCover", () => buildTimingCover(b));
-  part("starterShell", () => buildStarterShell(b));
-  part("starterYoke", () => buildStarterYoke(b));
+  part("starterShell", () => stretched(() => buildStarterShell(b)));
+  part("starterYoke", () => stretched(() => buildStarterYoke(b)));
   part("drySump", () => buildDrySump(b, "solid"));
   part("drySumpShell", () => buildDrySump(b, "shell"));
   part("block", () => buildBlock(b));
   part("intakeWelds", () => buildIntakeWelds(b));
+  part("vPlenum", () => buildVPlenum(b));
+  part("intakeManifold", () => buildIntakeManifold(b));
   part("icTank", () => buildIntercoolerTank(b, 1));
   part("icTankB", () => buildIntercoolerTank(b, -1));
   part("icTankLow", () => buildIntercoolerTank(b, 1, true));
@@ -123,12 +132,13 @@ function buildHeadMesh(): HeadMesh {
   part("exhaustStubs", () => buildExhaustStubs(b));
   part("exhaustFlanges", () => buildExhaustFlanges(b));
   part("downpipes", () => buildDownpipes(b));
-  part("starterBody", () => buildStarterBody(b));
-  part("starterShaft", () => buildStarterShaft(b));
+  part("starterBody", () => stretched(() => buildStarterBody(b)));
+  part("starterShaft", () => stretched(() => buildStarterShaft(b)));
   part("starterDrive", () => buildStarterDrive(b));
+  part("starterDriveShell", () => buildStarterDriveShell(b));
   part("starterPinion", () => buildStarterPinion(b));
-  part("starterPlunger", () => buildStarterPlunger(b));
-  part("starterDisc", () => buildStarterDisc(b));
+  part("starterPlunger", () => stretched(() => buildStarterPlunger(b)));
+  part("starterDisc", () => stretched(() => buildStarterDisc(b)));
   part("starterSpring", () => buildStarterSpring(b));
   part("starterFork", () => buildStarterFork(b));
   part("headTextA", () => widened(b, () => buildHeadText(b, 0)));

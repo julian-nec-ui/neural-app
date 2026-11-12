@@ -262,6 +262,10 @@ s1: number
 // each column is a chain of tall bulges joined by narrow necks, nested between its neighbours' bulges. Each column is domed
 // across, highest where it is widest, `h` high, falling to a sharp crease at its edges. One smooth surface, a height field
 // over the wall: it eases down to the wall at the panel's edges and wherever `flat` says (1 flat, 0 full relief)
+// The quilted sheet stands this far off the wall under it everywhere, even where it lies flat (its creases, round the plugs
+// and the mounts): so that the two never share a plane, and do not flicker against each other as the view turns
+const QUILT_LIFT = 0.6;
+
 export function quiltPanel(
   b: MeshBuilder,
   mat: FwMaterial,
@@ -310,21 +314,33 @@ export function quiltPanel(
   // brightest streak just left of the ridge, the steep near flank falling dark, the far flank a mid grey, the creases black;
   // the bulge brightest where it is widest and in its upper part, dimmer in its necks. From the place across the column
   // (vv, -1 at its near crease, 1 at its far one), its width's share (wr) and its phase along (ph)
-  const PAINT_GAIN = 2.15;
+  const PAINT_GAIN = 2.35;
   const paint = (vv: number, wr: number, ph: number) => {
+    const bump = (x: number, c: number, w: number) => Math.exp(-((x - c) * (x - c)) / (2 * w * w));
+    // the up-and-down of the bulge: 1 in its widest part, a little above its middle, toward 0 in the necks
+    const swell = 0.5 + 0.5 * Math.sin(-ph + Math.PI / 2 + 0.6);
     let g: number;
 
-    if (vv < -0.74) g = 34 + (120 - 34) * ((vv + 1) / 0.26);
-    else if (vv < -0.32) g = 120 + (252 - 120) * Math.pow((vv + 0.74) / 0.42, 0.55);
-    else if (vv < 0.4) g = 252 - (252 - 225) * ((vv + 0.32) / 0.72);
-    else g = 225 - (225 - 160) * ((vv - 0.4) / 0.6);
+    // the body: the near flank falling dark into its crease, the crown bright, the far flank a light grey
+    if (vv < -0.78) g = 44 + (150 - 44) * ((vv + 1) / 0.22);
+    else if (vv < -0.36) g = 150 + (240 - 150) * Math.pow((vv + 0.78) / 0.42, 0.55);
+    else if (vv < 0.42) g = 240 - (240 - 222) * ((vv + 0.36) / 0.78);
+    else g = 222 - (222 - 178) * ((vv - 0.42) / 0.58);
 
-    if (Math.abs(vv) > 0.95) g = Math.min(g, 26);
+    // polished: the light's own streak down the crown, sharp and white, hottest in the bulge's upper part; a softer sheen
+    // round it; a band of reflected light down the far flank; a thin bright rim just inside the far crease, where the
+    // sheet turns; and the crease itself a fine black line
+    g += 150 * bump(vv, -0.27, 0.07) * (0.55 + 0.45 * swell);
+    g += 45 * bump(vv, -0.18, 0.2);
+    g += 40 * bump(vv, 0.6, 0.09) * (0.6 + 0.4 * swell);
+    g += 55 * bump(vv, 0.88, 0.025);
 
-    // brighter in the widest part and above the middle, dimmer toward the necks
-    g *= (0.62 + 0.38 * Math.pow(wr, 0.8)) * (0.86 + 0.14 * Math.sin(-ph + Math.PI / 2 + 0.6));
+    if (Math.abs(vv) > 0.955) g = Math.min(g, 22);
 
-    return Math.max(14, Math.min(252, g));
+    // brighter in the widest part, dimmer toward the necks
+    g *= (0.7 + 0.3 * Math.pow(wr, 0.8)) * (0.9 + 0.1 * swell);
+
+    return Math.max(16, Math.min(300, g));
   };
   const ease = (t: number) => (t <= 0 ? 0 : t >= 1 ? 1 : t * t * (3 - 2 * t));
   const H: number[] = [];
@@ -346,7 +362,7 @@ export function quiltPanel(
   const P = (i: number, k: number): FwVec3 => {
     const s = S(i);
     const x = X(k);
-    const hh = at(i, k);
+    const hh = at(i, k) + QUILT_LIFT;
 
     return [c[0] + along[0] * s + w[0] * x + out[0] * hh, c[1] + along[1] * s + w[1] * x + out[1] * hh, c[2] + along[2] * s + w[2] * x + out[2] * hh];
   };
@@ -362,5 +378,56 @@ export function quiltPanel(
         b.push(P(a, e), out, { color: [g, g * 0.985, g * 0.95], shine: mat.shine, pattern: mat.pattern, wet: mat.wet }, 1);
       }
     }
+  }
+}
+
+// A flat plate cut to any outline (in local x, y), from z0 up to z1, its top edge chamfered by `c`: a flange cut from
+// plate, its edge machined. Build it with a turn set on the builder to put it in its place
+export function lobedPlate(b: MeshBuilder, outline: P2[], z0: number, z1: number, c: number, m: FwMaterial) {
+  const area = outline.reduce((s, p, i) => s + cross(p, outline[(i + 1) % outline.length]), 0);
+  const o = area > 0 ? outline : outline.slice().reverse(); // counter-clockwise
+  const n = o.length;
+  // each point's outward normal: the average of its two edges'
+  const nrm: P2[] = o.map((p, i) => {
+    const a = unit(sub(p, o[(i - 1 + n) % n]));
+    const d = unit(sub(o[(i + 1) % n], p));
+
+    return unit([a[1] + d[1], -(a[0] + d[0])]);
+  });
+  const inset: P2[] = o.map((p, i) => sub(p, mul(nrm[i], c)));
+  const tris = triangulate(o);
+  const P = (q: P2, z: number): FwVec3 => [q[0], q[1], z];
+
+  for (const [i, j, k] of tris) {
+    b.flatTri(P(o[i], z0), P(o[j], z0), P(o[k], z0), [0, 0, -1], m);
+    b.flatTri(P(inset[i], z1), P(inset[j], z1), P(inset[k], z1), [0, 0, 1], m);
+  }
+
+  const zc = z1 - c;
+  const chN = (i: number): FwVec3 => {
+    const l = Math.SQRT1_2;
+
+    return [nrm[i][0] * l, nrm[i][1] * l, l];
+  };
+
+  for (let i = 0; i < n; i++) {
+    const j = (i + 1) % n;
+    const ni: FwVec3 = [nrm[i][0], nrm[i][1], 0];
+    const nj: FwVec3 = [nrm[j][0], nrm[j][1], 0];
+
+    // the wall
+    b.push(P(o[i], z0), ni, m, 0.85);
+    b.push(P(o[j], z0), nj, m, 0.85);
+    b.push(P(o[j], zc), nj, m, 1);
+    b.push(P(o[i], z0), ni, m, 0.85);
+    b.push(P(o[j], zc), nj, m, 1);
+    b.push(P(o[i], zc), ni, m, 1);
+    // the chamfer
+    b.push(P(o[i], zc), chN(i), m, 1);
+    b.push(P(o[j], zc), chN(j), m, 1);
+    b.push(P(inset[j], z1), chN(j), m, 1);
+    b.push(P(o[i], zc), chN(i), m, 1);
+    b.push(P(inset[j], z1), chN(j), m, 1);
+    b.push(P(inset[i], z1), chN(i), m, 1);
   }
 }

@@ -343,9 +343,10 @@ export function flangeBolt(b: MeshBuilder, p: FwVec3, dir: FwVec3, hx: number, r
   const d = vnorm(dir);
   const e1 = vnorm(vcross(d, Math.abs(d[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0]));
   const e2 = vcross(d, e1);
-  const up = (h: number) => vadd(p, vscale(d, h));
+  // (the washer sits a hair off the face, so that its underside and the face never share a plane and flicker)
+  const up = (h: number) => vadd(p, vscale(d, h + 0.15));
 
-  b.prismDir(p, d, e1, e2, hx * 1.22, 0.8, 20, 0, MAT_STEEL_BRIGHT, MAT_STEEL_BRIGHT);
+  b.prismDir(up(0), d, e1, e2, hx * 1.22, 0.8, 20, 0, MAT_STEEL_BRIGHT, MAT_STEEL_BRIGHT);
   b.prismDir(up(0.8), d, e1, e2, hx * 1.06, hx * 0.12, 18, 0, MAT_CT_NUT_SIDE, MAT_CT_NUT_SIDE); // the head's collar
   b.prismDir(up(0.8 + hx * 0.12), d, e1, e2, hx, hx * 0.66, 6, rot, MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE);
   b.prismDir(up(0.8 + hx * 0.78), d, e1, e2, hx * 0.84, hx * 0.16, 18, 0, MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE);

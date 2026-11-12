@@ -310,7 +310,7 @@ export function buildBlock(b: MeshBuilder) {
 
       for (const ds of [-hs + 9, hs - 9]) {
         for (const dx of [-hl + 11, hl - 11]) {
-          const c = q(ds, dx, H);
+          const c = q(ds, dx, H + 0.15); // (a hair off the pad's face: no shared plane to flicker)
 
           b.prismDir(c, nOut, [1, 0, 0], [0, d[0], d[1]], 7.4, 1.4, 24, 0, MAT_BLOCK_MACH, MAT_CT_NUT_SIDE);
           b.prismDir([c[0] + nOut[0] * 1.4, c[1] + nOut[1] * 1.4, c[2] + nOut[2] * 1.4], nOut, [1, 0, 0], [0, d[0], d[1]], 5.4, 5, 6, 0.3, MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE);

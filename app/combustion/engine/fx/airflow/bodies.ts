@@ -6,10 +6,10 @@ import { vadd, vlen, vnorm, vscale, vsub } from "../../math/vec3";
 import type { FwVec3 } from "../../mesh/builder";
 import { DOWNPIPES, EXHAUST_RUNNERS, MODULES, MODULE_ORIGIN, exhaustStub, modulePoint } from "../../mesh/exhaust";
 import { CHARGE_PIPES, IC_CHARGE_IN_Z, IC_CHARGE_OUT_Z, IC_STAND_Y, icPlace } from "../../mesh/intercooler";
-import { HUB, PIPES, PORT_SEAT_Y, seatX } from "../../mesh/plumbing";
+import { PIPES, PLENUM_MIDS, PORT_SEAT_Y, seatX } from "../../mesh/plumbing";
 import { curveFromPoints, roundedCurve } from "../../mesh/tubes";
 import { COLLECTOR_CONE, COMPRESSOR_OUTLET_LEN, IC, IC_HALF, PORT_Y, TB, TURBINE_INLET_LEN, collectorRadius, compressorPathLocal, compressorSection, turbinePathLocal, turbineSection, turboWorld } from "../../mesh/turbo";
-import { VT } from "../../mesh/valvetrain";
+import { IN_SIDE, VT } from "../../mesh/valvetrain";
 import { mixColor, polyLength, scatter, smooth01 } from "./common";
 import { AIR_FLOWS, chamberJet } from "./flows";
 import { framesOf } from "./streaks";
@@ -107,9 +107,6 @@ function fogMesh(specsIn: FogSpec[], toEngine: ((q: FwVec3) => FwVec3) | null): 
   return { data, count: total / FOG_FLOATS };
 }
 
-// A body with one radius all along
-const flat = (r: number): Array<[number, number]> => [[0, r]];
-
 // kind 4: the hot gas past the collectors (to the turbines and out), darker; kind 0: the cold air going in; kind 1: the hot gas going out; kind 2: the hot gas's
 // brighter core through the turbine; kind 3: the air's brighter, cooler core through the compressor
 type FogGroup = {
@@ -122,6 +119,9 @@ type FogGroup = {
   phase: number; // this frame
   drive: number; // 0..1, this frame
 };
+
+// A body with one radius all along
+const flat = (r: number): Array<[number, number]> => [[0, r]];
 
 export const FOG_GROUPS: FogGroup[] = [];
 
@@ -182,6 +182,7 @@ function buildBankFog(bank: Bank, bi: number) {
       m.r[6] * d[0] + m.r[7] * d[1] + m.r[8] * d[2] + MODULE_ORIGIN[2],
     ];
   };
+
   const zs = bank.phi > 0 ? -1 : 1; // which side of the intercooler this bank is on
 
   const group = (mesh: FogMesh, kind: number, cyl = -1, valve = 0, feeds: number[] = []) => {
@@ -198,7 +199,7 @@ function buildBankFog(bank: Bank, bi: number) {
   const compressorPts = compressorPathLocal().map(turboWorld);
   const IP = (p: FwVec3) => icPlace(zs, p); // a point of the intercooler as it was built, where it stands
   const tankInC = toMod(IP([IC.x, IC_STAND_Y, zs * IC_CHARGE_IN_Z])); // the rear tank: the hot charge comes in (in the module's frame)
-  const tankOutC: FwVec3 = IP([IC.x, IC_STAND_Y, zs * IC_CHARGE_OUT_Z]); // the front tank: the cooled charge leaves (in the engine's)
+  const tankOutC = IP([IC.x, IC_STAND_Y, zs * IC_CHARGE_OUT_Z]); // the front tank: the cooled charge leaves (in the engine's)
   const hotPts = CHARGE_PIPES.hot[bi].pts.map(toMod);
   const coolPts = CHARGE_PIPES.cool[bi].pts;
   const cPts: FwVec3[] = [start, ...intakeBack, wheel, ...compressorPts, ...hotPts, tankInC];
@@ -240,21 +241,18 @@ function buildBankFog(bank: Bank, bi: number) {
   }
 
   // after the intercooler: the cool pipe, the throttle, the plenum
-  const afterPts: FwVec3[] = [tankOutC, ...coolPts, XB([HUB.x, HUB.y, HUB.z])]; // into the distributor, where the runners take it
+  const afterPts: FwVec3[] = [tankOutC, ...coolPts, PLENUM_MIDS[zs < 0 ? 0 : 1]]; // into the plenum, where the runners take it
   const sCool = vlen(vsub(coolPts[0], tankOutC)) + polyLength(coolPts);
 
   // the colour goes from the sky blue of the air coming in, through cobalt in the compressor, to the indigo of the
   // warm compressed charge, as the exhaust goes from orange through gold to red
   group(fogMesh([{ points: cPts, nodes: chargeNodes, fadeIn: 110, fadeOut: 40, tone: (s) => smooth01((s - toWheel) / Math.max(1, sHot - toWheel)) }], XM), 0);
   group(fogMesh([tank(zs * IC_CHARGE_IN_Z, 1), tank(zs * IC_CHARGE_OUT_Z, 0), ...coreTubes], null), 0);
-  group(
-    fogMesh([{
-      points: afterPts,
-      nodes: [[0, 14.5], [sCool, 14.5], [sCool + 12, 17.5]],
-      fadeIn: 24, fadeOut: 40, spacing: 6,
-    }], null),
-    0
-  );
+  group(fogMesh([{
+    points: afterPts,
+    nodes: [[0, 14.5], [sCool, 14.5], [sCool + 12, 17.5]],
+    fadeIn: 24, fadeOut: 40, spacing: 6,
+  }], null), 0);
 
   // ---- through the compressor the air shows a cooler core inside the body, with three threads beside it, as the gas
   // does through the turbine: in at the filter's pipe, round the wheel's housing, and out. Here the core is wide and
@@ -300,10 +298,10 @@ function buildBankFog(bank: Bank, bi: number) {
   // ---- each cylinder: a runner, and a port with a jet for each valve ----
   for (let i = 0; i < CT_X.length; i++) {
     for (const sigma of [1, -1]) {
-      const side = sigma > 0 ? 1 : -1;
+      const side = sigma * IN_SIDE; // the side of the head its valves are on
       // (on the exhaust side: the short stub into the log)
       const stub = exhaustStub(CT_X[i]); // from the port out to the log: reversed, from the log to the head
-      const runner = side > 0 ? PIPES.runner(i) : curveFromPoints([...stub.pts.slice().reverse(), [CT_X[i], PORT_Y, -98 - HEAD_PORT_DZ]], 4);
+      const runner = sigma > 0 ? PIPES.runner(i) : curveFromPoints([...stub.pts.slice().reverse(), [CT_X[i], PORT_Y, side * (98 + HEAD_PORT_DZ)]], 4);
       const inHead = runner.pts[runner.pts.length - 1];
       const specs: FogSpec[] = [];
       const runnerPts = sigma > 0 ? runner.pts : runner.pts.slice().reverse();
@@ -458,7 +456,7 @@ function buildBankFog(bank: Bank, bi: number) {
       ...CHARGE_PIPES.hot[bi].pts,
       IP([IC.x, IC_STAND_Y, zs * IC_CHARGE_IN_Z]), IP([IC.x, IC_STAND_Y, zs * IC_CHARGE_OUT_Z]),
       ...CHARGE_PIPES.cool[bi].pts,
-      XB([HUB.x, HUB.y, HUB.z]),
+      PLENUM_MIDS[zs < 0 ? 0 : 1],
     ],
     18, 3, 9, 0, 2.4, 80,
     (u) => mixColor(mixColor(SKY, COBALT, smooth01(u / 0.12)), INDIGO, smooth01((u - 0.14) / 0.1) * (1 - smooth01((u - 0.5) / 0.12)) * 0.7)

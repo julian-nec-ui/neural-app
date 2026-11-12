@@ -3,7 +3,7 @@
 import { CT_X, FIRING_ORDER } from "../core/constants";
 import type { FwVec3 } from "./builder";
 import { HEAD } from "./head";
-import { MAT_TXT_DARK, MAT_TXT_LIT, MAT_TXT_SIG_EDGE, MAT_TXT_TOP } from "./materials";
+import { MAT_TXT_DARK, MAT_TXT_LIT, MAT_TXT_TOP } from "./materials";
 import type { MeshBuilder } from "./tubes";
 
 // ---- THE NAME ON THE HEADS: AKUNDA V12, and the engine's firing order, stamped on the cover's top in raised dark
@@ -187,10 +187,10 @@ function stampSignature(b: MeshBuilder, xc: number, zBase: number, su: number) {
       const steep = Math.hypot(slopeU, slopeV);
       // as the firing order's: the floor of the groove is black, wherever it is deep (the name and V12 alike), and its walls
       // white, the brighter where they face the light
-      const depth = Math.min(h00, h10, h01, h11) / (i >= vStart - 2 ? deepest : relief);
-      // the name and V12 are black throughout, their walls too, right to the strokes' tips: only a dark steel edge where a
-      // wall catches the light
-      const mat = depth > 0.85 || steep < 0.12 ? MAT_TXT_TOP : slopeU * LU + slopeV * LV < 0 ? MAT_TXT_SIG_EDGE : MAT_TXT_TOP;
+      const depth = Math.max(h00, h10, h01, h11) / (i >= vStart - 2 ? deepest : relief); // its shallowest corner: 0 on a wall
+      // the floor black; the wall that faces the light, going down into the groove, white, as the firing order's: the
+      // wall in shade stays black with the floor, so that the cut reads deep
+      const mat = depth > 0.85 || steep < 0.12 ? MAT_TXT_TOP : slopeU * LU + slopeV * LV < 0 ? MAT_TXT_LIT : MAT_TXT_TOP;
       const p00 = P(i, j, h00);
       const p10 = P(i + 1, j, h10);
       const p01 = P(i, j + 1, h01);
@@ -298,7 +298,12 @@ export function buildHeadText(b: MeshBuilder, bi: number) {
   const stamp = FIRING_ORDER.map((f) => f.no).join("-");
 
   // the title, as it was written by hand, in the middle of the head
-  stampSignature(b, xc, 51.4, su); // its foot: the signature centred in that band, under the plugs, over the cover's edge
+  stampSignature(b, xc, 56.4, su); // its foot: the signature centred in that band, under the plugs, over the cover's edge
 
-  carveText(b, stamp, xc, -28, 26, 6.2, 7, su, 0.5); // engraved, deep, its strokes one continuous groove
+  // engraved, deep, its strokes one continuous groove; centred on the head, 7% smaller than it was (its height, its
+  // letters' width, their strokes and the gaps between them alike), its middle kept on the same line
+  const k = 0.93;
+  const h = 26 * k;
+
+  carveText(b, stamp, xc, -28 - (26 - h) / 2, h, 6.2 * k, 7 * k, su, 0.5);
 }

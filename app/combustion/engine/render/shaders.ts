@@ -116,6 +116,27 @@ export const PART_FRAGMENT_SHADER = `
     );
   }
 
+  vec3 hash33(vec3 p) {
+    return fract(sin(vec3(dot(p, vec3(127.1, 311.7, 74.7)), dot(p, vec3(269.5, 183.3, 246.1)), dot(p, vec3(113.5, 271.9, 124.6)))) * 43758.5453);
+  }
+
+  // The heat shield's emboss on one plane: an egg-crate of small raised dimples and pits on a grid turned 30 degrees,
+  // the turn flipping from one band to the next, so that the rows run in a herringbone. Its height, and its slope in gr
+  float emboss(vec2 p, out vec2 gr) {
+    float f = 1.45; // a dimple every 4 units or so
+    float s = mod(floor(p.y * 0.085 + 0.35 * sin(p.x * 0.05)), 2.0) < 0.5 ? 1.0 : -1.0;
+    vec2 ax = vec2(0.866, -0.5 * s) * f;
+    vec2 ay = vec2(0.5 * s, 0.866) * f;
+    vec2 q = vec2(dot(vec2(ax.x, ay.x), p), dot(vec2(ax.y, ay.y), p));
+    float a = sin(q.x);
+    float c = sin(q.y);
+    vec2 dq = vec2(cos(q.x) * c, a * cos(q.y));
+
+    gr = vec2(dot(dq, vec2(ax.x, ax.y)), dot(dq, vec2(ay.x, ay.y)));
+
+    return a * c;
+  }
+
   void main() {
     vec3 view = normalize(uEye - vWorld);
     vec3 n = normalize(vNormal);
@@ -132,6 +153,85 @@ export const PART_FRAGMENT_SHADER = `
       float jc = vnoise(sp.xy * 4.3 + sp.z * 2.1 + 9.1) - 0.5 + 0.6 * (vnoise(sp.xy * 9.3 + sp.z * 4.7 + 4.0) - 0.5);
 
       n = normalize(n + vec3(ja, jb, jc) * 0.7);
+    }
+
+    // Sandpaper: a dense, very fine grit, matte, its grains each tilted its own way, picked out three ways at once
+    // (by the faces' own axes, so that it lies evenly on every curve)
+    float sandGrit = 0.5;
+    float sandGlint = 0.0;
+
+    if (vPattern > 8.5 && vPattern < 9.5) {
+      vec3 w = abs(n);
+      w /= (w.x + w.y + w.z);
+      vec3 sp = vWorld * 3.4; // the grit's size: very fine, under a third of a unit
+      vec2 cx = floor(sp.yz);
+      vec2 cy = floor(sp.zx);
+      vec2 cz = floor(sp.xy);
+      float gx = hash21(cx);
+      float gy = hash21(cy + 17.0);
+      float gz = hash21(cz + 31.0);
+      float g = gx * w.x + gy * w.y + gz * w.z; // each grain's own shade
+      float fine = vnoise(sp.yz * 2.3) * w.x + vnoise(sp.zx * 2.3 + 4.0) * w.y + vnoise(sp.xy * 2.3 + 8.0) * w.z;
+      float coarse = vnoise(sp.yz * 0.21 + 2.0) * w.x + vnoise(sp.zx * 0.21 + 6.0) * w.y + vnoise(sp.xy * 0.21 + 9.0) * w.z;
+
+      sandGrit = clamp(0.55 * g + 0.3 * fine + 0.15 * coarse, 0.0, 1.0);
+      // now and then a grain catches the light
+      sandGlint = step(0.975, g);
+
+      vec3 tilt = vec3(hash21(cx + 3.1) - 0.5, hash21(cy + 5.7) - 0.5, hash21(cz + 9.3) - 0.5) + 0.5 * vec3(fine - 0.5, coarse - 0.5, g - 0.5);
+      n = normalize(n + tilt * 0.34);
+    }
+
+    // The heat shield: embossed foil (its dimples catch the light, its pits fall dark), and the seams where its patches
+    // meet, irregular lines burnt brown, with a faint bronze of heat beside them
+    float shieldH = 0.0;
+    float shieldSeam = 0.0;
+    float shieldHalo = 0.0;
+
+    if (vPattern > 9.5) {
+      vec3 w = abs(n);
+      w = w * w * w * w;
+      w /= (w.x + w.y + w.z);
+      vec2 gx;
+      vec2 gy;
+      vec2 gz;
+      float hx = emboss(vWorld.yz, gx);
+      float hy = emboss(vWorld.zx + 7.3, gy);
+      float hz = emboss(vWorld.xy + 3.1, gz);
+
+      shieldH = hx * w.x + hy * w.y + hz * w.z;
+      n = normalize(n - 0.24 * (w.x * vec3(0.0, gx.x, gx.y) + w.y * vec3(gy.y, 0.0, gy.x) + w.z * vec3(gz.x, gz.y, 0.0)));
+
+      // the patches: cells of a lattice jittered at random, their edges wavering
+      vec3 cp = vWorld / 42.0;
+      cp += 0.22 * vec3(vnoise(vWorld.yz * 0.11), vnoise(vWorld.zx * 0.11 + 3.0), vnoise(vWorld.xy * 0.11 + 6.0));
+      vec3 ci = floor(cp);
+      vec3 cf = fract(cp);
+      float d1 = 8.0;
+      float d2 = 8.0;
+
+      for (int i = -1; i <= 1; i++) {
+        for (int j = -1; j <= 1; j++) {
+          for (int k = -1; k <= 1; k++) {
+            vec3 o = vec3(float(i), float(j), float(k));
+            vec3 r = o + hash33(ci + o) - cf;
+            float d = dot(r, r);
+
+            if (d < d1) {
+              d2 = d1;
+              d1 = d;
+            } else if (d < d2) {
+              d2 = d;
+            }
+          }
+        }
+      }
+
+      float edge = sqrt(d2) - sqrt(d1);
+      float wob = 0.012 * (vnoise(vWorld.yz * 0.9 + vWorld.x * 0.7) - 0.5);
+
+      shieldSeam = 1.0 - smoothstep(0.012, 0.026, edge + wob);
+      shieldHalo = 1.0 - smoothstep(0.02, 0.09, edge);
     }
 
     // Wet values above 1.5 mean "newly soaked": 1 + the wetness. Those parts
@@ -155,7 +255,9 @@ export const PART_FRAGMENT_SHADER = `
     float isBandX = step(4.5, vPattern) * (1.0 - step(5.5, vPattern));
     float isSkirt = step(5.5, vPattern) * (1.0 - step(6.5, vPattern));
     float isRough = step(6.5, vPattern) * (1.0 - step(7.5, vPattern));
-    float isCarbon = step(7.5, vPattern);
+    float isCarbon = step(7.5, vPattern) * (1.0 - step(8.5, vPattern));
+    float isSand = step(8.5, vPattern) * (1.0 - step(9.5, vPattern));
+    float isShield = step(9.5, vPattern);
 
     // Turned grooves, cast grain, ground cross-hatch, turned bands
     float rings = 0.5 + 0.5 * sin(vRadius * 3.4);
@@ -198,7 +300,9 @@ export const PART_FRAGMENT_SHADER = `
       + isBandY * (-0.08 + 0.16 * bandY)
       + isBandX * (-0.07 + 0.14 * bandX)
       + isSkirt * (-0.05 + 0.10 * (0.8 * fineY + 0.2 * grain)) // the skirt: polished, its striations only just there
-      + isRough * (-0.20 + 0.42 * roughTone);
+      + isRough * (-0.20 + 0.42 * roughTone)
+      + isSand * (-0.16 + 0.30 * sandGrit)
+      + isShield * (0.22 * shieldH);
 
     // Oil fills in the grain: wet surfaces look smoother
     tone = 1.0 + (tone - 1.0) * (1.0 - (0.45 + 0.3 * soaked) * wetAmt);
@@ -211,6 +315,10 @@ export const PART_FRAGMENT_SHADER = `
     float metal = clamp(vShine, 0.0, 1.0);
 
     vec3 base = vColor * tone;
+
+    // the heat shield's seams: a bronze of heat beside each, and the burnt brown line itself
+    base = mix(base, base * vec3(0.93, 0.80, 0.64), isShield * shieldHalo * 0.55);
+    base = mix(base, vec3(0.46, 0.33, 0.23), isShield * shieldSeam * 0.9);
     vec3 col = base * (ambient + key * 0.80 + fill * 0.34);
     col *= mix(1.0, 0.62 + 0.75 * env, metal * 0.75);
     col *= mix(0.30, 1.0, vOcc);
@@ -228,7 +336,9 @@ export const PART_FRAGMENT_SHADER = `
       + isBandX * (-0.25 + 0.5 * bandX)
       + isSkirt * (-0.15 + 0.3 * fineY)
       + isRough * (-0.40 + 0.95 * roughTone)
-      + isCarbon * (-0.6 + 1.3 * weave);
+      + isCarbon * (-0.6 + 1.3 * weave)
+      + isSand * (-0.5 + 1.5 * sandGlint)
+      + isShield * (0.25 + 0.75 * shieldH - 1.1 * shieldSeam);
 
     float fres = pow(1.0 - clamp(dot(n, view), 0.0, 1.0), 3.0);
 
