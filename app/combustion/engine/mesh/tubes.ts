@@ -4,7 +4,7 @@ import { TAU } from "../core/constants";
 import { vadd, vcross, vlen, vlerp, vnorm, vscale, vsub } from "../math/vec3";
 import { createMeshBuilder } from "./builder";
 import type { FwMaterial, FwVec3 } from "./builder";
-import { MAT_COUPLER, MAT_CT_EDGE, MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE, MAT_STEEL_BRIGHT } from "./materials";
+import { MAT_BOLT_DARK_HEAD, MAT_BOLT_DARK_SIDE, MAT_BOLT_DARK_WASHER, MAT_COUPLER, MAT_CT_EDGE, MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE, MAT_STEEL_BRIGHT } from "./materials";
 
 /* ---- curves: pipes and the paths the air follows ---- */
 
@@ -339,18 +339,23 @@ export function flangeJoint(b: MeshBuilder, centre: FwVec3, dir: FwVec3, o: Flan
 
 // A bolt's head on a flange's face at `p`, facing `d`: a washer, the hex head (`hx` across its corners), a turned and
 // chamfered top, and the maker's dot in the middle of it
-export function flangeBolt(b: MeshBuilder, p: FwVec3, dir: FwVec3, hx: number, rot = 0) {
+// (`dark`: the black-oxide set, the bolts of the perforated covers: dark washer, dark head, the same shape)
+export function flangeBolt(b: MeshBuilder, p: FwVec3, dir: FwVec3, hx: number, rot = 0, dark = false) {
   const d = vnorm(dir);
   const e1 = vnorm(vcross(d, Math.abs(d[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0]));
   const e2 = vcross(d, e1);
   // (the washer sits a hair off the face, so that its underside and the face never share a plane and flicker)
   const up = (h: number) => vadd(p, vscale(d, h + 0.15));
+  const washer = dark ? MAT_BOLT_DARK_WASHER : MAT_STEEL_BRIGHT;
+  const head = dark ? MAT_BOLT_DARK_HEAD : MAT_CT_NUT_HEAD;
+  const side = dark ? MAT_BOLT_DARK_SIDE : MAT_CT_NUT_SIDE;
+  const tip = dark ? MAT_BOLT_DARK_WASHER : MAT_STEEL_BRIGHT;
 
-  b.prismDir(up(0), d, e1, e2, hx * 1.22, 0.8, 20, 0, MAT_STEEL_BRIGHT, MAT_STEEL_BRIGHT);
-  b.prismDir(up(0.8), d, e1, e2, hx * 1.06, hx * 0.12, 18, 0, MAT_CT_NUT_SIDE, MAT_CT_NUT_SIDE); // the head's collar
-  b.prismDir(up(0.8 + hx * 0.12), d, e1, e2, hx, hx * 0.66, 6, rot, MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE);
-  b.prismDir(up(0.8 + hx * 0.78), d, e1, e2, hx * 0.84, hx * 0.16, 18, 0, MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE);
-  b.prismDir(up(0.8 + hx * 0.94), d, e1, e2, hx * 0.22, hx * 0.05, 10, 0, MAT_STEEL_BRIGHT, MAT_STEEL_BRIGHT);
+  b.prismDir(up(0), d, e1, e2, hx * 1.22, 0.8, 20, 0, washer, washer);
+  b.prismDir(up(0.8), d, e1, e2, hx * 1.06, hx * 0.12, 18, 0, side, side); // the head's collar
+  b.prismDir(up(0.8 + hx * 0.12), d, e1, e2, hx, hx * 0.66, 6, rot, head, side);
+  b.prismDir(up(0.8 + hx * 0.78), d, e1, e2, hx * 0.84, hx * 0.16, 18, 0, head, side);
+  b.prismDir(up(0.8 + hx * 0.94), d, e1, e2, hx * 0.22, hx * 0.05, 10, 0, tip, tip);
 }
 
 // A cone that starts as an oval (half-widths ox along x, oy along y) at z0 and narrows, along z by `dz` (either way), to

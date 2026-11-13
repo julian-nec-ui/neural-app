@@ -365,7 +365,9 @@ function buildBankFog(bank: Bank, bi: number) {
     runnerSpecs.push({ points: pts, nodes: [[0, 10.5], [60, 16], [len - col.total, 16], [len, 24]], fadeIn: 20, fadeOut: 30, seg: 14, spacing: 6 });
   }
 
-  group(fogMesh(runnerSpecs, null), 4, -1, 1, CT_X.map((_, c) => c));
+  // (not drawn: the headers are taken away on the see-through engine, and the gas along them with them, so that the
+  // cylinders show clearly; on the solid engine the headers hide it anyway. The gas shows again from the turbine on)
+  void runnerSpecs;
 
   const turbinePts = turbinePathLocal().map(turboWorld);
   const centre = turboWorld([-TB.half, 0, 0]);
@@ -446,7 +448,7 @@ function buildBankFog(bank: Bank, bi: number) {
 
   const SKY: [number, number, number] = [0.25, 0.82, 1.0];
   const COBALT: [number, number, number] = [0.06, 0.42, 1.0];
-  const INDIGO: [number, number, number] = [0.5, 0.34, 1.0];
+  const INDIGO: [number, number, number] = [0.12, 0.48, 1.0]; // (a deeper blue: the charge stays blue the whole way)
   const EMBER: [number, number, number] = [1.0, 0.24, 0.02];
   const GOLD: [number, number, number] = [1.0, 0.6, 0.18];
 
@@ -462,7 +464,8 @@ function buildBankFog(bank: Bank, bi: number) {
     (u) => mixColor(mixColor(SKY, COBALT, smooth01(u / 0.12)), INDIGO, smooth01((u - 0.14) / 0.1) * (1 - smooth01((u - 0.5) / 0.12)) * 0.7)
   );
 
-  tracer([...runners.runners[1].pts, ...runners.collectors[0].pts, ...gPts.map(XM)], 15, 4, 9, 0, 2.3, 75, (u) => mixColor(EMBER, GOLD, smooth01(u / 0.3) * (1 - smooth01((u - 0.55) / 0.3))), true);
+  // (from the turbine on: the headers are not shown)
+  tracer([...gPts.map(XM)], 15, 4, 9, 0, 2.3, 75, (u) => mixColor(EMBER, GOLD, smooth01(u / 0.3) * (1 - smooth01((u - 0.55) / 0.3))), true);
 
 }
 

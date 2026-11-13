@@ -40,7 +40,7 @@ const RIB = { pitch: 18, w: 8.8, h: 2.6, margin: 8, steps: 8 }; // the ribs: spa
 // behind the next, so that each column is a chain of
 // tall bulges and necks nested between its neighbours'; LENS.h high; drawn as a height field LENS.ds by LENS.dx fine,
 // easing down to the wall over LENS.edge at its edges and round the plugs and mounts
-const LENS = { pitch: 8, len: 43, amp: 8 * 0.31, h: 4.6, ds: 2.5, dx: 0.95, edge: 4 };
+const LENS = { pitch: 8, len: 43, amp: 8 * 0.31, h: 5.4, ds: 2.5, dx: 0.95, edge: 4 };
 
 // A point of a bank's own section (y along the bank, z across it) in the engine's
 const inBank = (bank: Bank, y: number, z: number): P2 => [bank.m[4] * y + bank.m[7] * z, bank.m[5] * y + bank.m[8] * z];
@@ -260,7 +260,10 @@ export function buildBlock(b: MeshBuilder) {
         return Math.max(0, Math.min(1, f));
       };
 
-      quiltPanel(b, MAT_BLOCK_EMBOSS, LENS, P3(0, 0), [0, d[0], d[1]], [0, no[0], no[1]], [1, 0, 0], s0, s1, x0 + END_R + 2, x1 - END_R - 2, flat);
+      // (on the starter's side, -z, its outer wall and skirt a shade darker grey; its relief a little stronger all round)
+      const starterSide = p[1] < 0 && run.kind !== "inner";
+
+      quiltPanel(b, MAT_BLOCK_EMBOSS, LENS, P3(0, 0), [0, d[0], d[1]], [0, no[0], no[1]], [1, 0, 0], s0, s1, x0 + END_R + 2, x1 - END_R - 2, flat, starterSide ? 0.6 : 1, 1.25);
     }
 
     // the machined lip under the deck, the length of the block

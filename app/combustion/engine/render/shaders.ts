@@ -99,6 +99,7 @@ export const PART_FRAGMENT_SHADER = `
   uniform float uRim; // 0..1: a steel contour on the silhouette, with shadow just inside it
   uniform vec3 uRimTint; // the contour's bright line: plain steel, or a cold blue that stands out against the red heads
   uniform float uRimWide; // 0..1: how much wider and brighter the contour is (the exhaust's, against the heads)
+  uniform float uFrontOnly; // 1: a see-through pipe or casing, drawn as only its skin toward the eye (its far wall left out)
 
   float hash21(vec2 p) {
     return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
@@ -122,7 +123,41 @@ export const PART_FRAGMENT_SHADER = `
 
   // The heat shield's emboss on one plane: an egg-crate of small raised dimples and pits on a grid turned 30 degrees,
   // the turn flipping from one band to the next, so that the rows run in a herringbone. Its height, and its slope in gr
-  float emboss(vec2 p, out vec2 gr) {
+  // Engine turning (spot polishing): overlapping round spots in offset rows, each laid over the one before like scales,
+// each polished in circles round its own middle, so that the light catches it in a bright and a dark fan that turn
+// with the eye. Returns the fans' brightness (0..1) and, in d, the way across the polishing at p (for the normal)
+float spotTurn(vec2 p, vec2 light, out vec2 d) {
+  const float R = 0.62; // a spot's radius, in cells (they overlap)
+  vec2 q = vec2(p.x, p.y * 1.0);
+  float row = floor(q.y);
+  float best = -1e9;
+  vec2 rel = vec2(0.0);
+
+  for (int dy = -1; dy <= 1; dy++) {
+    float ry = row + float(dy);
+    float off = mod(ry, 2.0) * 0.5;
+
+    for (int dx = -1; dx <= 1; dx++) {
+      vec2 c = vec2(floor(q.x - off) + float(dx) + 0.5 + off, ry + 0.5);
+      vec2 r = q - c;
+
+      // the spot from the row further down lies over the ones above it
+      if (length(r) < R && ry > best) { best = ry; rel = r; }
+    }
+  }
+
+  float rr = length(rel) + 1e-4;
+  vec2 rad = rel / rr;
+
+  d = vec2(-rad.y, rad.x); // along the polishing: round the spot
+
+  float fan = 0.5 + 0.5 * cos(2.0 * (atan(rad.y, rad.x) - atan(light.y, light.x)));
+  float rings = 0.5 + 0.5 * sin(rr * 120.0);
+
+  return clamp(0.82 * fan + 0.18 * rings - 0.25 * smoothstep(R - 0.06, R, rr), 0.0, 1.0);
+}
+
+float emboss(vec2 p, out vec2 gr) {
     float f = 1.45; // a dimple every 4 units or so
     float s = mod(floor(p.y * 0.085 + 0.35 * sin(p.x * 0.05)), 2.0) < 0.5 ? 1.0 : -1.0;
     vec2 ax = vec2(0.866, -0.5 * s) * f;
@@ -140,6 +175,10 @@ export const PART_FRAGMENT_SHADER = `
   void main() {
     vec3 view = normalize(uEye - vWorld);
     vec3 n = normalize(vNormal);
+
+    // A see-through pipe or casing shows only the skin that faces the eye: one layer of glass, so that it stays one whole
+    // piece, its far wall never laid over what is behind it
+    if (uFrontOnly > 0.5 && dot(n, view) < -0.02) discard;
 
     // Lit on both sides: a part seen from behind, or from inside, is not black
     if (dot(n, view) < 0.0) n = -n;
@@ -182,13 +221,10 @@ export const PART_FRAGMENT_SHADER = `
       n = normalize(n + tilt * 0.34);
     }
 
-    // The heat shield: embossed foil (its dimples catch the light, its pits fall dark), and the seams where its patches
-    // meet, irregular lines burnt brown, with a faint bronze of heat beside them
+    // The heat shield: embossed foil, its dimples catching the light, its pits falling dark
     float shieldH = 0.0;
-    float shieldSeam = 0.0;
-    float shieldHalo = 0.0;
 
-    if (vPattern > 9.5) {
+    if (vPattern > 9.5 && vPattern < 10.5) {
       vec3 w = abs(n);
       w = w * w * w * w;
       w /= (w.x + w.y + w.z);
@@ -200,38 +236,12 @@ export const PART_FRAGMENT_SHADER = `
       float hz = emboss(vWorld.xy + 3.1, gz);
 
       shieldH = hx * w.x + hy * w.y + hz * w.z;
-      n = normalize(n - 0.24 * (w.x * vec3(0.0, gx.x, gx.y) + w.y * vec3(gy.y, 0.0, gy.x) + w.z * vec3(gz.x, gz.y, 0.0)));
+      // (deeper than it was: the dimples stand out in relief, their sides turned well to the light, and a fine grain of
+      // the foil's own over them)
+      n = normalize(n - 0.55 * (w.x * vec3(0.0, gx.x, gx.y) + w.y * vec3(gy.y, 0.0, gy.x) + w.z * vec3(gz.x, gz.y, 0.0)));
+      n = normalize(n + 0.06 * (vec3(vnoise(vWorld.yz * 2.6), vnoise(vWorld.zx * 2.6 + 4.0), vnoise(vWorld.xy * 2.6 + 9.0)) - 0.5));
 
-      // the patches: cells of a lattice jittered at random, their edges wavering
-      vec3 cp = vWorld / 42.0;
-      cp += 0.22 * vec3(vnoise(vWorld.yz * 0.11), vnoise(vWorld.zx * 0.11 + 3.0), vnoise(vWorld.xy * 0.11 + 6.0));
-      vec3 ci = floor(cp);
-      vec3 cf = fract(cp);
-      float d1 = 8.0;
-      float d2 = 8.0;
-
-      for (int i = -1; i <= 1; i++) {
-        for (int j = -1; j <= 1; j++) {
-          for (int k = -1; k <= 1; k++) {
-            vec3 o = vec3(float(i), float(j), float(k));
-            vec3 r = o + hash33(ci + o) - cf;
-            float d = dot(r, r);
-
-            if (d < d1) {
-              d2 = d1;
-              d1 = d;
-            } else if (d < d2) {
-              d2 = d;
-            }
-          }
-        }
-      }
-
-      float edge = sqrt(d2) - sqrt(d1);
-      float wob = 0.012 * (vnoise(vWorld.yz * 0.9 + vWorld.x * 0.7) - 0.5);
-
-      shieldSeam = 1.0 - smoothstep(0.012, 0.026, edge + wob);
-      shieldHalo = 1.0 - smoothstep(0.02, 0.09, edge);
+      // (no burnt seams: the foil is one clean sheet; the streaks along the pipes are in the mesh, exhaust.ts)
     }
 
     // Wet values above 1.5 mean "newly soaked": 1 + the wetness. Those parts
@@ -257,7 +267,67 @@ export const PART_FRAGMENT_SHADER = `
     float isRough = step(6.5, vPattern) * (1.0 - step(7.5, vPattern));
     float isCarbon = step(7.5, vPattern) * (1.0 - step(8.5, vPattern));
     float isSand = step(8.5, vPattern) * (1.0 - step(9.5, vPattern));
-    float isShield = step(9.5, vPattern);
+    float isShield = step(9.5, vPattern) * (1.0 - step(10.5, vPattern));
+    float isSpot = step(10.5, vPattern) * (1.0 - step(11.5, vPattern));
+    float isKnurl = step(11.5, vPattern);
+
+    // Knurled relief (pattern 12): a fine diamond knurl pressed into the metal, two sets of grooves crossing at an angle,
+    // each diamond a little pyramid standing out, its faces turned to the light; projected on the face's three planes
+    float knurlH = 0.0;
+
+    if (isKnurl > 0.5) {
+      vec3 w = abs(n);
+      w = w * w * w * w;
+      w /= (w.x + w.y + w.z);
+      const float K = 0.42; // grooves per unit (each diamond a little over 2 units across)
+      // The knurl fades away where its diamonds would come under a few pixels (far off, or seen edge-on), so that it
+      // never shimmers or crawls as the engine turns: there the pipe is plain satin
+      float dist = length(uEye - vWorld);
+      float facing = abs(dot(n, view));
+      float fade = (1.0 - smoothstep(480.0, 1000.0, dist / max(facing, 0.25))) * smoothstep(0.08, 0.32, facing);
+      vec3 g = vec3(0.0);
+      float h = 0.0;
+
+      // a smooth diamond's height in a plane (u, v), and its slope: two soft waves crossing, no hard edges to alias
+      for (int ax = 0; ax < 3; ax++) {
+        vec2 uv = ax == 0 ? vWorld.yz : (ax == 1 ? vWorld.zx : vWorld.xy);
+        float a = (uv.x + uv.y) * K * 6.2832;
+        float b = (uv.x - uv.y) * K * 6.2832;
+        float ca = 0.5 - 0.5 * cos(a);
+        float cb = 0.5 - 0.5 * cos(b);
+        float hh = ca * cb;
+        vec2 da = 0.5 * sin(a) * cb * vec2(1.0, 1.0);
+        vec2 db = 0.5 * sin(b) * ca * vec2(1.0, -1.0);
+        vec2 slope = da + db;
+        float wt = ax == 0 ? w.x : (ax == 1 ? w.y : w.z);
+
+        h += hh * wt;
+        if (ax == 0) g += wt * vec3(0.0, slope.x, slope.y);
+        else if (ax == 1) g += wt * vec3(slope.y, 0.0, slope.x);
+        else g += wt * vec3(slope.x, slope.y, 0.0);
+      }
+
+      knurlH = mix(0.5, h, fade);
+      g -= n * dot(n, g);
+      n = normalize(n - 2.3 * fade * g); // (steep: tall diamonds, their sides turned well away)
+    }
+
+    // Engine-turned spots (pattern 11): projected on the face's dominant plane, small, in offset rows
+    float spotV = 0.5;
+
+    if (isSpot > 0.5) {
+      vec3 w = abs(n);
+      vec2 sp;
+      vec2 l2;
+
+      if (w.x >= w.y && w.x >= w.z) { sp = vWorld.zy; l2 = vec2(keyDir.z, keyDir.y) + vec2(view.z, view.y); }
+      else if (w.y >= w.z) { sp = vWorld.xz; l2 = vec2(keyDir.x, keyDir.z) + vec2(view.x, view.z); }
+      else { sp = vWorld.xy; l2 = vec2(keyDir.x, keyDir.y) + vec2(view.x, view.y); }
+
+      vec2 dd;
+
+      spotV = spotTurn(sp / 2.7, normalize(l2 + vec2(1e-4)), dd);
+    }
 
     // Turned grooves, cast grain, ground cross-hatch, turned bands
     float rings = 0.5 + 0.5 * sin(vRadius * 3.4);
@@ -283,17 +353,29 @@ export const PART_FRAGMENT_SHADER = `
     float weave = 0.5;
 
     if (isCarbon > 0.5) {
+      // a 2x2 twill: tiles stepped one along each row, so that the weave runs in diagonals; each tile a tow of fibres,
+      // rounded across (lit on its crown, dark into the seams between tows), its fine fibres catching the light along it
       vec2 q = vec2(vPos.y + vPos.x, vPos.z) * 0.24;
+      vec2 cell = floor(q);
       vec2 f = fract(q);
-      float par = mod(floor(q.x) + floor(q.y), 2.0);
-      float fib = par > 0.5 ? sin(f.x * 3.14159) : sin(f.y * 3.14159);
-      float thread = 0.5 + 0.5 * sin((par > 0.5 ? f.y : f.x) * 37.7);
+      float par = mod(cell.x + floor((cell.y + mod(cell.x, 2.0)) * 0.5) * 2.0 + cell.y, 2.0);
+      float across = par > 0.5 ? f.x : f.y; // across the tow
+      float along = par > 0.5 ? f.y : f.x; // along it
+      float crown = sin(across * 3.14159);
+      float seam = smoothstep(0.0, 0.09, across) * smoothstep(0.0, 0.09, 1.0 - across) * smoothstep(0.0, 0.05, along) * smoothstep(0.0, 0.05, 1.0 - along);
+      float fibres = 0.5 + 0.5 * sin(across * 62.8 + 1.7 * sin(along * 6.28));
+      float sheen = pow(crown, 3.0);
 
-      weave = clamp(0.25 + 0.6 * fib + 0.15 * thread, 0.0, 1.0);
+      weave = clamp((0.12 + 0.62 * crown + 0.12 * fibres + 0.22 * sheen) * (0.35 + 0.65 * seam), 0.0, 1.0);
+
+      // the tow's roundness turns the normal across it, so that the light runs over the weave as the engine turns
+      vec3 tAcross = par > 0.5 ? vec3(0.0, 1.0, 0.0) : vec3(0.0, 0.0, 1.0);
+
+      n = normalize(n + tAcross * (0.5 - across) * 0.55 * seam);
     }
 
     float tone = 1.0
-      + isCarbon * (-0.32 + 0.6 * weave)
+      + isCarbon * (-0.42 + 0.8 * weave)
       + isTurned * (-0.14 + 0.28 * rings)
       + isCast * (-0.16 + 0.34 * grain)
       + isGround * (-0.10 + 0.20 * (0.55 * rings + 0.45 * hatch))
@@ -302,7 +384,9 @@ export const PART_FRAGMENT_SHADER = `
       + isSkirt * (-0.05 + 0.10 * (0.8 * fineY + 0.2 * grain)) // the skirt: polished, its striations only just there
       + isRough * (-0.20 + 0.42 * roughTone)
       + isSand * (-0.16 + 0.30 * sandGrit)
-      + isShield * (0.22 * shieldH);
+      + isShield * (0.34 * shieldH - 0.04) // (the pits fall darker, the crowns lighter: relief)
+      + isSpot * (-0.22 + 0.44 * spotV)
+      + isKnurl * (-0.5 + 0.68 * pow(knurlH, 0.8)); // (the grooves fall deep and dark, the diamonds' crowns lit)
 
     // Oil fills in the grain: wet surfaces look smoother
     tone = 1.0 + (tone - 1.0) * (1.0 - (0.45 + 0.3 * soaked) * wetAmt);
@@ -316,9 +400,6 @@ export const PART_FRAGMENT_SHADER = `
 
     vec3 base = vColor * tone;
 
-    // the heat shield's seams: a bronze of heat beside each, and the burnt brown line itself
-    base = mix(base, base * vec3(0.93, 0.80, 0.64), isShield * shieldHalo * 0.55);
-    base = mix(base, vec3(0.46, 0.33, 0.23), isShield * shieldSeam * 0.9);
     vec3 col = base * (ambient + key * 0.80 + fill * 0.34);
     col *= mix(1.0, 0.62 + 0.75 * env, metal * 0.75);
     col *= mix(0.30, 1.0, vOcc);
@@ -336,9 +417,11 @@ export const PART_FRAGMENT_SHADER = `
       + isBandX * (-0.25 + 0.5 * bandX)
       + isSkirt * (-0.15 + 0.3 * fineY)
       + isRough * (-0.40 + 0.95 * roughTone)
-      + isCarbon * (-0.6 + 1.3 * weave)
+      + isCarbon * (-0.75 + 1.75 * weave)
       + isSand * (-0.5 + 1.5 * sandGlint)
-      + isShield * (0.25 + 0.75 * shieldH - 1.1 * shieldSeam);
+      + isShield * (0.05 + 1.15 * max(shieldH, 0.0)) // (light only on the crowns)
+      + isSpot * (-0.7 + 1.9 * spotV)
+      + isKnurl * (-0.7 + 0.75 * knurlH); // (the highlight held down: only the crowns glint, softly)
 
     float fres = pow(1.0 - clamp(dot(n, view), 0.0, 1.0), 3.0);
 
@@ -382,7 +465,8 @@ export const PART_FRAGMENT_SHADER = `
     // and on the very edge a line of dark, blued steel. edge is 0 facing the eye and 1 at the silhouette.
     float edge = 1.0 - clamp(dot(n, view), 0.0, 1.0);
     float shade = smoothstep(0.26, 0.58, edge) * (1.0 - smoothstep(0.58, 0.80, edge));
-    float rimLine = smoothstep(0.66 - 0.26 * uRimWide, 0.86 - 0.12 * uRimWide, edge);
+    // (a front-only piece, its contour drawn once, a little wider and stronger, so that its outline reads unbroken)
+    float rimLine = smoothstep(0.66 - 0.26 * uRimWide - 0.1 * uFrontOnly, 0.86 - 0.12 * uRimWide - 0.04 * uFrontOnly, edge);
     float darkLine = smoothstep(0.86 - 0.1 * uRimWide, 0.97 - 0.03 * uRimWide, edge);
 
     col *= 1.0 - uRim * 0.55 * shade;
@@ -394,7 +478,7 @@ export const PART_FRAGMENT_SHADER = `
     col = mix(col, steel, uRim * rimLine * (1.0 - darkLine) * 0.95);
     col = mix(col, blued, uRim * darkLine * 0.9);
 
-    float alpha = clamp(uOpacity + uRim * (0.32 * shade + 0.7 * rimLine), 0.0, 1.0);
+    float alpha = clamp(uOpacity + uRim * (0.32 * shade + (0.7 + 0.2 * uFrontOnly) * rimLine), 0.0, 1.0);
 
     // The glints on rough cast metal are not dimmed by the see-through skin: they sparkle on it
     vec3 glint = vec3(1.0, 0.84, 0.80) * spec * 0.5 * isRough;

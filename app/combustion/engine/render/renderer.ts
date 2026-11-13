@@ -12,7 +12,7 @@ import { GLOW } from "../fx/points";
 import { FW_STRIDE } from "../mesh/builder";
 import type { FwVec3 } from "../mesh/builder";
 import { MODULES, modulePoint } from "../mesh/exhaust";
-import { TURBO, TURBO_ORIENT } from "../mesh/turbo";
+import { TURBO_AT, TURBO_ORIENT } from "../mesh/turbo";
 import { icTurn } from "../mesh/intercooler";
 
 import { ST_AT } from "../mesh/starter";
@@ -20,11 +20,12 @@ import { VT } from "../mesh/valvetrain";
 import { CAM_FOV, LIGHT_FILL, LIGHT_KEY, LIGHT_KICK, viewProjection } from "./camera";
 import type { CameraController } from "./camera";
 import { blurSteps, createMotionBlur } from "./motionBlur";
-import { BACKGROUND, BLOCK_RIM, STARTER_YOKE_OPACITY, CAM_NEAR_DEPTH, CASING_OPACITY, COOL_PIPE_OPACITY, DECK_OPACITY, EXHAUST_PALE, EXHAUST_PIPE_OPACITY, FLOOR_Y, FOG_DENSITY, FOG_PALETTE, HOT_PIPE_OPACITY, INTAKE_DUCT_OPACITY, OIL_BAND, PIPE_OPACITY, PIPE_RIM, RIM_CHARGE, RIM_EXHAUST, RIM_STEEL, SUMP_OPACITY, headOpacityAt, mix3, smooth01 } from "./look";
+import { BACKGROUND, BLOCK_RIM, STARTER_YOKE_OPACITY, CAM_NEAR_DEPTH, CASING_OPACITY, COOL_PIPE_OPACITY, DECK_OPACITY, HOT_CHARGE_OPACITY, EXHAUST_PALE, FLOOR_Y, FOG_DENSITY, FOG_PALETTE, HOT_PIPE_OPACITY, INTAKE_DUCT_OPACITY, OIL_BAND, PIPE_OPACITY, PIPE_RIM, RIM_CHARGE, RIM_EXHAUST, RIM_STEEL, SUMP_OPACITY, headOpacityAt, mix3, smooth01 } from "./look";
 import { FLOOR_FRAGMENT_SHADER, FLOOR_VERTEX_SHADER, FOG_FRAGMENT_SHADER, FOG_VERTEX_SHADER, GLASS_FRAGMENT_SHADER, GLASS_VERTEX_SHADER, PART_FRAGMENT_SHADER, POINT_FRAGMENT_SHADER, POINT_VERTEX_SHADER, SCENE_VERTEX_SHADER, STREAK_FRAGMENT_SHADER, STREAK_VERTEX_SHADER, VOLUME_FRAGMENT_SHADER, VOLUME_VERTEX_SHADER } from "./shaders";
 import { computeSceneCommands } from "../scene/commands";
 import type { DrawCmd } from "../scene/commands";
-import { HEAD_RANGE, SCENE_VERTICES, bankPart } from "../scene/meshes";
+import { HEAD_RANGE, SCENE_VERTICES, bankPart, partCenter } from "../scene/meshes";
+import { PLENUM } from "../mesh/plumbing";
 import { RPM_MAX, createFrame } from "../sim/clock";
 import type { EngineFrame } from "../sim/clock";
 
@@ -322,7 +323,7 @@ export function createEngineRenderer(
       offset: (offset as number) * Float32Array.BYTES_PER_ELEMENT,
     }));
 
-    const blur = context2 ? createMotionBlur(context2) : null;
+    const blur = context2 ? createMotionBlur(context2, [BACKGROUND[0], BACKGROUND[1], BACKGROUND[2]]) : null;
 
     let disposed = false;
     let lastFrame: EngineFrame | null = null;
@@ -337,6 +338,8 @@ export function createEngineRenderer(
     let lastDraw = 0;
     let frameInterval = 16.7;
     let blurCap = 12; // sub-frames allowed; adapts to how fast frames arrive
+    let blurHeld = 1; // the sub-frames in use, held a while before they come down
+    let blurDrop = 0;
     let renderScale = 1; // share of the screen's resolution; adapts as well
     let scaleCooldown = 0;
     let fastFrames = 0;
@@ -396,12 +399,15 @@ export function createEngineRenderer(
       gl.uniform3f(uniform(sceneProgram, "uRimTint"), tint[0], tint[1], tint[2]);
       // the exhaust's and the charge's contours are wider, and lit more strongly
       gl.uniform1f(uniform(sceneProgram, "uRimWide"), tint === RIM_EXHAUST || tint === RIM_CHARGE ? 1 : 0);
+      gl.uniform1f(uniform(sceneProgram, "uFrontOnly"), 0);
     };
 
     // The see-through castings: each head's deck and shell, in its bank's place
-    const drawGhosts = () => {
+    // `phase`: "back", the see-through castings drawn as glass all through (the heads, the decks, the starter's yoke), or
+    // "front", the pipes and casings drawn as one clean skin each, hiding one another as solid pieces would
+    const drawGhosts = (phase: "back" | "front") => {
       // A see-through part in the engine's own frame, at `o`, with the turn `orient`
-      const ghost = (range: [number, number], see: number, orient: number, o: FwVec3, rim = 0, tint: FwVec3 = RIM_STEEL) => {
+      const ghostNow = (range: [number, number], see: number, orient: number, o: FwVec3, rim = 0, tint: FwVec3 = RIM_STEEL, front = false) => {
         // with the see-through switch off, every part is drawn solid: a plain engine
         const opacity = SCENE_OPTIONS.seeThrough ? see : 1;
 
@@ -410,6 +416,9 @@ export function createEngineRenderer(
         gl.uniform3f(uniform(sceneProgram, "uOffset"), o[0], o[1], o[2]);
         gl.uniform1f(uniform(sceneProgram, "uScaleY"), 1);
         gl.uniformMatrix3fv(uniform(sceneProgram, "uOrient"), false, ORIENTATIONS[orient]);
+        // a see-through pipe or casing shows only its skin toward the eye: one clean layer of glass, its far wall and its
+        // inside left out, so that it reads as one whole piece however the engine is turned
+        gl.uniform1f(uniform(sceneProgram, "uFrontOnly"), front && opacity < 0.995 ? 1 : 0);
 
         // a see-through part made solid (the head seen from above) writes its depth, as a solid part does, so that its own
         // inner faces and what is under it are hidden by its outer skin
@@ -422,9 +431,26 @@ export function createEngineRenderer(
         if (solid) gl.depthMask(false);
       };
 
+      // The see-through parts are gathered first, and drawn far to near from the eye (each by its middle), so that a part
+      // behind another is never laid over it
+      const queue: Array<{ d: number; draw: () => void; front: boolean }> = [];
+      const ghost = (range: [number, number], see: number, orient: number, o: FwVec3, rim = 0, tint: FwVec3 = RIM_STEEL, front = false) => {
+        const c = partCenter(range);
+        const M = ORIENTATIONS[orient];
+        const w: FwVec3 = [
+          M[0] * c[0] + M[3] * c[1] + M[6] * c[2] + o[0],
+          M[1] * c[0] + M[4] * c[1] + M[7] * c[2] + o[1],
+          M[2] * c[0] + M[5] * c[1] + M[8] * c[2] + o[2],
+        ];
+
+        const layered = front && SCENE_OPTIONS.seeThrough && see < 0.995;
+
+        queue.push({ d: Math.hypot(w[0] - eye[0], w[1] - eye[1], w[2] - eye[2]), front: layered, draw: () => ghostNow(range, see, orient, o, rim, tint, front) });
+      };
+
       // A see-through part of a bank, built in the bank's own frame
-      const ghostInBank = (bank: Bank, range: [number, number], opacity: number, rim = 0, tint: FwVec3 = RIM_STEEL) =>
-        ghost(range, opacity, bank.orient, [bank.dx, 0, 0], rim, tint);
+      const ghostInBank = (bank: Bank, range: [number, number], opacity: number, rim = 0, tint: FwVec3 = RIM_STEEL, front = false) =>
+        ghost(range, opacity, bank.orient, [bank.dx, 0, 0], rim, tint, front);
 
       // the block's walls, first: dark grey, sand-cast, see-through, behind what is drawn over them
       // the block's walls: only on the plain, solid engine; see-through, they are left out, so that the workings show bare
@@ -435,8 +461,9 @@ export function createEngineRenderer(
       ghost(HEAD_RANGE.starterYoke, STARTER_YOKE_OPACITY, ORIENT.STARTER, ST_AT, 0.25);
 
       for (const bank of BANKS) {
-        ghostInBank(bank, HEAD_RANGE.intakePipes, PIPE_OPACITY, PIPE_RIM, RIM_CHARGE);
-        ghostInBank(bank, HEAD_RANGE.exhaustStubs, HOT_PIPE_OPACITY, PIPE_RIM, RIM_CHARGE);
+        ghostInBank(bank, HEAD_RANGE.intakePipes, PIPE_OPACITY, PIPE_RIM, RIM_CHARGE, true);
+        // (the stubs out of the exhaust ports go with the headers: solid engine only)
+        if (!SCENE_OPTIONS.seeThrough) ghostInBank(bank, HEAD_RANGE.exhaustStubs, HOT_PIPE_OPACITY, PIPE_RIM, RIM_CHARGE, true);
         ghostInBank(bank, bankPart(bank, "deckSlab"), DECK_OPACITY);
         ghostInBank(bank, bankPart(bank, "headShell"), headOpacity(bank), 0.22);
         // the timing cover over its drive: only on the plain, solid engine; see-through, the drive shows bare
@@ -461,30 +488,77 @@ export function createEngineRenderer(
         }
 
         // (the signature and the firing order: on the solid engine only, taken away on the see-through one)
-        if (!SCENE_OPTIONS.seeThrough) ghostInBank(bank, bankPart(bank, "headText"), 1);
+        if (!SCENE_OPTIONS.seeThrough && phase === "back") ghostNow(bankPart(bank, "headText"), 1, bank.orient, [bank.dx, 0, 0]);
 
         if (headSolid) gl.disable(gl.POLYGON_OFFSET_FILL);
       }
 
+      // the signature cut into the plenum's lid, on the solid engine (the plenum is taken away on the see-through one):
+      // pulled toward the eye as the heads' lettering is, so that its floor shows on the lid's face
+      if (!SCENE_OPTIONS.seeThrough && phase === "back") {
+        const lc: FwVec3 = [(PLENUM.xf + PLENUM.xr) / 2, PLENUM.yLid - 60, 0];
+        const dist = Math.max(200, Math.hypot(eye[0] - lc[0], eye[1] - lc[1], eye[2] - lc[2]));
+
+        gl.enable(gl.POLYGON_OFFSET_FILL);
+        gl.polygonOffset(0, -((CAM_NEAR_DEPTH * 7) / (dist * dist)) * 16777216);
+        ghostNow(HEAD_RANGE.lidText, 1, 0, [0, 0, 0]);
+        gl.disable(gl.POLYGON_OFFSET_FILL);
+      }
+
       // The turbocharger module (one, in the V) and the runners, in the engine's own frame
       for (const m of MODULES) {
-        ghost(HEAD_RANGE.turboIntakePipe, INTAKE_DUCT_OPACITY, m.orientModule, modulePoint(m, [0, 0, 0]), PIPE_RIM, RIM_CHARGE);
-        ghost(HEAD_RANGE.collector, HOT_PIPE_OPACITY, m.orientModule, modulePoint(m, [0, 0, 0]), PIPE_RIM, RIM_CHARGE);
-        ghost(HEAD_RANGE.turboCasing, CASING_OPACITY, m.orientTurbo, modulePoint(m, [TURBO.x, TURBO.y, TURBO.z]));
+        ghost(HEAD_RANGE.turboIntakePipe, INTAKE_DUCT_OPACITY, m.orientModule, modulePoint(m, [0, 0, 0]), PIPE_RIM, RIM_CHARGE, true);
+        // (the exhaust's collector under the turbine: with the headers, solid engine only)
+        if (!SCENE_OPTIONS.seeThrough) ghost(HEAD_RANGE.collector, HOT_PIPE_OPACITY, m.orientModule, modulePoint(m, [0, 0, 0]), PIPE_RIM, RIM_CHARGE, true);
+        ghost(HEAD_RANGE.turboCasing, CASING_OPACITY, m.orientTurbo, modulePoint(m, TURBO_AT), 0, RIM_STEEL, true);
       }
 
       // the exhaust's runners, from the ports to the collectors: grey metal, as the intake's are
-      ghost(HEAD_RANGE.exhaustLogs, HOT_PIPE_OPACITY, 0, [0, 0, 0], PIPE_RIM, RIM_CHARGE);
+      // (each bank's front three and rear three apart: drawn far to near bank by bank, group by group)
+      // (the exhaust's headers: on the solid engine only, taken away on the see-through one)
+      if (!SCENE_OPTIONS.seeThrough) for (const r of [HEAD_RANGE.exhaustLogs, HEAD_RANGE.exhaustLogsR, HEAD_RANGE.exhaustLogsB, HEAD_RANGE.exhaustLogsBR]) ghost(r, HOT_PIPE_OPACITY, 0, [0, 0, 0], PIPE_RIM, RIM_CHARGE, true);
       // the collectors and the pipes on from them into the turbines: grey metal, as the intake's pipes are
-      ghost(HEAD_RANGE.turboFeed, HOT_PIPE_OPACITY, 0, [0, 0, 0], PIPE_RIM, RIM_CHARGE);
-      ghost(HEAD_RANGE.downpipes, EXHAUST_PIPE_OPACITY, 0, [0, 0, 0], 1, RIM_EXHAUST);
+      if (!SCENE_OPTIONS.seeThrough) for (const r of [HEAD_RANGE.turboFeed, HEAD_RANGE.turboFeedB]) ghost(r, HOT_PIPE_OPACITY, 0, [0, 0, 0], PIPE_RIM, RIM_CHARGE, true);
+      // (the silencers and their tails are solid now: drawn with the parts)
 
       // the charge pipes, in the engine's own frame
-      ghost(HEAD_RANGE.chargePipes, COOL_PIPE_OPACITY, 0, [0, 0, 0], PIPE_RIM, RIM_CHARGE); // as the cooled pipes: polished aluminium, see-through
+      for (const r of [HEAD_RANGE.chargePipes, HEAD_RANGE.chargePipesB]) ghost(r, HOT_CHARGE_OPACITY, 0, [0, 0, 0], PIPE_RIM, RIM_CHARGE, true); // as the cooled pipes: polished aluminium, see-through
       // the dry sump's tanks, pumps and lines: dark metal, the oil seen moving in them
-      ghost(HEAD_RANGE.drySumpShell, SUMP_OPACITY, 0, [0, 0, 0], PIPE_RIM, RIM_CHARGE);
+      for (const r of [HEAD_RANGE.drySumpShell, HEAD_RANGE.drySumpShellB]) ghost(r, SUMP_OPACITY, 0, [0, 0, 0], PIPE_RIM, RIM_CHARGE, true);
       // the cooled charge's, more metal than glass
-      ghost(HEAD_RANGE.coolPipes, COOL_PIPE_OPACITY, 0, [0, 0, 0], PIPE_RIM, RIM_CHARGE);
+      for (const r of [HEAD_RANGE.coolPipes, HEAD_RANGE.coolPipesB]) ghost(r, COOL_PIPE_OPACITY, 0, [0, 0, 0], PIPE_RIM, RIM_CHARGE, true);
+
+      queue.sort((a, b) => b.d - a.d);
+
+      if (phase === "back") {
+        for (const q of queue) if (!q.front) q.draw();
+
+        return;
+      }
+
+      // The pipes and casings, far to near, each in two strokes: first its skin toward the eye into the depth only, then
+      // its colour where that skin is the nearest. So a pipe hides the part of another pipe that is behind it, and the
+      // part of itself that is behind (where a pipe crosses over itself or its neighbours in its group), as solid pipes
+      // do; and it stays see-through to all that was drawn before it: the engine, the gas and the oil moving inside
+      for (const q of queue) {
+        if (!q.front) continue;
+
+        // (the depth stroke is pushed a hair back, so that the colour stroke, the same skin, always passes over it: on
+        // some graphics cards the two strokes' depths differ in their last bits, and the skin would flicker)
+        gl.colorMask(false, false, false, false);
+        gl.depthMask(true);
+        gl.depthFunc(gl.LESS);
+        gl.enable(gl.POLYGON_OFFSET_FILL);
+        gl.polygonOffset(1, 4);
+        q.draw();
+        gl.disable(gl.POLYGON_OFFSET_FILL);
+        gl.colorMask(true, true, true, true);
+        gl.depthMask(false);
+        gl.depthFunc(gl.LEQUAL);
+        q.draw();
+      }
+
+      gl.depthFunc(gl.LESS);
     };
 
     const drawParts = (cmds: DrawCmd[]) => {
@@ -733,14 +807,16 @@ export function createEngineRenderer(
       if (fromAbove) {
         drawCharge();
         drawGlass();
-        drawGhosts();
+        drawGhosts("back");
       } else {
-        drawGhosts();
+        drawGhosts("back");
         drawCharge();
         drawGlass();
       }
 
+      // the gas, the mist and the oil, before the pipes they move in: seen through them
       drawSprites();
+      drawGhosts("front");
 
       gl.depthMask(true);
       gl.disable(gl.BLEND);
@@ -796,7 +872,18 @@ export function createEngineRenderer(
       const turboDeg = (frame.turboStep * 180) / Math.PI;
       // and so do the fans, so that fast they show as a blur, not as blades standing still (the wagon-wheel effect)
       const fanDeg = (frame.fanStep * 180) / Math.PI;
-      const steps = blur && !still ? blurSteps(Math.max(frame.step * 720, turboDeg * 0.5, fanDeg), blurCap) : 1;
+      const want = blur && !still ? blurSteps(Math.max(frame.step * 720, turboDeg * 0.5, fanDeg), blurCap) : 1;
+      // (the sub-frames go up at once, but come down only after a while: near a threshold, as the engine picks up or
+      // slows, they would otherwise switch back and forth every frame, and the picture with them)
+      if (want >= blurHeld || still) {
+        blurHeld = want;
+        blurDrop = 0;
+      } else if (++blurDrop > 20) {
+        blurHeld = want;
+        blurDrop = 0;
+      }
+
+      const steps = blur && !still ? Math.min(blurHeld, Math.floor(blurCap)) : 1;
 
       if (steps <= 1) {
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
@@ -821,7 +908,7 @@ export function createEngineRenderer(
 
           subFrame.turboSpeed = frame.turboSpeed;
           subFrame.turboAngle = frame.turboAngle - frame.turboStep * (1 - (sub + 0.5) / steps);
-          subFrame.gasT = normalizeCycle(frame.gasT - frame.step * (1 - (sub + 0.5) / steps)); // the gas keeps its own place
+          subFrame.gasT = normalizeCycle(frame.gasT - (frame.gasStep ?? 0) * (1 - (sub + 0.5) / steps)); // the gas keeps its own place, and its own pace
           subFrame.fanAngle = frame.fanAngle - frame.fanStep * (1 - (sub + 0.5) / steps);
           drawScene(subFrame);
         }

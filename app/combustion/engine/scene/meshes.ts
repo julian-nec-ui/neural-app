@@ -5,11 +5,11 @@ import type { Bank } from "../core/constants";
 import { FW_STRIDE, createMeshBuilder } from "../mesh/builder";
 import type { MeshBuilder } from "../mesh/tubes";
 import { buildTrainMesh } from "../mesh/crankTrain/trainMesh";
-import { buildDownpipes, buildExhaustFlanges, buildExhaustLogs, buildExhaustStubs, buildManifoldWelds, buildTurbineArc, buildTurboFeed } from "../mesh/exhaust";
+import { buildDownpipes, buildMufflerPart, buildExhaustFlanges, buildExhaustLogs, buildExhaustStubs, buildManifoldWelds, buildTurbineArc, buildTurboFeed } from "../mesh/exhaust";
 import { FW_DIM, FW_VERTICES } from "../mesh/flywheel";
 import { buildDeck, buildDeckSlab, buildHeadShell, buildHeadSolid, buildHeadTopFittings, buildLinerRim } from "../mesh/head";
-import { buildHeadText } from "../mesh/headText";
-import { buildIntakeManifold, buildVPlenum } from "../mesh/plenum";
+import { buildHeadText, buildLidSignature } from "../mesh/headText";
+import { buildIntakeManifold, buildPlenumGate, buildVPlenum } from "../mesh/plenum";
 import { buildInjector, buildSparkPlug } from "../mesh/injectionIgnition";
 import { buildBlock } from "../mesh/block";
 import { buildDrySump } from "../mesh/drySump";
@@ -34,10 +34,10 @@ export const PART_NAMES = [
   "valveIn", "valveEx", "valveStatic", "spring", "camIn", "camEx", "camInB", "camExB", "towers", "deck", "deckB", "deckSlab", "deckSlabB",
   "headShell", "headShellB", "headSolid", "headSolidB", "headTop", "headTopB", "linerRim", "turboHousing", "turboCasing", "intakePipes", "turboIntakePipe", "collector",
   "turboFilter", "seatIn", "seatEx", "turboWheelC", "turboWheelT", "collectorFittings", "turboFittings",
-  "intercooler", "blowOffValves", "manifoldWelds", "intakeWelds", "turbineArc", "timingCover", "starterShell", "starterYoke", "drySump", "drySumpShell", "block", "icTank", "icTankB", "icTankLow", "icTankLowB", "icTankBare", "icTankBareB", "fanShroud", "fanRotor", "chargePipes", "coolPipes", "chargeCouplers", "exhaustLogs", "turboFeed", "exhaustStubs",
-  "exhaustFlanges", "downpipes", "starterBody", "starterShaft", "starterDrive", "starterDriveShell", "starterPinion", "starterPlunger",
-  "starterDisc", "starterSpring", "starterFork", "headTextA", "headTextB", "vPlenum", "intakeManifold", "sprocketCrank", "sprocketCam",
-  "chainInner", "chainOuter", "blade", "bladeFar", "bladePrimary", "bladePrimaryB", "sprocketIdler", "sprocketIdlerSmall", "injector", "sparkPlug",
+  "intercooler", "blowOffValves", "manifoldWelds", "intakeWelds", "turbineArc", "timingCover", "starterShell", "starterYoke", "drySump", "drySumpShell", "drySumpShellB", "block", "icTank", "icTankB", "icTankLow", "icTankLowB", "icTankBare", "icTankBareB", "fanShroud", "fanRotor", "chargePipes", "chargePipesB", "coolPipes", "coolPipesB", "chargeCouplers", "exhaustLogs", "exhaustLogsR", "exhaustLogsB", "exhaustLogsBR", "turboFeed", "turboFeedB", "exhaustStubs",
+  "exhaustFlanges", "downpipes", "downpipesB", "mufflers", "starterBody", "starterShaft", "starterDrive", "starterDriveShell", "starterPinion", "starterPlunger",
+  "starterDisc", "starterSpring", "starterFork", "headTextA", "headTextB", "lidText", "vPlenum", "plenumGate", "intakeManifold", "sprocketCrank", "sprocketCam",
+  "chainInner", "chainOuter", "blade", "bladeFar", "bladePrimary", "bladePrimaryB", "bladePrimaryFar", "bladePrimaryFarB", "sprocketIdler", "sprocketIdlerSmall", "injector", "sparkPlug",
 ] as const;
 
 export type PartName = (typeof PART_NAMES)[number];
@@ -111,27 +111,37 @@ function buildHeadMesh(): HeadMesh {
   part("starterShell", () => stretched(() => buildStarterShell(b)));
   part("starterYoke", () => stretched(() => buildStarterYoke(b)));
   part("drySump", () => buildDrySump(b, "solid"));
-  part("drySumpShell", () => buildDrySump(b, "shell"));
+  part("drySumpShell", () => buildDrySump(b, "shell", -1));
+  part("drySumpShellB", () => buildDrySump(b, "shell", 1));
   part("block", () => buildBlock(b));
   part("intakeWelds", () => buildIntakeWelds(b));
   part("vPlenum", () => buildVPlenum(b));
+  part("plenumGate", () => buildPlenumGate(b));
   part("intakeManifold", () => buildIntakeManifold(b));
   part("icTank", () => buildIntercoolerTank(b, 1));
   part("icTankB", () => buildIntercoolerTank(b, -1));
-  part("icTankLow", () => buildIntercoolerTank(b, 1, true));
-  part("icTankLowB", () => buildIntercoolerTank(b, -1, true));
+  part("icTankLow", () => buildIntercoolerTank(b, 1, true, false));
+  part("icTankLowB", () => buildIntercoolerTank(b, -1, true, false));
   part("icTankBare", () => buildIntercoolerTank(b, 1, false, false));
   part("icTankBareB", () => buildIntercoolerTank(b, -1, false, false));
   part("fanShroud", () => buildSmallFan(b, "shroud"));
   part("fanRotor", () => buildSmallFan(b, "rotor"));
-  part("chargePipes", () => buildChargePipes(b));
-  part("coolPipes", () => buildCoolPipes(b));
+  part("chargePipes", () => buildChargePipes(b, 0));
+  part("chargePipesB", () => buildChargePipes(b, 1));
+  part("coolPipes", () => buildCoolPipes(b, 0));
+  part("coolPipesB", () => buildCoolPipes(b, 1));
   part("chargeCouplers", () => buildChargeCouplers(b));
-  part("exhaustLogs", () => buildExhaustLogs(b));
-  part("turboFeed", () => buildTurboFeed(b));
+  part("exhaustLogs", () => buildExhaustLogs(b, 0, 0));
+  part("exhaustLogsR", () => buildExhaustLogs(b, 0, 1));
+  part("exhaustLogsB", () => buildExhaustLogs(b, 1, 0));
+  part("exhaustLogsBR", () => buildExhaustLogs(b, 1, 1));
+  part("turboFeed", () => buildTurboFeed(b, 0));
+  part("turboFeedB", () => buildTurboFeed(b, 1));
   part("exhaustStubs", () => buildExhaustStubs(b));
   part("exhaustFlanges", () => buildExhaustFlanges(b));
-  part("downpipes", () => buildDownpipes(b));
+  part("downpipes", () => buildDownpipes(b, 0));
+  part("downpipesB", () => buildDownpipes(b, 1));
+  part("mufflers", () => buildMufflerPart(b));
   part("starterBody", () => stretched(() => buildStarterBody(b)));
   part("starterShaft", () => stretched(() => buildStarterShaft(b)));
   part("starterDrive", () => buildStarterDrive(b));
@@ -143,6 +153,7 @@ function buildHeadMesh(): HeadMesh {
   part("starterFork", () => buildStarterFork(b));
   part("headTextA", () => widened(b, () => buildHeadText(b, 0)));
   part("headTextB", () => widened(b, () => buildHeadText(b, 1)));
+  part("lidText", () => buildLidSignature(b));
 
   part("sprocketCrank", () =>
     buildSprocket(b, {
@@ -201,6 +212,9 @@ function buildHeadMesh(): HeadMesh {
   part("bladeFar", () => buildChainShoes(b, SECONDARY, 2, "far"));
   part("bladePrimary", () => buildChainShoes(b, PRIMARY, 0, "near", VT.chainX + primaryDx(BANKS[0])));
   part("bladePrimaryB", () => buildChainShoes(b, PRIMARY, 0, "near", VT.chainX + primaryDx(BANKS[1])));
+  // and a second blade with its tensioner on the primary chain's other run, so that its two sides are alike
+  part("bladePrimaryFar", () => buildChainShoes(b, PRIMARY, 1, "far", VT.chainX + primaryDx(BANKS[0])));
+  part("bladePrimaryFarB", () => buildChainShoes(b, PRIMARY, 1, "far", VT.chainX + primaryDx(BANKS[1])));
   part("injector", () => buildInjector(b));
   part("sparkPlug", () => buildSparkPlug(b));
 
@@ -248,6 +262,30 @@ for (const name of PART_NAMES) {
   HEAD_RANGE[name] = [range[0] + SCENE_HEAD_BASE, range[1]];
 }
 
+// Each part's middle, in its own frame (the average of its points): where it stands, to draw the see-through ones far to
+// near from wherever the eye is
+export const PART_CENTER = {} as Record<PartName, [number, number, number]>;
+
+for (const name of PART_NAMES) {
+  const [start, count] = HEAD_MESH.parts[name];
+  const v = HEAD_MESH.vertices;
+  const step = Math.max(1, Math.floor(count / 4000));
+  let x = 0, y = 0, z = 0, n = 0;
+
+  for (let i = 0; i < count; i += step) {
+    const k = (start + i) * FW_STRIDE;
+
+    x += v[k]; y += v[k + 1]; z += v[k + 2]; n++;
+  }
+
+  PART_CENTER[name] = n ? [x / n, y / n, z / n] : [0, 0, 0];
+}
+
+const CENTER_BY_RANGE = new Map<[number, number], [number, number, number]>(PART_NAMES.map((name) => [HEAD_RANGE[name], PART_CENTER[name]]));
+
+// the middle of the part drawn by this range (one of HEAD_RANGE's), in the part's own frame
+export const partCenter = (range: [number, number]) => CENTER_BY_RANGE.get(range) ?? [0, 0, 0];
+
 // The parts built once for each bank (its own cams, its head's casting, its lettering, its timing drive's primary
 // guide): for each, its name for bank A and for bank B. `bankPart` gives a bank's own one
 export const BANK_PARTS = {
@@ -260,6 +298,7 @@ export const BANK_PARTS = {
   headTop: ["headTop", "headTopB"],
   headText: ["headTextA", "headTextB"],
   bladePrimary: ["bladePrimary", "bladePrimaryB"],
+  bladePrimaryFar: ["bladePrimaryFar", "bladePrimaryFarB"],
 } as const satisfies Record<string, readonly [PartName, PartName]>;
 
 export const bankPart = (bank: Bank, part: keyof typeof BANK_PARTS): [number, number] =>

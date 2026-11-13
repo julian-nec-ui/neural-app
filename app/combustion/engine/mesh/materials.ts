@@ -112,27 +112,33 @@ export const MAT_DECK_RIM = fwMat([120, 128, 144], 150, 1, 0.8);
 
 export const MAT_IRON = fwMat([62, 56, 54], 80, 2, 0.2); // cast iron: the exhaust side
 export const MAT_EXH_GUNMETAL = fwMat([70, 74, 82], 190, 1, 0.62); // the turbines' arc and the pipe down from it: one dark grey metal, polished
-export const MAT_TURBO_GRAIN = fwMat([122, 128, 138], 120, 2, 0.35); // both turbo housings: cast grey metal, a fine matte grain
+export const MAT_TURBO_GRAIN = fwMat([153, 76, 0], 215, 1, 0.55); // both turbo housings, between the ribs: #994c00, polished metal
+export const MAT_TURBO_FLANGE_DARK = fwMat([72, 75, 82], 150, 3, 0.25); // the turbine outlet's flange: the same metal, darker
+export const MAT_TURBO_RIDGE = fwMat([178, 184, 194], 190, 11, 0); // (engine-turned: pattern 11, overlapping polished spots) // the ribs' crowns: light metal, standing out of the housing's flange-grey // the broad ribs in relief round the turbo's scrolls: the housing's metal, a shade lighter
+export const MAT_TURBO_RIDGE_EDGE = fwMat([98, 102, 110], 170, 9, 0.3); // and their bevels and grooves: a dark metal, a fine sandpaper grit
 export const MAT_IRON_HOT = fwMat([98, 66, 54], 95, 2, 0.2); // the turbine housing, darkened by heat
 export const MAT_ALU_CAST = fwMat([158, 166, 180], 120, 2, 0.4); // intake and compressor castings
 export const MAT_ALU_TURNED = fwMat([198, 206, 218], 200, 1, 0.5);
+export const MAT_COOL_PIPE = fwMat([122, 127, 136], 115, 12, 0.03); // the cooled charge's pipes: satin aluminium 30% darker than the turned, knurled in relief (pattern 12)
 export const MAT_PIPE_BLACK = fwMat([30, 34, 44], 175, 0, 0.35); // anodised charge piping
 export const MAT_COUPLER = fwMat([142, 148, 158], 205, 1, 0.6); // the couplers on the charge pipes: grey metal sleeves, polished
 export const MAT_STEEL_BRIGHT = fwMat([198, 204, 214], 205, 1, 0.5); // stainless
-export const MAT_WHEEL_ALU = fwMat([208, 214, 224], 215, 1, 0.5);
-export const MAT_WHEEL_HOT = fwMat([112, 98, 100], 190, 0, 0.3);
+export const MAT_WHEEL_ALU = fwMat([228, 233, 242], 245, 1, 0.75); // the compressor's wheel: machined aluminium, polished bright
+export const MAT_WHEEL_HOT = fwMat([200, 192, 188], 242, 1, 0.7); // the turbine's: cast nickel alloy, polished, faintly warm
+export const MAT_WHEEL_HOT_HUB = fwMat([160, 150, 146], 226, 1, 0.55); // its hub, a shade darker, heat-tinted
+export const MAT_WHEEL_EDGE = fwMat([246, 248, 252], 255, 1, 0.9); // the blades' machined edges and tips, catching the light
 export const MAT_FIN_BACK = fwMat([12, 14, 20], 20, 0, 0.1);
 export const MAT_CASE_GREY = fwMat([88, 96, 110], 110, 0, 0.3);
 // The filter's wrapper: rings of two colours round it, of one width, in turn: a pink-red (#ff0066), matte with the
 // plenum's sandpaper grit, and a bright blue (#1a75ff), with the heads' sand-cast grain; each with its crests, where the
 // light catches, and its folds, deeper
-export const MAT_FILTER_WRAP = fwMat([255, 26, 26], 70, 9, 0); // the filters: the intake manifold's own red (#ff1a1a), matte sandpaper
-export const MAT_FILTER_WRAP_HI = fwMat([255, 82, 82], 80, 9, 0);
-export const MAT_FILTER_WRAP_DEEP = fwMat([172, 17, 17], 60, 9, 0);
+export const MAT_FILTER_WRAP = fwMat([204, 0, 0], 70, 9, 0); // the filters: the intake lid's own red (#cc0000), matte sandpaper, lit as it is
+export const MAT_FILTER_WRAP_HI = MAT_FILTER_WRAP; // (the crests: the same red, the light alone makes them brighter, as on the lid)
+export const MAT_FILTER_WRAP_DEEP = fwMat([138, 0, 0], 60, 9, 0); // the narrow valleys: the lid's deep red
 export const MAT_FILTER_WRAP_B = MAT_FILTER_WRAP;
 export const MAT_FILTER_WRAP_B_HI = MAT_FILTER_WRAP_HI;
 export const MAT_FILTER_WRAP_B_DEEP = MAT_FILTER_WRAP_DEEP;
-export const MAT_FILTER_NET = fwMat([100, 105, 112], 210, 0, 0.8); // the net over the folds: fine woven threads of a mid grey metal
+export const MAT_FILTER_NET = fwMat([120, 60, 60], 150, 0, 0.4); // the net over the folds: fine woven threads, a dark red-tinted steel, sparse, so that the red reads as the lid's does
 export const MAT_FILTER_WIRE = fwMat([92, 100, 112], 200, 0, 0.7); // the wire cage over the folds: dark steel, polished
 export const MAT_FILTER_CAP = fwMat([38, 42, 50], 195, 1, 0.5); // the cap: black anodised, turned
 export const MAT_FLANGE_BLACK = fwMat([26, 28, 34], 70, 0, 0.2); // the flange plate: matt black, so that its top does not glare
@@ -149,12 +155,12 @@ export const MAT_IC_PLATE = fwMat([184, 192, 206], 178, 1, 0.55); // the plates:
 export const MAT_IC_TANK = fwMat([172, 180, 194], 150, 2, 0.5); // the tanks: satin cast aluminium
 export const MAT_IC_RUBBER = fwMat([22, 24, 30], 70, 0, 0.2); // the mounts' rubber
 
-export const MAT_HEAD_CAST = fwMat([33, 37, 43], 150, 7, 0.55); // sand-cast, a dark metallic slate grey (#21252b)
+export const MAT_HEAD_CAST = fwMat([22, 38, 58], 90, 7, 0.05); // sand-cast, a deep navy (#16263a): matte-satin, no wet glints
 // the perforated plates on the cover: a mid grey metal, and their rivets a little darker
 export const MAT_PERF_PLATE = fwMat([122, 127, 134], 120, 0, 0);
 export const MAT_PERF_RIVET_HEAD = fwMat([88, 92, 99], 110, 0, 0);
 export const MAT_PERF_RIVET_SIDE = fwMat([70, 74, 80], 90, 0, 0);
-export const MAT_HEAD_CAST_DEEP = fwMat([21, 23, 27], 110, 7, 0.4); // in the recesses: the same colour, deeper
+export const MAT_HEAD_CAST_DEEP = fwMat([21, 23, 27], 75, 7, 0.05); // in the recesses: the same colour, deeper
 export const MAT_HEAD_MACHINED = fwMat([208, 214, 226], 208, 1, 0.55); // machined faces: bright aluminium
 export const MAT_HEAD_BRASS = fwMat([190, 156, 92], 190, 0, 0.7); // core plugs
 export const MAT_HEAD_BOOT = fwMat([20, 22, 28], 70, 2, 0.25); // rubber
@@ -163,6 +169,7 @@ export const MAT_PLUG_CAP = fwMat([8, 41, 67], 52, 0, 0); // the spark plugs' ca
 export const MAT_TXT_TOP = fwMat([1, 1, 2], 8, 0, 0.5); // the floor of the engraving: matt black
 export const MAT_TXT_TOP_LIGHT = fwMat([1, 1, 2], 8, 0, 0.5); // the floor of the figures' engraving: the same matt black
 export const MAT_TXT_LIT = fwMat([255, 255, 255], 200, 0, 0.5); // a wall of the engraving that faces the light: white
+export const MAT_TXT_SIG_WALL = fwMat([238, 242, 248], 235, 1, 0.65); // the signature's outer wall, toward the light: metallic white
 export const MAT_TXT_SIG_EDGE = fwMat([46, 50, 58], 160, 0, 0.6); // the signature's walls toward the light: dark steel, nearly black
 export const MAT_TXT_DARK = fwMat([226, 230, 238], 170, 0, 0.5); // a wall in its own shade: white too, a little greyer
 export const MAT_TXT_THREAD = fwMat([255, 58, 50], 15, 0, 0.5); // a matt red stripe along the middle of each stroke
@@ -182,6 +189,7 @@ export const MAT_ST_SOL = fwMat([26, 28, 34], 120, 0, 0.5); // the solenoid's ca
 export const MAT_ST_MICA = fwMat([52, 44, 38], 60, 0, 0.5);
 export const MAT_ST_LAM = fwMat([118, 124, 136], 150, 3, 0.5);
 
+export const MAT_ST_ROD = fwMat([148, 154, 164], 240, 1, 0.7); // the solenoid's push rod: a darker polished steel, sharp highlights
 export const MAT_ST_BRONZE = fwMat([176, 122, 58], 150, 1, 0.4);
 export const MAT_ST_PLASTIC = fwMat([196, 24, 28], 70, 0, 0.5);
 export const MAT_ST_BLACKPL = fwMat([18, 18, 22], 60, 0, 0.5);
@@ -205,6 +213,18 @@ export const MAT_FAN_MOTOR = fwMat([34, 36, 42], 150, 1, 0.45); // the motor's c
 export const MAT_BLOCK = fwMat([101, 95, 109], 120, 7, 0.55); // sand-cast, a cool grey metal with violet in it (#655f6d)
 // the embossed pattern on the block's walls: polished stainless, as in the photograph it copies
 export const MAT_BLOCK_EMBOSS = fwMat([255, 255, 255], 0, 0, 0); // its light is painted on, per point (shapes.ts, quiltPanel)
+// the perforated plate on the block's front (perforatedPlate.ts): polished sheet steel, the holes' walls and lips, the dark
+// behind them, the small holes' dimples
+// the perforated covers' bolts: metallic grey, a shade darker than the plate, their tops bright and their flats in shade
+// so that the hex reads; the washers a little lighter
+export const MAT_BOLT_DARK_HEAD = fwMat([176, 180, 188], 225, 0, 0.6);
+export const MAT_BOLT_DARK_SIDE = fwMat([118, 122, 130], 200, 0, 0.5);
+export const MAT_BOLT_DARK_WASHER = fwMat([194, 198, 205], 215, 0, 0.55);
+export const MAT_BPERF_PLATE = fwMat([222, 225, 230], 230, 0, 0.6);
+export const MAT_BPERF_LIP = fwMat([236, 238, 242], 245, 0, 0.8);
+export const MAT_BPERF_WALL = fwMat([150, 153, 158], 200, 0, 0.5);
+export const MAT_BPERF_DIMPLE = fwMat([214, 217, 222], 235, 0, 0.7);
+export const MAT_BPERF_HOLE = fwMat([4, 4, 6], 10, 0, 0);
 export const MAT_BLOCK_RIB = fwMat([191, 188, 194], 215, 0, 0.8); // the ribs: a light satin metal (#bfbcc2), catching the light
 export const MAT_BLOCK_MACH = fwMat([170, 166, 176], 225, 2, 0.75); // machined faces: the lip under the decks, the mounts' pads
 export const MAT_CORE_PLUG = fwMat([196, 160, 92], 230, 0, 0.8); // the core plugs: pressed brass cups
@@ -240,8 +260,8 @@ export const MAT_ST_LEAD_W = fwMat([44, 112, 212], 140, 0, 0.15);
 
 // The intake plenum (plenum.ts): a bright red (#ff1a1a), matte, with the fine grit of sandpaper (pattern 9), and a
 // darker red for its bands, flanges and underside
-export const MAT_PLENUM_RED = fwMat([255, 26, 26], 70, 9, 0); // #ff1a1a, matte, a fine sandpaper grit
-export const MAT_PLENUM_RED_DEEP = fwMat([172, 17, 17], 60, 9, 0);
+export const MAT_PLENUM_RED = fwMat([204, 0, 0], 70, 9, 0); // #cc0000, matte, a fine sandpaper grit
+export const MAT_PLENUM_RED_DEEP = fwMat([138, 0, 0], 60, 9, 0);
 
 // The intake manifold (plenum.ts): machined from billet and blasted a fine matte grey, with the fine grit of very fine
 // sandpaper (pattern 9); a darker grey for its grooves and undersides
@@ -260,7 +280,9 @@ export const MAT_FIN_GREY_ROOT = fwMat([68, 71, 76], 150, 9, 0.3);
 
 // The exhaust headers' heat shield: embossed aluminium foil wrapped on in patches, its dimples in rows that turn this
 // way and that (pattern 10), the seams between the patches burnt brown
-export const MAT_HEAT_SHIELD = fwMat([226, 228, 232], 205, 10, 0);
+export const MAT_HEAT_SHIELD = fwMat([170, 171, 174], 175, 10, 0); // (25% darker, a satin sheen)
+export const MAT_MUFFLER_WIRE = fwMat([150, 155, 163], 215, 1, 0.55); // the silencers' woven sleeve: grey metal wire, polished
+export const MAT_SHIELD_STREAK = fwMat([104, 110, 120], 70, 9, 0); // the dashed streaks along the shielded pipes: a darker steel grey, raised, matte, a fine sandpaper grit
 // and their flanges: plate stainless, cut and machined, a dull grey
 export const MAT_HDR_FLANGE = fwMat([146, 144, 142], 150, 3, 0.25);
 // The starter's drive (the bendix): its clutch's shell, its collar and its hub, one solid colour, the block's ribs' light

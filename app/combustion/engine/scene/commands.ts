@@ -9,10 +9,10 @@ import { MODULES, modulePoint } from "../mesh/exhaust";
 import type { TModule } from "../mesh/exhaust";
 import { FAN_PAIR } from "../mesh/fan";
 import { IC_CORE_Z, IC_INNER_Z, IC_OUTER_Z, IC_STAND_Y, icPlace } from "../mesh/intercooler";
-import { ST_AT, ST_PHI_MAX, ST_PIV_A, ST_PIV_Q, ST_SQ, stA } from "../mesh/starter";
+import { ST_AT, ST_PHI_MAX, ST_PIV_A, ST_PIV_Q, ST_SQ, sA, stA } from "../mesh/starter";
 import { CAM_RC, IDLER_Y, PRIMARY, SECONDARY, VT_PITCH, VT_RC, primaryDx } from "../mesh/timingChain/chainPath";
 import type { Chain } from "../mesh/timingChain/chainPath";
-import { IC, IC_HALF, TURBO } from "../mesh/turbo";
+import { IC, IC_HALF, TURBO_AT } from "../mesh/turbo";
 import { IN_SIDE, VT, VT_LIFT_PEAK, VT_TILT, camLift, valveX } from "../mesh/valvetrain";
 import { FLY_RANGE, FW_MARK_OFFSET_DEG, HEAD_RANGE, TRAIN_MESH, bankPart } from "./meshes";
 import type { EngineFrame } from "../sim/clock";
@@ -126,7 +126,7 @@ function computeBankCommands(frame: EngineFrame, bank: Bank) {
   }
 
   // The flanges at the ports, and the welds where the intake runners leave the plenum and meet the head
-  emitInBank(bank, r.exhaustFlanges, 1, 0, dx, 0, 0);
+  if (!SCENE_OPTIONS.seeThrough) emitInBank(bank, r.exhaustFlanges, 1, 0, dx, 0, 0); // (the headers' port flanges: with the headers, solid engine only)
   emitInBank(bank, r.intakeWelds, 1, 0, dx, 0, 0);
 
   // Camshafts: this bank's, made for its own phases and its own sense of turn
@@ -179,6 +179,7 @@ function computeBankCommands(frame: EngineFrame, bank: Bank) {
   emitInBank(bank, r.blade, 1, 0, driveX, 0, 0);
   emitInBank(bank, r.bladeFar, 1, 0, driveX, 0, 0);
   emitInBank(bank, bankPart(bank, "bladePrimary"), 1, 0, driveX, 0, 0);
+  emitInBank(bank, bankPart(bank, "bladePrimaryFar"), 1, 0, driveX, 0, 0);
 
   emitInBank(bank, r.sprocketCrank, ...spin(1, P[0]), primaryX, 0, 0);
   emitInBank(bank, r.sprocketIdler, ...spin(0.5, P[1]), primaryX, IDLER_Y, 0);
@@ -253,7 +254,7 @@ export function computeSceneCommands(frame: EngineFrame): DrawCmd[] {
   };
 
   for (const m of MODULES) {
-    const t: FwVec3 = [TURBO.x, TURBO.y, TURBO.z];
+    const t: FwVec3 = TURBO_AT;
     const c = Math.cos(frame.turboAngle);
     const sn = Math.sin(frame.turboAngle);
 
@@ -288,7 +289,7 @@ export function computeSceneCommands(frame: EngineFrame): DrawCmd[] {
     emit(r.starterPlunger, 1, 0, bx - plunge, by, bz, 1, ORIENT.STARTER);
     emit(r.starterDisc, 1, 0, bx - Math.min(plunge, 8), by, bz, 1, ORIENT.STARTER);
 
-    const sp = at(stA(240) + plunge, 0, ST_SQ);
+    const sp = at(stA(sA(240)) + plunge, 0, ST_SQ);
 
     emit(r.starterSpring, 1, 0, sp[0], sp[1], sp[2], (20 - plunge) / 20, ORIENT.STARTER_AXIAL);
 
@@ -299,6 +300,7 @@ export function computeSceneCommands(frame: EngineFrame): DrawCmd[] {
 
   // The intake plenum on top of the V: on the solid engine only; on the see-through one it is taken away, to see in
   if (!SCENE_OPTIONS.seeThrough) emit(r.vPlenum, 1, 0, 0, 0, 0);
+  if (!SCENE_OPTIONS.seeThrough) emit(r.plenumGate, 1, 0, 0, 0, 0); // its gate and square flange go with it
   // and the intake manifold under it, on both: its logs, flanges and throttles
   emit(r.intakeManifold, 1, 0, 0, 0, 0);
 
@@ -319,15 +321,16 @@ export function computeSceneCommands(frame: EngineFrame): DrawCmd[] {
       emit(r.fanShroud, 1, 0, fan[0], fan[1], fan[2], 1, turn);
       emit(r.fanRotor, Math.cos(frame.fanAngle), Math.sin(frame.fanAngle), fan[0], fan[1], fan[2], 1, turn);
     }
-    // the low tank, the hot charge's, has its port underneath, toward the engine
+    // the low tank, the hot charge's: its port is cast on its face toward the engine (with the couplers)
     emit(zs < 0 ? r.icTankLow : r.icTankLowB, 1, 0, inner[0], inner[1], inner[2], 1, turn);
     // and the high tank, the cooled charge's: its outlet leaves its back face (with the cooled charge's pipe)
     emit(zs < 0 ? r.icTankBareB : r.icTankBare, 1, 0, outer[0], outer[1], outer[2], 1, turn);
   }
 
+  emit(r.mufflers, 1, 0, 0, 0, 0); // the silencers, solid, in their wire sleeves
   emit(r.chargeCouplers, 1, 0, 0, 0, 0);
   emit(r.blowOffValves, 1, 0, 0, 0, 0);
-  emit(r.manifoldWelds, 1, 0, 0, 0, 0);
+  if (!SCENE_OPTIONS.seeThrough) emit(r.manifoldWelds, 1, 0, 0, 0, 0); // (the headers' joints and bungs: likewise)
   emit(r.turbineArc, 1, 0, 0, 0, 0);
   emit(r.drySump, 1, 0, 0, 0, 0);
   SCENE_CMDS.length = sceneCount;

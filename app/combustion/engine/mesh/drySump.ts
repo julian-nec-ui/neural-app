@@ -12,6 +12,7 @@ import { BLOCK } from "./block";
 import { vcross, vnorm } from "../math/vec3";
 import type { FwVec3 } from "./builder";
 import { MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE, MAT_EXH_GUNMETAL, MAT_STEEL_BRIGHT, MAT_SUMP_ALU, MAT_SUMP_CAST, MAT_SUMP_FIN } from "./materials";
+import { buildPerforatedPlate } from "./perforatedPlate";
 import { curveAt, curveFromPoints, flangeBolt, roundedCurve, sweepTube } from "./tubes";
 import type { Curve, MeshBuilder } from "./tubes";
 
@@ -157,6 +158,21 @@ function buildGearCover(b: MeshBuilder, x0 = -386, x1 = -374, circles = FRONT_CO
   }
 
   b.flatFan([x0, cy + 20, 0], hull.map((q) => P(q, x0)), [-1, 0, 0], MAT_SUMP_CAST);
+
+  // the front one's face: a perforated plate laid over it, polished steel punched with holes (perforatedPlate.ts), plain
+  // round its edge, where its bolts are, and round the crank's nose
+  const front = x0 < 0;
+  const PLATE_OFF = 3;
+
+  if (front) {
+    buildPerforatedPlate(b, hull, x0 - PLATE_OFF, 2.2, [[0, 0, 30]], 14);
+  } else {
+    // the rear one (behind the flywheel) the same, on its back face: built as a front one and turned round, mirrored
+    // through its face; plain round the crank's flange and the two mounts' bosses
+    b.setTurn((p, n) => [[2 * x1 - p[0], p[1], p[2]], [-n[0], n[1], n[2]]]);
+    buildPerforatedPlate(b, hull, x1 - PLATE_OFF, 2.2, [[0, 0, 44], ...circles.slice(1).filter((c) => Math.abs(c[1]) > 100).map((c): [number, number, number] => [c[0], c[1], c[2] + 4])], 14);
+    b.setTurn(null);
+  }
   b.flatFan([x1, cy + 20, 0], hull.map((q) => P(q, x1)), [1, 0, 0], MAT_SUMP_CAST);
 
   // bolts round its outer face
@@ -164,9 +180,9 @@ function buildGearCover(b: MeshBuilder, x0 = -386, x1 = -374, circles = FRONT_CO
     const q = hull[k];
     const d = Math.hypot(q[0] - cy, q[1]) || 1;
 
-    const xf = x0 < 0 ? x0 : x1; // on its outer face: the front one's front, the rear one's back
+    const xf = x0 < 0 ? x0 - PLATE_OFF : x1 + PLATE_OFF; // on its outer face, on its plate: the front one's front, the rear one's back
 
-    flangeBolt(b, [xf, q[0] - ((q[0] - cy) / d) * 9, q[1] - (q[1] / d) * 9], [Math.sign(xf), 0, 0], 3.4, 0.2 * k);
+    flangeBolt(b, [xf, q[0] - ((q[0] - cy) / d) * 9, q[1] - (q[1] / d) * 9], [Math.sign(xf), 0, 0], 3.4, 0.2 * k, true);
   }
 }
 
@@ -213,12 +229,15 @@ function buildCooler(b: MeshBuilder) {
   }
 }
 
-export function buildDrySump(b: MeshBuilder, which: "shell" | "solid") {
+// (the shell is drawn in two parts, one for each side, so that the see-through skins are drawn far to near side by side:
+// `side` -1 takes bank A's pump and lines and the cooler under the middle, +1 bank B's)
+export function buildDrySump(b: MeshBuilder, which: "shell" | "solid", side = 0) {
   pass = which;
+  const mine = (s: number) => side === 0 || s === side;
   solid(() => buildGearCover(b, BLOCK.x0 - 12, BLOCK.x0)); // on the block's front face
   solid(() => buildGearCover(b, BLOCK.x1, BLOCK.x1 + 14, REAR_MOUNT));
-  solid(() => { for (const sz of [-1, 1]) flangeBolt(b, [BLOCK.x1 + 14, 54, sz * 168], [1, 0, 0], 7, 0.3); }); // the mounts' big bolts
-  buildCooler(b);
+  solid(() => { for (const sz of [-1, 1]) flangeBolt(b, [BLOCK.x1 + 14 + 3, 54, sz * 168], [1, 0, 0], 7, 0.3, true); }); // the mounts' big bolts, on the rear plate
+  if (mine(-1)) buildCooler(b);
 
   const paths: Array<{ pts: FwVec3[]; r: number }> = [];
   const { y, z: zp, h } = SUMP_PUMP;
@@ -227,6 +246,8 @@ export function buildDrySump(b: MeshBuilder, which: "shell" | "solid") {
   const split: FwVec3 = [COOLER_OUT[0] - 30, COOLER_OUT[1], 0]; // and where it divides again, in front of it
 
   for (const s of [-1, 1]) {
+    if (!mine(s)) continue;
+
     buildPump(b, s);
 
     const pz = s * zp;
@@ -252,6 +273,8 @@ export function buildDrySump(b: MeshBuilder, which: "shell" | "solid") {
     paths.push({ pts: ret.pts, r: 8 });
     paths.push({ pts: [...feed.pts, [-338, y, pz], ...gallery.pts], r: 8 });
   }
+
+  if (!mine(-1)) return;
 
   // one pipe into the cooler, and one out of it
   const inLine = line(b, [merge, COOLER_IN], 20, 10);

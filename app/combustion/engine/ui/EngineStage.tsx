@@ -68,10 +68,14 @@ const PART_LABELS: PartLabel[] = [
   { text: "CRANKSHAFT", at: [HDR_CX + 270, 30, 0], behind: 300, band: 900 },
 ];
 
-// A round button, as on a dashboard: red, START, while the engine is off; pressed, it starts the engine (the starter
-// cranks it, it catches) and turns metallic blue, STOP; pressed again it stops the engine and is red again
-function StartButton() {
-  const { toggle, on, starting } = useContext(StartContext);
+// The dashboard's push button, under the compass: as on a car, a brushed chrome ring in a dark bezel, the button's face
+// dark and a little domed, ENGINE START / STOP in white on it, and a small lamp above the words: dim while the engine is
+// off, amber while it is starting, green while it runs. As wide as the compass, so that the four buttons would fit in it
+const DASH_D = 3 * 37 + 2 * 4; // the compass's width
+
+function DashStartButton() {
+  const { toggle, on, starting, caught } = useContext(StartContext);
+  const running = on && (caught || !starting); // green once it has caught: its first few cylinders fired
   const ref = useRef<HTMLButtonElement | null>(null);
 
   useEffect(() => {
@@ -79,8 +83,7 @@ function StartButton() {
 
     if (!el) return;
 
-    // The stage turns the view when it is dragged: the button must not start that
-    const stop = (e: Event) => e.stopPropagation();
+    const stop = (e: Event) => e.stopPropagation(); // (a press must not turn the view)
 
     el.addEventListener("pointerdown", stop);
     el.addEventListener("dblclick", stop);
@@ -91,64 +94,122 @@ function StartButton() {
     };
   }, []);
 
-  const label = starting ? "STARTING" : on ? "STOP" : "START";
+  const [pressed, setPressed] = useState(false); // held down: the button sinks into its well, and springs back
+  const [pulse, setPulse] = useState(0); // each press plays the push, down and back up, even for the quickest tap
+  const [heavy, setHeavy] = useState(false); // the press that starts the engine: it goes down against more resistance, and comes back later
+  const D = DASH_D;
+  const ring = D * 0.86; // the chrome ring's outside
+  const face = D * 0.66; // the button's face
+  const lamp = starting && !running
+    ? { c: "#ffb020", glow: "0 0 6px 2px rgba(255, 176, 32, 0.85)" }
+    : running
+    ? { c: "linear-gradient(180deg, #c8f7b4 0%, #4ccf3e 45%, #1f7a24 100%)", glow: "0 0 7px 2px rgba(74, 222, 58, 0.9)" }
+    : { c: "#24402a", glow: "inset 0 0 2px rgba(0, 0, 0, 0.8)" };
   const action = on ? "Stop the engine" : "Start the engine";
 
   return (
-    <div style={{ position: "absolute", right: 12, top: 6, display: "flex", alignItems: "center", gap: 8, pointerEvents: "none" }}>
-      <span style={{ fontSize: "clamp(9px, 1vw, 11px)", letterSpacing: "0.14em", color: starting ? "#5eead4" : on ? "#93c5fd" : "#94a3b8", transition: "color 0.3s ease" }}>
-        {label}
-      </span>
-
+    <div style={{ position: "absolute", left: 12, top: 10, width: D, height: D, pointerEvents: "none" }}>
+      {/* the push: down into the well, held a moment, and up again past its rest, settling (two names, so that each
+          press starts it afresh) */}
+      <style>{[0, 1].map((k) => `@keyframes ak-push-${k} { 0% { transform: translateY(0) scale(1); filter: brightness(1); } 18% { transform: translateY(2.5px) scale(0.93); filter: brightness(0.78); } 55% { transform: translateY(2.5px) scale(0.93); filter: brightness(0.78); } 75% { transform: translateY(-0.6px) scale(1.012); filter: brightness(1.04); } 100% { transform: translateY(0) scale(1); filter: brightness(1); } }`).join(" ") + " " + [0, 1].map((k) => `@keyframes ak-heavy-${k} { 0% { transform: translateY(0) scale(1); filter: brightness(1); } 12% { transform: translateY(1px) scale(0.975); filter: brightness(0.92); } 30% { transform: translateY(2.8px) scale(0.925); filter: brightness(0.74); } 68% { transform: translateY(2.8px) scale(0.925); filter: brightness(0.74); } 86% { transform: translateY(-0.5px) scale(1.01); filter: brightness(1.03); } 100% { transform: translateY(0) scale(1); filter: brightness(1); } }`).join(" ")}</style>
+      {/* the bezel: a dark recess round the ring */}
+      <div style={{ position: "absolute", inset: 0, borderRadius: "50%", background: "radial-gradient(circle at 50% 45%, #1b1d21 60%, #0b0c0e 72%, #000 100%)", boxShadow: "0 3px 10px rgba(0,0,0,0.7), inset 0 2px 3px rgba(255,255,255,0.06)" }} />
+      {/* the chrome ring: bright along its top left, dark at its bottom right, a fine dark line inside it */}
+      <div
+        style={{
+          position: "absolute",
+          left: (D - ring) / 2,
+          top: (D - ring) / 2,
+          width: ring,
+          height: ring,
+          borderRadius: "50%",
+          background: "conic-gradient(from 210deg, #f4f6f8, #b9bec6 18%, #6c727b 38%, #9aa0a8 52%, #e2e5e9 66%, #8d939b 82%, #f4f6f8)",
+          boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.35), inset 0 -3px 5px rgba(0,0,0,0.45), 0 0 0 1px #050506",
+        }}
+      />
+      {/* the band between the chrome ring and the button: the intake's red while the engine is off (or starting), a
+          metallic green while it runs */}
+      <div
+        style={{
+          position: "absolute",
+          left: (D - face) / 2 - 5,
+          top: (D - face) / 2 - 5,
+          width: face + 10,
+          height: face + 10,
+          borderRadius: "50%",
+          background: running
+            ? "conic-gradient(from 210deg, #b9f5a0, #3fbf3a 20%, #1d6e22 45%, #2f9a30 60%, #9be98a 75%, #237a26 90%, #b9f5a0)"
+            : "conic-gradient(from 210deg, #ff5a5a, #cc0000 25%, #7a0000 50%, #b30000 70%, #ff4040 85%, #ff5a5a)",
+          boxShadow: running ? "0 0 8px 1px rgba(74, 222, 58, 0.55), inset 0 0 0 1px rgba(0,0,0,0.5)" : "0 0 6px 1px rgba(204, 0, 0, 0.45), inset 0 0 0 1px rgba(0,0,0,0.5)",
+          transition: "background 0.4s ease, box-shadow 0.4s ease",
+        }}
+      />
+      {/* the well the button sits in: dark, deep, a shadow down its upper wall */}
+      <div style={{ position: "absolute", left: (D - face) / 2 - 1.5, top: (D - face) / 2 - 1.5, width: face + 3, height: face + 3, borderRadius: "50%", background: "#050607", boxShadow: "inset 0 3px 4px rgba(0,0,0,0.9)" }} />
       <button
         ref={ref}
         type="button"
-        onClick={toggle}
+        onClick={() => { setHeavy(!on); setPulse(pulse + 1); toggle(); }}
+        onPointerDown={() => setPressed(true)}
+        onPointerUp={() => setPressed(false)}
+        onPointerLeave={() => setPressed(false)}
+        onPointerCancel={() => setPressed(false)}
+        onKeyDown={(e) => { if (e.key === " " || e.key === "Enter") setPressed(true); }}
+        onKeyUp={() => setPressed(false)}
         aria-pressed={on}
         aria-label={action}
         title={action}
         style={{
-          pointerEvents: "auto",
-          width: 30,
-          height: 30,
+          position: "absolute",
+          left: (D - face) / 2,
+          top: (D - face) / 2,
+          // pressed, it goes down into its well: a little smaller and lower, its rim's light gone, its face shaded; let go,
+          // it springs back up, overshooting a hair, as a real button's spring does
+          transform: pressed ? "translateY(2px) scale(0.94)" : "translateY(0) scale(1)",
+          animation: pulse ? (heavy ? `ak-heavy-${pulse % 2} 0.95s cubic-bezier(0.4, 0, 0.3, 1)` : `ak-push-${pulse % 2} 0.5s ease-out`) : "none",
+          transition: pressed ? "transform 0.06s ease-out, box-shadow 0.06s ease-out, filter 0.06s" : "transform 0.32s cubic-bezier(0.34, 1.8, 0.64, 1) 0.06s, box-shadow 0.32s ease 0.06s, filter 0.32s 0.06s",
+          filter: pressed ? "brightness(0.82)" : "none",
+          width: face,
+          height: face,
           borderRadius: "50%",
-          border: starting ? "2px solid #5b8f8a" : on ? "2px solid #64748b" : "2px solid #475569",
+          border: "none",
           padding: 0,
           cursor: "pointer",
-          // off: glossy red; starting: the same metal in turquoise; on: brushed, metallic blue, with a bright rim of light
-          // along its top
-          background: starting
-            ? "radial-gradient(circle at 35% 28%, #f0fdfa 0%, #99f6e4 14%, #14b8a6 46%, #0f766e 78%, #053b37 100%)"
-            : on
-            ? "radial-gradient(circle at 35% 28%, #e0f2fe 0%, #7dd3fc 14%, #2563eb 46%, #1e3a8a 78%, #0b1d4d 100%)"
-            : "radial-gradient(circle at 35% 30%, #ff7676 0%, #e11d2a 45%, #8f0d16 100%)",
-          boxShadow: on
-            ? starting
-              ? "0 0 0 2px #0f172a, 0 0 14px 3px rgba(45, 212, 191, 0.85), inset 0 -2px 3px rgba(0, 0, 0, 0.45), inset 0 2px 3px rgba(255, 255, 255, 0.5)"
-              : "0 0 0 2px #0f172a, 0 0 8px 1px rgba(59, 130, 246, 0.55), inset 0 -2px 3px rgba(0, 0, 0, 0.45), inset 0 2px 3px rgba(255, 255, 255, 0.5)"
-            : "0 0 0 2px #0f172a, 0 0 6px 1px rgba(220, 38, 38, 0.45), inset 0 -2px 3px rgba(0, 0, 0, 0.35), inset 0 2px 3px rgba(255, 255, 255, 0.35)",
+          pointerEvents: "auto",
+          // the face: dark grey, domed, lit softly from the upper left
+          background: "radial-gradient(circle at 38% 30%, #4a4e55 0%, #2e3136 38%, #1d1f23 70%, #141518 100%)",
+          boxShadow: pressed
+            ? "inset 0 3px 6px rgba(0,0,0,0.75), inset 0 -1px 2px rgba(255,255,255,0.06), 0 0 0 rgba(0,0,0,0)"
+            : "inset 0 2px 3px rgba(255,255,255,0.16), inset 0 -4px 6px rgba(0,0,0,0.6), 0 3px 4px rgba(0,0,0,0.85), 0 1px 0 rgba(255,255,255,0.05)",
           display: "flex",
+          flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          transition: "background 0.3s ease, box-shadow 0.3s ease",
+          gap: face * 0.012,
         }}
       >
-        {/* the power sign: white on the red (START) and on the blue (STOP), with a dark shadow under it; on the light
-            turquoise (STARTING) engraved, near black with a thin light edge */}
-        <svg
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke={starting ? "#0b0f14" : "#ffffff"}
-          strokeWidth="2.8"
-          strokeLinecap="round"
+        {/* the lamp: a small pill, ribbed, above the words */}
+        <span
           style={{
-            filter: starting ? "drop-shadow(0 0.8px 0 rgba(255, 255, 255, 0.45))" : "drop-shadow(0 1px 1.2px rgba(0, 0, 0, 0.75))",
+            width: face * 0.2,
+            height: face * 0.075,
+            borderRadius: 2,
+            marginBottom: face * 0.045,
+            background: `repeating-linear-gradient(90deg, transparent 0 2px, rgba(255,255,255,0.3) 2px 2.6px), ${lamp.c}`,
+            boxShadow: lamp.glow,
+            border: "1px solid rgba(0,0,0,0.6)",
+            transition: "background 0.3s ease, box-shadow 0.3s ease",
           }}
-        >
-          <path d="M12 3v8" />
-          <path d="M6.6 6.8a8 8 0 1 0 10.8 0" />
+        />
+        {/* the words, as one small drawing: each line stretched to its set width (textLength), so that they fit the
+            face the same on every screen and in every browser, whatever its font and its text scaling */}
+        <svg width={face * 0.8} height={face * 0.503} viewBox="0 0 70 44" aria-hidden="true" style={{ display: "block", overflow: "visible" }}>
+          <g fill="#f4f6f8" fontFamily="Arial, Helvetica, sans-serif" fontWeight="700" textAnchor="middle" style={{ filter: "drop-shadow(0 1px 0.6px rgba(0,0,0,0.7))" }}>
+            <text x="35" y="11" fontSize="12" textLength="58" lengthAdjust="spacingAndGlyphs">ENGINE</text>
+            <text x="35" y="24.5" fontSize="12" textLength="47" lengthAdjust="spacingAndGlyphs">START</text>
+            <rect x="9" y="28" width="52" height="1.4" rx="0.5" />
+            <text x="35" y="42" fontSize="12" textLength="38" lengthAdjust="spacingAndGlyphs">STOP</text>
+          </g>
         </svg>
       </button>
     </div>
@@ -388,7 +449,8 @@ export function EngineStage() {
     window.addEventListener("resize", resize);
 
     // ---- the pointer ----
-    const pointers = new Map<number, { x: number; y: number }>();
+    const pointers = new Map<number, { x: number; y: number; x0: number; y0: number; live: boolean }>();
+    const TAP_SLOP = 10; // how far a finger goes before it drags, in CSS pixels
     let pinch = 0;
 
     const spread = () => {
@@ -403,7 +465,7 @@ export function EngineStage() {
 
     const onDown = (event: PointerEvent) => {
       frameEl.setPointerCapture(event.pointerId);
-      pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+      pointers.set(event.pointerId, { x: event.clientX, y: event.clientY, x0: event.clientX, y0: event.clientY, live: event.pointerType !== "touch" });
       camera.setDragging(true);
 
       if (pointers.size === 2) pinch = spread();
@@ -425,6 +487,14 @@ export function EngineStage() {
       const known = pointers.get(event.pointerId);
 
       if (!known) return;
+
+      // a finger never stays quite still: a tap's little shift is no drag. Until it has gone some way the engine is not
+      // turned, so the view shown stays the view shown and a double tap steps on from it (not back to the first)
+      if (!known.live && pointers.size === 1) {
+        if (Math.hypot(event.clientX - known.x0, event.clientY - known.y0) < TAP_SLOP) return;
+
+        known.live = true;
+      }
 
       const dx = event.clientX - known.x;
       const dy = event.clientY - known.y;
@@ -571,7 +641,7 @@ export function EngineStage() {
         </div>
       ))}
 
-      <StartButton />
+      <DashStartButton />
 
       {/* The four buttons that move the engine on the stage, in the top left corner, as a compass (no frame round them): up
           (north), down (south), right (east), left (west) */}
@@ -581,7 +651,7 @@ export function EngineStage() {
         style={{
           position: "absolute",
           left: 12,
-          top: 10,
+          top: 10 + DASH_D + 14, // under the start button
           display: "grid",
           gridTemplateColumns: "repeat(3, 37px)",
           gridTemplateRows: "repeat(3, 35px)",

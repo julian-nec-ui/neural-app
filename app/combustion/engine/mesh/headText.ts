@@ -3,7 +3,8 @@
 import { CT_X, FIRING_ORDER } from "../core/constants";
 import type { FwVec3 } from "./builder";
 import { HEAD } from "./head";
-import { MAT_TXT_DARK, MAT_TXT_LIT, MAT_TXT_TOP } from "./materials";
+import { PLENUM, lidHeight } from "./plumbing";
+import { MAT_TXT_DARK, MAT_TXT_LIT, MAT_TXT_SIG_WALL, MAT_TXT_TOP } from "./materials";
 import type { MeshBuilder } from "./tubes";
 
 // ---- THE NAME ON THE HEADS: AKUNDA V12, and the engine's firing order, stamped on the cover's top in raised dark
@@ -33,7 +34,7 @@ const SIG = { nx: 519, ny: 133, g: 0.484, data: ".o1;121.e9;15befd4.e7;5cfffffd1
 
 // The signature's size, a share of its grid's: small enough that all of it, every stroke whole, nothing cut, fits in the
 // band under the spark plugs' wells and the plates and above the edge of the cover's flat top, between the two plates
-const SIG_SCALE = 0.69;
+const SIG_SCALE = 0.69 * 1.15; // (15% bigger than it was)
 
 // The signature's heights, decoded once
 let SIG_LEVELS: Uint8Array | null = null;
@@ -67,7 +68,12 @@ function signatureLevels(): Uint8Array {
 // The signature, raised from the cover. Every point of its grid is lifted by its height, so that the strokes have the rounded edges
 // and the thin hairlines of the pen; each small facet is shaded by the way it faces the light, as the letters' bevels were, and a
 // shadow is thrown to the lower right. `su` is the way the reading runs along x, as it is for the lines of lettering.
-function stampSignature(b: MeshBuilder, xc: number, zBase: number, su: number) {
+// The writing's ink, thickened (the strokes, a little thicker, so that the writing reads better, and bolder still), once
+let SIG_INK: Uint8Array | null = null;
+
+function inkLevels(): Uint8Array {
+  if (SIG_INK) return SIG_INK;
+
   const lvThin = signatureLevels();
   const lv = new Uint8Array(lvThin.length); // the strokes, a little thicker, so that the writing reads better
 
@@ -90,27 +96,80 @@ function stampSignature(b: MeshBuilder, xc: number, zBase: number, su: number) {
     }
   }
 
-  // one more step of thickness, for all of the writing
-  const lvB = lv.slice();
+  // two more steps of thickness, for all of the writing (the name and V12 alike): bolder strokes
+  for (let pass = 0; pass < 2; pass++) {
+    const lvB = lv.slice();
+
+    for (let j = 0; j < SIG.ny; j++) {
+      for (let i = 0; i < SIG.nx; i++) {
+        let m = lvB[j * SIG.nx + i];
+
+        for (let dj = -1; dj <= 1; dj++) {
+          for (let di = -1; di <= 1; di++) {
+            const ii = i + di;
+            const jj = j + dj;
+
+            if ((di === 0 && dj === 0) || ii < 0 || jj < 0 || ii >= SIG.nx || jj >= SIG.ny) continue;
+
+            m = Math.max(m, lvB[jj * SIG.nx + ii] * (di === 0 || dj === 0 ? 0.95 : 0.8));
+          }
+        }
+
+        lv[j * SIG.nx + i] = Math.round(m);
+      }
+    }
+  }
+
+  SIG_INK = lv;
+
+  return lv;
+}
+
+// Where the writing's ink lies in its grid: its first and last columns, its top and bottom rows
+function inkBox() {
+  const lv = inkLevels();
+  let i0 = SIG.nx;
+  let i1 = 0;
+  let j0 = SIG.ny;
+  let j1 = 0;
 
   for (let j = 0; j < SIG.ny; j++) {
     for (let i = 0; i < SIG.nx; i++) {
-      let m = lvB[j * SIG.nx + i];
+      if (lv[j * SIG.nx + i] < 5) continue;
 
-      for (let dj = -1; dj <= 1; dj++) {
-        for (let di = -1; di <= 1; di++) {
-          const ii = i + di;
-          const jj = j + dj;
-
-          if ((di === 0 && dj === 0) || ii < 0 || jj < 0 || ii >= SIG.nx || jj >= SIG.ny) continue;
-
-          m = Math.max(m, lvB[jj * SIG.nx + ii] * (di === 0 || dj === 0 ? 0.95 : 0.8));
-        }
-      }
-
-      lv[j * SIG.nx + i] = Math.round(m);
+      i0 = Math.min(i0, i);
+      i1 = Math.max(i1, i);
+      j0 = Math.min(j0, j);
+      j1 = Math.max(j1, j);
     }
   }
+
+  return { i0, i1, j0, j1 };
+}
+
+// The signature on the intake plenum's lid: in the middle of it, along the engine, in the valley between its two lobes,
+// as it is seen from bank A's side; its half length and half width, with a margin, for the lid's fins to stop short of
+// On the lid the writing is drawn bigger, all of it alike (LID_K), and "V12" taller still, stretched up from its foot (LID_V)
+const LID_K = 1.2;
+const LID_V = 1.3;
+
+export const LID_SIG = (() => {
+  const { xf, xr } = PLENUM;
+  const g = SIG.g * SIG_SCALE * LID_K;
+  const { i0, i1, j0, j1 } = inkBox();
+
+  // (the band left clear of fins reaches up over V12's taller top)
+  return { x: (xf + 30 + xr - 50) / 2, z: 0, hx: ((i1 - i0) / 2) * g, hz: ((j1 - j0) / 2) * g * 1.2, margin: 12 };
+})();
+
+export function buildLidSignature(b: MeshBuilder) {
+  stampSignature(b, LID_SIG.x, 0, -1, true);
+}
+
+// The signature, cut in: on a head's cover (`onLid` false), or on the plenum's lid
+function stampSignature(b: MeshBuilder, xc: number, zBase: number, su: number, onLid = false) {
+  const lvThin = signatureLevels();
+  const lv = inkLevels();
 
   // "V12" is told from the name by the widest empty run in the right part of the writing: it is cut deeper, so that it is obvious
   // (its strokes are all of one width, the V's: the grid itself is made so)
@@ -138,6 +197,13 @@ function stampSignature(b: MeshBuilder, xc: number, zBase: number, su: number) {
   const g = SIG.g * SIG_SCALE;
   const relief = -4.6; // negative: the strokes are cut into the cover, deep
   const INK_EDGE = 5; // of the ink's 15 levels, where a stroke's edge is
+
+  // `zBase` is where the writing's lowest ink stands: the grid's empty rows under it are let go
+  let jLow = 0;
+
+  for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) if (lv[j * nx + i] >= INK_EDGE) jLow = j;
+
+  zBase += (ny - 1 - jLow) * g;
   // the ink under a plug boot's ring is left out
   const blocked = new Uint8Array(nx * ny);
 
@@ -147,7 +213,7 @@ function stampSignature(b: MeshBuilder, xc: number, zBase: number, su: number) {
       const z = zBase - (ny - 1 - j) * g;
 
       for (const bx of CT_X) {
-        if (Math.hypot(x - bx, z) < 16.5) {
+        if (!onLid && Math.hypot(x - bx, z) < 16.5) {
           blocked[j * nx + i] = 1;
           break;
         }
@@ -159,18 +225,102 @@ function stampSignature(b: MeshBuilder, xc: number, zBase: number, su: number) {
   // to the strokes' ends and the walls are one clean step, with no shallow streaks inside the strokes
   // nothing is cut past the edge of the cover's flat top, where it starts to curve down (head.ts, COVER_HALF's zFlat): the tail of
   // the "a" that ran over it is left off
-  const zFlatEnd = 54 - 0.6;
-  const hAt = (i: number, j: number) =>
-    i < 0 || j < 0 || i >= nx || j >= ny || blocked[j * nx + i] || lv[j * nx + i] < INK_EDGE || zBase - (ny - 1 - j) * g > zFlatEnd
-      ? 0
-      : relief * (i >= vStart - 2 ? 1.25 : 1);
+  // (it may run a little way on, over the start of the edge's curve, where the cover is still all but flat: the cut
+  // follows the surface down there, so that it stays one depth)
+  const zFlatEnd = 54 + 8.5;
+  const drop = (z: number) => {
+    if (z <= 54) return 0;
 
-  const P = (i: number, j: number, h: number): FwVec3 => [xc + su * (i - nx / 2) * g, HEAD.yTop - h, zBase - (ny - 1 - j) * g];
+    const c = Math.min(1, Math.pow((z - 54) / (92 - 54), 1 / (2 / 2.6)));
+    const sn = Math.sqrt(1 - c * c);
+
+    return (HEAD.yTop - HEAD.yJoint) * (Math.pow(sn, 2 / 2.6) - 1);
+  };
+  const inked = (i: number, j: number) =>
+    !(i < 0 || j < 0 || i >= nx || j >= ny || blocked[j * nx + i] || lv[j * nx + i] < INK_EDGE || (!onLid && zBase - (ny - 1 - j) * g > zFlatEnd));
+  // the outer wall, the one away from the light (so facing it): not a sheer step but a steep slope a few cells wide, cut
+  // as a chisel would, so that it shows from above, white; how far into the stroke a cell is from that wall, 1 to 3, or 0
+  const RAMP = 4;
+  const ramp = new Uint8Array(nx * ny);
+
+  for (let j = 0; j < ny; j++) {
+    for (let i = 0; i < nx; i++) {
+      if (!inked(i, j)) continue;
+
+      for (let t = 1; t <= RAMP; t++) {
+        if (!inked(i + Math.round(0.55 * t), j + Math.round(0.83 * t))) {
+          ramp[j * nx + i] = t;
+          break;
+        }
+      }
+    }
+  }
+
+  const rampAt = (i: number, j: number) => (i < 0 || j < 0 || i >= nx || j >= ny ? 0 : ramp[j * nx + i]);
+  const hAt = (i: number, j: number) => {
+    if (!inked(i, j)) return 0;
+
+    const t = ramp[j * nx + i];
+
+    return relief * (i >= vStart - 2 ? 1.05 : 1) * (t ? (t - 0.35) / RAMP : 1);
+  };
+
+  const box = inkBox();
+  // V12's foot: its lowest inked row, from which it is stretched taller on the lid
+  let jFootV = 0;
+
+  for (let j = 0; j < ny; j++) for (let i = vStart - 2; i < nx; i++) if (lv[j * nx + i] >= INK_EDGE) jFootV = j;
+
+  // the V's left stroke leans over to the right at its tip: each row near the top is moved back, so that its left edge
+  // runs on straight, in the line of the stroke below it (its length is not changed)
+  const VL = 22; // the left stroke's columns, from vStart
+  const leftEdge = (j: number) => {
+    for (let i = vStart - 2; i < vStart + VL; i++) if (lv[j * nx + i] >= INK_EDGE) return i;
+
+    return -1;
+  };
+  let jTopL = -1;
+
+  for (let j = 0; j < ny && jTopL < 0; j++) if (leftEdge(j) >= 0) jTopL = j;
+
+  const below: number[] = [];
+
+  for (let j = jTopL + 10; j <= jTopL + 30; j++) if (leftEdge(j) >= 0) below.push(leftEdge(j));
+
+  const refL = below.length ? Math.min(...below) : 0;
+  const lean = new Float32Array(ny);
+
+  for (let j = jTopL; j >= 0 && j < jTopL + 12; j++) {
+    const e = leftEdge(j);
+
+    if (e > refL) lean[j] = e - refL;
+  }
+
+  const straight = (i: number, j: number) => (jTopL >= 0 && i >= vStart - 4 && i < vStart + VL + 2 && j >= 0 && j < ny ? lean[j] : 0);
+
+  const P = (i0: number, j: number, h: number): FwVec3 => {
+    const i = i0 - straight(i0, j);
+
+    if (onLid) {
+      // centred on the lid's middle, its top toward +z (away from bank A's side, where it is read from); cut down into the
+      // lid's skin, following it; all of it LID_K bigger, and V12 LID_V taller again, up from its foot
+      const gl = g * LID_K;
+      const jj = i0 >= vStart - 2 ? jFootV - (jFootV - j) * LID_V : j;
+      const x = xc + su * (i - (box.i0 + box.i1) / 2) * gl;
+      const z = LID_SIG.z + ((box.j0 + box.j1) / 2 - jj) * gl;
+
+      return [x, PLENUM.yLid - lidHeight(x, z) - h, z];
+    }
+
+    const z = zBase - (ny - 1 - j) * g;
+
+    return [xc + su * (i - nx / 2) * g, HEAD.yTop + drop(z) - h, z];
+  };
   const LU = -0.55; // the light comes from the upper left of the writing
   const LV = 0.83;
 
   const occ = (h: number) => 1 - 0.45 * (h / relief); // the floor of a groove is the darker toward its walls
-  const deepest = relief * 1.25;
+  const deepest = relief * 1.05;
 
   for (let j = 0; j + 1 < ny; j++) {
     for (let i = 0; i + 1 < nx; i++) {
@@ -187,10 +337,12 @@ function stampSignature(b: MeshBuilder, xc: number, zBase: number, su: number) {
       const steep = Math.hypot(slopeU, slopeV);
       // as the firing order's: the floor of the groove is black, wherever it is deep (the name and V12 alike), and its walls
       // white, the brighter where they face the light
-      const depth = Math.max(h00, h10, h01, h11) / (i >= vStart - 2 ? deepest : relief); // its shallowest corner: 0 on a wall
-      // the floor black; the wall that faces the light, going down into the groove, white, as the firing order's: the
-      // wall in shade stays black with the floor, so that the cut reads deep
-      const mat = depth > 0.85 || steep < 0.12 ? MAT_TXT_TOP : slopeU * LU + slopeV * LV < 0 ? MAT_TXT_LIT : MAT_TXT_TOP;
+      const depth = Math.max(h00, h10, h01, h11) / (i >= vStart - 2 ? deepest : relief); // its shallowest corner (the cut is negative): 0 on a wall
+      // the floor black; the outer wall, the one that faces the light, going down into the groove, metallic white, as if
+      // the name were carved into the casting and that wall caught the light: the wall in shade stays black with the
+      // floor, so that the cut reads deep
+      const onRamp = rampAt(i, j) || rampAt(i + 1, j) || rampAt(i, j + 1) || rampAt(i + 1, j + 1);
+      const mat = onRamp ? MAT_TXT_SIG_WALL : depth > 0.85 || steep < 0.12 ? MAT_TXT_TOP : slopeU * LU + slopeV * LV < 0 ? MAT_TXT_SIG_WALL : MAT_TXT_TOP;
       const p00 = P(i, j, h00);
       const p10 = P(i + 1, j, h10);
       const p01 = P(i, j + 1, h01);
@@ -297,8 +449,7 @@ export function buildHeadText(b: MeshBuilder, bi: number) {
   const xc = (HEAD.x0 + HEAD.x1) / 2;
   const stamp = FIRING_ORDER.map((f) => f.no).join("-");
 
-  // the title, as it was written by hand, in the middle of the head
-  stampSignature(b, xc, 56.4, su); // its foot: the signature centred in that band, under the plugs, over the cover's edge
+  // (the title, as it was written by hand, is on the intake plenum's lid now: buildLidSignature)
 
   // engraved, deep, its strokes one continuous groove; centred on the head, 7% smaller than it was (its height, its
   // letters' width, their strokes and the gaps between them alike), its middle kept on the same line

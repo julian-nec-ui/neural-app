@@ -44,6 +44,7 @@ export type EngineFrame = {
   fanAngle: number; // the intercooler's fans' angle, radians: they run while the engine does
   fanStep: number; // how far they turned since the previous frame (for motion blur)
   gasT: number; // where the gas is along its way through the engine, 0..1 a cycle: it goes with the crank, and on its own
+  gasStep?: number; // how far gasT went this frame (for the motion blur's sub-frames)
   // as the engine is emptied after it has stopped, so that the last of the gas is seen to leave
 };
 
@@ -109,6 +110,7 @@ export function createEngineClock() {
   let wantedTurbo = 0; // where the turbocharger's speed is going: the dials show it, in step with the engine
   let turboAngle = 0;
   let gasPhase = 0;
+  const GAS_VIS_MAX = 1.3; // the gas's drawn pace, at most, in cycles a second
   let fanSpeed = 0;
   let fanAngle = 0;
 
@@ -316,13 +318,22 @@ export function createEngineClock() {
       // the gas goes with the crank; emptying, it goes on at least at the purge's pace
       const purging = !running && (ENGINE_GAS.intake > 0.005 || ENGINE_GAS.exhaust > 0.005);
 
-      gasPhase = normalizeCycle(gasPhase + (purging ? Math.max(step, smoothDt * PURGE_RATE) : step));
+      // (the gas's pattern is drawn moving at a pace the eye can follow: it rises with the speed but levels off, never
+      // faster than GAS_VIS_MAX cycles a second; at the engine's own pace it would step, frame to frame, past whole
+      // stretches of its pattern and strobe, and flicker as the engine picks up through those speeds)
+      const rate = (currentRpm / 120) * VISUAL_SPEED;
+      const visStep = smoothDt * GAS_VIS_MAX * (1 - Math.exp(-rate / GAS_VIS_MAX));
+
+      const gasStep = purging ? Math.max(visStep, smoothDt * PURGE_RATE) : visStep;
+
+      gasPhase = normalizeCycle(gasPhase + gasStep);
 
       frame = createFrame(phase);
       frame.step = step;
       frame.rpm = step > 0 ? currentRpm : 0;
       frame.dialRpm = dialRpm;
       frame.gasT = gasPhase;
+      frame.gasStep = gasStep;
       frame.fanAngle = fanAngle;
       frame.fanStep = fanTurn;
 
@@ -346,7 +357,9 @@ export type EngineClock = ReturnType<typeof createEngineClock>;
 
 export const ClockContext = createContext<EngineClock | null>(null);
 // The start button: the engine is on (it is starting or running) or off; pressing it starts or stops it
-export const StartContext = createContext<{ toggle: () => void; on: boolean; starting: boolean }>({ toggle: () => {}, on: false, starting: false });
+// `caught`: the engine has fired its first few cylinders and runs on its own (the start button turns green), though the
+// starter may still be letting go
+export const StartContext = createContext<{ toggle: () => void; on: boolean; starting: boolean; caught?: boolean }>({ toggle: () => {}, on: false, starting: false, caught: false });
 
 export function useEngineClock(): EngineClock {
   const clock = useContext(ClockContext);

@@ -52,7 +52,11 @@ export function pushAirflow(frame: EngineFrame) {
           open += camLift(normalizeCycle(frame.t + CYLS[c].bank.phase[CYLS[c].k]), VT_LIFT_PEAK.exhaust) / VT.lift;
         }
 
-        g.drive = 0.3 + 0.7 * Math.min(1, open);
+        // (pulsing with each exhaust event at cranking speed; running, the pulses come faster than the frames and would
+        // flicker, so the body settles to its mean, steady)
+        const steady = smooth01(((frame.rpm ?? 0) - 150) / 450);
+
+        g.drive = (0.3 + 0.7 * Math.min(1, open)) * (1 - steady) + 0.72 * steady;
       }
     }
 

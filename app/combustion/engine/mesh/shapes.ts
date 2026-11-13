@@ -278,7 +278,9 @@ export function quiltPanel(
   s1: number,
   xa: number,
   xb: number,
-  flat: (s: number, x: number) => number = () => 0
+  flat: (s: number, x: number) => number = () => 0,
+  tone = 1, // the whole panel's brightness: under 1 a darker grey
+  contrast = 1 // how far its light and shade stand apart from the mid grey: over 1, its relief reads stronger
 ) {
   const ns = Math.max(2, Math.round((s1 - s0) / q.ds));
   const nx = Math.max(2, Math.round((xb - xa) / q.dx));
@@ -339,8 +341,9 @@ export function quiltPanel(
 
     // brighter in the widest part, dimmer toward the necks
     g *= (0.7 + 0.3 * Math.pow(wr, 0.8)) * (0.9 + 0.1 * swell);
+    g = 150 + (g - 150) * contrast;
 
-    return Math.max(16, Math.min(300, g));
+    return Math.max(12, Math.min(300, g));
   };
   const ease = (t: number) => (t <= 0 ? 0 : t >= 1 ? 1 : t * t * (3 - 2 * t));
   const H: number[] = [];
@@ -373,7 +376,8 @@ export function quiltPanel(
         // the paint carries the light: the colour may go past white (PAINT_GAIN), to make up for the scene's dimmer light on
         // the walls, and the surface is lit as the flat wall is (its normal the wall's), so that the painted light and shade
         // read the same from any side, as in the photograph; the relief itself still shows in its outline
-        const g = G[a * (nx + 1) + e] * (mat.color[0] / 255) * PAINT_GAIN;
+        // (the tone darkens what is drawn, after the gain: the brightest parts, past white, come down too)
+        const g = G[a * (nx + 1) + e] * (mat.color[0] / 255) * PAINT_GAIN * tone;
 
         b.push(P(a, e), out, { color: [g, g * 0.985, g * 0.95], shine: mat.shine, pattern: mat.pattern, wet: mat.wet }, 1);
       }

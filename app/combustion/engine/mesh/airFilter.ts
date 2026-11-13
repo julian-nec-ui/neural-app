@@ -9,7 +9,7 @@ import type { MeshBuilder } from "./tubes";
 
 // How far the air intake turns, from the compressor's axis, down to its filter: 27 degrees, in one smooth bend, the
 // filter on the bent end's line
-export const FILTER_TURN = (27 * Math.PI) / 180;
+export const FILTER_TURN = (68 * Math.PI) / 180; // down, mostly: hanging under the turbocharger, on the side of the engine
 
 // How sharp the filter's folds' gaps are: the higher, the thicker each fold and the narrower the gap between two
 const FOLD_SHARP = 4.5;
@@ -30,13 +30,12 @@ const FOLD_SHARP = 4.5;
 const RING_RED: FwMaterial[] = [MAT_FILTER_WRAP_DEEP, MAT_FILTER_WRAP, MAT_FILTER_WRAP_HI];
 const RING_BLUE: FwMaterial[] = [MAT_FILTER_WRAP_B_DEEP, MAT_FILTER_WRAP_B, MAT_FILTER_WRAP_B_HI];
 
-export function buildAirFilter(b: MeshBuilder, e: FwVec3) {
-  // The filter is built upright, hanging from the pipe's end, and turned through 45 degrees about
-  // that end, so that it stands on the pipe's own axis: the pipe leaves the compressor, turns through
-  // 45 degrees, and the filter goes on in the same line
-  const tilt = Math.PI / 2 - FILTER_TURN;
-  const tc = Math.cos(tilt);
-  const ts = Math.sin(tilt);
+export function buildAirFilter(b: MeshBuilder, e: FwVec3, dir?: FwVec3) {
+  // The filter is built upright, hanging from the pipe's end (its axis the local y, down), and turned about that end so
+  // that it stands on the pipe's own axis `dir` (by default the pipe's, turned FILTER_TURN down from level, forward)
+  const Y = vnorm(dir ?? [-Math.cos(FILTER_TURN), Math.sin(FILTER_TURN), 0]);
+  const X = vnorm(vcross(Y, Math.abs(Y[2]) < 0.95 ? [0, 0, 1] : [1, 0, 0]));
+  const Z = vcross(X, Y);
 
   // and made bigger about the pipe's end: 39% in its radii (the wrapper's both ends, its band, its flange and cap),
   // 45.5% in its length
@@ -50,8 +49,8 @@ export function buildAirFilter(b: MeshBuilder, e: FwVec3) {
     const m = vnorm([n[0] / SR, n[1] / SL, n[2] / SR]);
 
     return [
-      [e[0] + dx * tc - dy * ts, e[1] + dx * ts + dy * tc, e[2] + dz],
-      [m[0] * tc - m[1] * ts, m[0] * ts + m[1] * tc, m[2]],
+      [e[0] + dx * X[0] + dy * Y[0] + dz * Z[0], e[1] + dx * X[1] + dy * Y[1] + dz * Z[1], e[2] + dx * X[2] + dy * Y[2] + dz * Z[2]],
+      [m[0] * X[0] + m[1] * Y[0] + m[2] * Z[0], m[0] * X[1] + m[1] * Y[1] + m[2] * Z[1], m[0] * X[2] + m[1] * Y[2] + m[2] * Z[2]],
     ];
   });
 
@@ -59,7 +58,7 @@ export function buildAirFilter(b: MeshBuilder, e: FwVec3) {
   const cz = e[2];
   const yFlange = e[1] + 8; // the flange's plane, just under the pipe's end
   const top = yFlange + 5; // where the pleated cone begins
-  const length = 80;
+  const length = 98; // a little longer
   const rTop = 46;
   const rBot = 34;
   const pleats = 24; // broad, puffed folds (a multiple of three, so that the stripes' red, red, blue go round evenly)
@@ -113,9 +112,9 @@ export function buildAirFilter(b: MeshBuilder, e: FwVec3) {
 
       // Shadow: deeper in the valleys; darker under the flange, which shades the top of the wrapper,
       // and a little toward the cap
-      const shade = 1 - 0.34 * Math.pow(valley, 1.3) * fade;
-      const underFlange = 0.76 + 0.24 * sm(t / 0.16);
-      const toCap = 0.86 + 0.14 * sm((1 - t) / 0.12);
+      const shade = 1 - 0.22 * Math.pow(valley, 1.3) * fade;
+      const underFlange = 0.86 + 0.14 * sm(t / 0.16);
+      const toCap = 0.92 + 0.08 * sm((1 - t) / 0.12);
       const occ = shade * underFlange * toCap;
 
       // Shade: bright on the crests (2), deep in the valleys (0)
@@ -147,8 +146,8 @@ export function buildAirFilter(b: MeshBuilder, e: FwVec3) {
   // ribbon, lifted and dropped a little where it crosses the others (over one, under the next), shaded deeper in the
   // valleys as the wrapper is ----
   {
-    const NET_PITCH = 1.7; // from one thread to the next, along the wrapper's own surface
-    const NET_W = 0.272; // a thread's width (15% finer than 0.32)
+    const NET_PITCH = 2.6; // from one thread to the next, along the wrapper's own surface
+    const NET_W = 0.18; // a thread's width (15% finer than 0.32)
     const NET_OFF = 0.3; // how far off the wrapper the net lies
     const WEAVE = 0.07; // and how far a thread rises and dips, over and under
     const t0 = 0.02;

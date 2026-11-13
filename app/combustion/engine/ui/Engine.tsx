@@ -271,6 +271,7 @@ export default function Engine() {
   // engine; the fuel comes, then the spark, and the engine runs on its own; the clutch lets the pinion run free, and the fork draws it back
   const startRef = useRef(0);
   const [starting, setStarting] = useState(false);
+  const [caught, setCaught] = useState(false); // fired its first three cylinders: it runs
 
   const endStart = () => {
     cancelAnimationFrame(startRef.current);
@@ -291,6 +292,7 @@ export default function Engine() {
     STARTER.spark = false;
     clock.setRunning(false);
     setEngineOn(false);
+    setCaught(false);
     changeSpeed(5); // the speed slider back to its least (the engine itself runs down as it does)
   };
 
@@ -325,6 +327,9 @@ export default function Engine() {
     setPaused(false);
     setEngineOn(true);
     setStarting(true);
+    setCaught(false);
+
+    let fired = -1; // the crank's turn since the spark came on, degrees: the second cylinder fires 60 in
 
     let step = 0;
     let t0 = performance.now();
@@ -345,6 +350,14 @@ export default function Engine() {
       const t = (now - t0) / 1000;
 
       last = now;
+
+      // with the spark on, the crank's turn counted: once the second cylinder has fired (60 degrees after the first) it has
+      // caught, and the button shows it
+      if (fired >= 0 && fired < 60) {
+        fired += clock.currentRPM * 6 * dt;
+
+        if (fired >= 60) setCaught(true); // the second firing: it runs
+      }
 
       const here = starterPin();
 
@@ -393,6 +406,7 @@ export default function Engine() {
         if (t >= CATCH_AT) {
           // it fires: from here the engine pulls itself up to its speed, slowly
           STARTER.spark = true;
+          fired = 0;
           clock.setRPM(runRpm);
           setRPM(runRpm);
           STARTER.driven = false;
@@ -493,7 +507,7 @@ export default function Engine() {
         <div
           className="ak-root mx-auto rounded-2xl bg-black p-4 shadow-2xl ring-1 ring-white/10"
         >
-          <StartContext.Provider value={{ toggle: toggleEngine, on: engineOn, starting }}>
+          <StartContext.Provider value={{ toggle: toggleEngine, on: engineOn, starting, caught }}>
             <EngineStage />
           </StartContext.Provider>
 

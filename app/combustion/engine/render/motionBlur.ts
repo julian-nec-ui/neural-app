@@ -50,7 +50,7 @@ export function blurSteps(crankDegreesPerFrame: number, cap: number) {
   return Math.max(1, Math.min(Math.floor(cap), Math.ceil(Math.abs(crankDegreesPerFrame) / 7)));
 }
 
-export function createMotionBlur(gl: WebGL2RenderingContext): MotionBlur | null {
+export function createMotionBlur(gl: WebGL2RenderingContext, bg: [number, number, number] = [0, 0, 0]): MotionBlur | null {
   const shaders: WebGLShader[] = [];
   const program = gl.createProgram();
   const quad = gl.createBuffer();
@@ -150,7 +150,7 @@ export function createMotionBlur(gl: WebGL2RenderingContext): MotionBlur | null 
         gl.viewport(0, 0, w, h);
         gl.disable(gl.BLEND);
         gl.enable(gl.DEPTH_TEST);
-        gl.clearColor(0, 0, 0, 0);
+        gl.clearColor(bg[0], bg[1], bg[2], 1);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
         bindScene();
         drawSub(Math.floor(steps / 2));
@@ -158,12 +158,14 @@ export function createMotionBlur(gl: WebGL2RenderingContext): MotionBlur | null 
       }
 
       for (let j = 0; j < steps; j++) {
-        // 1. One sharp sub-frame, drawn off screen
+        // 1. One sharp sub-frame, drawn off screen, on the same opaque background as a sharp frame: the see-through
+        // parts are blended over it and the picture stays opaque (with a clear, transparent target they would leave
+        // holes in the canvas' alpha, and flicker whenever the blur came on or went off, as the engine started)
         gl.bindFramebuffer(gl.FRAMEBUFFER, target);
         gl.viewport(0, 0, w, h);
         gl.disable(gl.BLEND);
         gl.enable(gl.DEPTH_TEST);
-        gl.clearColor(0, 0, 0, 0);
+        gl.clearColor(bg[0], bg[1], bg[2], 1);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
         bindScene();
         drawSub(j);
@@ -176,7 +178,7 @@ export function createMotionBlur(gl: WebGL2RenderingContext): MotionBlur | null 
 
         if (j === 0) {
           gl.disable(gl.BLEND);
-          gl.clearColor(0, 0, 0, 0);
+          gl.clearColor(bg[0], bg[1], bg[2], 1);
           gl.clear(gl.COLOR_BUFFER_BIT);
         } else {
           gl.enable(gl.BLEND);

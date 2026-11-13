@@ -17,6 +17,8 @@ import {
   MAT_FIN_LIGHT_CREST,
   MAT_FIN_LIGHT_ROOT,
   MAT_FIN_GREY,
+  MAT_CT_HOLE,
+  MAT_ST_ROD,
 } from "./materials";
 import { finSection } from "./plenum";
 import { PINION_TOOTH, ST_D, ST_TEETH } from "./gearing";
@@ -33,7 +35,7 @@ import type { MeshBuilder } from "./tubes";
 // A band of a cylinder or a cone, from angle t0 to t1 about the axis through (cp, cq), cut open if it is not all the way round
 function arcBand(
   b: MeshBuilder, a0: number, a1: number, rIn: [number, number], rOut: [number, number], t0: number, t1: number,
-  cp: number, cq: number, outer: FwMaterial, inner: FwMaterial, cut: FwMaterial, steps = 32
+  cp: number, cq: number, outer: FwMaterial, inner: FwMaterial, cut: FwMaterial, steps = 56
 ) {
   const pt = (a: number, r: number, t: number): FwVec3 => [a, cp + r * Math.cos(t), cq + r * Math.sin(t)];
 
@@ -88,7 +90,7 @@ function toothedDisc(
 
 // A straight rod between two points
 function stRod(b: MeshBuilder, from: FwVec3, to: FwVec3, r: number, mat: FwMaterial) {
-  sweepTube(b, curveFromPoints([from, to], 4), () => r, mat, { segments: 14, capStart: true, capEnd: true });
+  sweepTube(b, curveFromPoints([from, to], 4), () => r, mat, { segments: 32, capStart: true, capEnd: true }); // (round: no facets)
 }
 
 // A coil spring about the axis from A to B
@@ -216,6 +218,32 @@ export const stA = (a: number) => {
   const { a0, a1, k } = ST_STRETCH;
 
   return a <= a0 ? a : a <= a1 ? a0 + (a - a0) * k : a + (a1 - a0) * (k - 1);
+};
+// The solenoid is drawn a fifth shorter than it was: its body, between its end plate and its cap, squeezed along its axis,
+// and the cap with its studs and the cable moved forward with it, as they were. `sA` takes a position along the solenoid as
+// it was drawn to where it is, before the stretch (stA), so that after it the cap stands just that much nearer
+const SOL_A0 = 134; // the end plate's back
+const SOL_A1 = 268; // the body's end, where the cap begins
+const SOL_CUT = 48; // how much shorter, after the stretch: a fifth of its length
+const stAinv = (y: number) => {
+  const { a0, a1, k } = ST_STRETCH;
+  const y1 = a0 + (a1 - a0) * k;
+
+  return y <= a0 ? y : y <= y1 ? a0 + (y - a0) / k : y - (a1 - a0) * (k - 1);
+};
+// and its front (the boot, the end plate) moved back by SOL_FRONT, its body squeezed to make room, so that the plunger's
+// rod out of it to the fork is the longer, in sight
+const SOL_FRONT = 30;
+const SOL_F0 = 116; // from here on along the rod, the solenoid's front moves back
+export const sA = (a: number) => {
+  const yf = stA(SOL_F0);
+  const y0 = stA(SOL_A0);
+  const y1 = stA(SOL_A1);
+  const y = stA(a);
+  const yEnd = y1 - SOL_CUT;
+  const y0n = y0 + SOL_FRONT;
+
+  return stAinv(y <= yf ? y : y <= y0 ? y + SOL_FRONT : y <= y1 ? y0n + ((y - y0) * (yEnd - y0n)) / (y1 - y0) : y - SOL_CUT);
 };
 // the stretch, as a turn for the builder: positions along the axis remapped, normals tilted to suit
 export const stretchTurn = (p: FwVec3, n: FwVec3): [FwVec3, FwVec3] => {
@@ -385,16 +413,36 @@ export function buildStarterDrive(b: MeshBuilder) {
 
 // ---- the shaft with the outer rotor and its sensor magnet: it turns ----
 export function buildStarterShaft(b: MeshBuilder) {
-  stRod(b, [-48, 0, 0], [366, 0, 0], 11, MAT_STEEL_BRIGHT);
-  stHex(b, -48, 0, 0, 13.5, 6, 1);
-  annulus(b, [-42, 0, 0], [1, 0, 0], 11, 17, MAT_WASHER, 32);
+  // the shaft: in front of the pinion, a plain polished journal (it runs in the nose housing's bushing, cut away here);
+  // its tip turned down a step, chamfered, with the centre hole it was turned between
+  stRod(b, [-42, 0, 0], [366, 0, 0], 11, MAT_STEEL_BRIGHT);
+  b.revolve({ x0: -42, r0: 11, x1: -43.5, r1: 9.6, n: [-0.7, 0.7], m: MAT_STEEL_BRIGHT, steps: 56 }); // the step's chamfer
+  b.revolve({ x0: -43.5, r0: 9.6, x1: -52, r1: 9.6, n: [0, 1], m: MAT_ALU_TURNED, steps: 56 }); // the journal's tip, ground
+  b.revolve({ x0: -52, r0: 9.6, x1: -53.4, r1: 8.2, n: [-0.7, 0.7], m: MAT_STEEL_BRIGHT, steps: 56 });
+  b.revolve({ x0: -53.4, r0: 8.2, x1: -53.4, r1: 2.2, n: [-1, 0], m: MAT_STEEL_BRIGHT, steps: 56 });
+  b.revolve({ x0: -53.4, r0: 2.2, x1: -51.6, r1: 0, n: [-0.6, 0.8], m: MAT_ST_YOKE_IN, steps: 16 }); // the centre hole
 
-  // the helical splines the drive rides on
+  // the pinion's stop at the front: a stop collar, its face toward the pinion, held by a circlip in a groove in front of it
+  b.revolve({ x0: -36, r0: 11, x1: -36, r1: 15.5, n: [1, 0], m: MAT_STEEL_BRIGHT, steps: 56 });
+  b.revolve({ x0: -36, r0: 15.5, x1: -38.5, r1: 15.5, n: [0, 1], m: MAT_STEEL_BRIGHT, steps: 56 });
+  b.revolve({ x0: -38.5, r0: 15.5, x1: -40, r1: 12.4, n: [-0.9, 0.4], m: MAT_STEEL_BRIGHT, steps: 56 });
+  // the circlip: a dark spring-steel ring with its gap, and the two eyes for the pliers either side of it
+  arcBand(b, -41.6, -40.2, [10.6, 10.6], [13.6, 13.6], 0.35, TAU - 0.35, 0, 0, MAT_ST_YOKE_IN, MAT_ST_YOKE_IN, MAT_ST_YOKE_IN, 40);
+  for (const t of [0.35, TAU - 0.35]) {
+    const ey = 14.4 * Math.cos(t);
+    const ez = 14.4 * Math.sin(t);
+
+    b.prismDir([-40.9, ey, ez], [-1, 0, 0], [0, 1, 0], [0, 0, 1], 2.2, 1.4, 12, 0, MAT_ST_YOKE_IN, MAT_ST_YOKE_IN);
+    b.prismDir([-41.0, ey, ez], [-1, 0, 0], [0, 1, 0], [0, 0, 1], 0.9, 1.6, 10, 0, MAT_CT_HOLE, MAT_CT_HOLE);
+  }
+
+  // the helical splines the drive rides on: only where it works, under the clutch's sleeve and behind it, where the drive
+  // slides forward along them as the solenoid throws it (they screw the pinion into the ring gear)
   for (let j = 0; j < 8; j++) {
     const pts: FwVec3[] = [];
 
     for (let i = 0; i <= 40; i++) {
-      const a = -36 + (i * 136) / 40;
+      const a = 18 + (i * 82) / 40;
       const t = (j * TAU) / 8 + a * 0.05;
 
       pts.push([a, 11.4 * Math.cos(t), 11.4 * Math.sin(t)]);
@@ -404,9 +452,9 @@ export function buildStarterShaft(b: MeshBuilder) {
   }
 
   // the stop ring and its circlip, behind the collar's rest
-  b.revolve({ x0: 118, r0: 11, x1: 121, r1: 16, n: [0.9, 0.4], m: MAT_STEEL_BRIGHT, steps: 32 });
-  b.revolve({ x0: 121, r0: 16, x1: 124, r1: 16, n: [0, 1], m: MAT_STEEL_BRIGHT, steps: 32 });
-  b.revolve({ x0: 126, r0: 11, x1: 127.6, r1: 13.6, n: [0, 1], m: MAT_ST_YOKE_IN, steps: 32 });
+  b.revolve({ x0: 118, r0: 11, x1: 121, r1: 16, n: [0.9, 0.4], m: MAT_STEEL_BRIGHT, steps: 56 });
+  b.revolve({ x0: 121, r0: 16, x1: 124, r1: 16, n: [0, 1], m: MAT_STEEL_BRIGHT, steps: 56 });
+  b.revolve({ x0: 126, r0: 11, x1: 127.6, r1: 13.6, n: [0, 1], m: MAT_ST_YOKE_IN, steps: 56 });
 
   // ---- the rotor of an induction motor: a squirrel cage. On the shaft, a stack of thin steel laminations, and in it,
   // just under its skin, ST_BARS bars of cast aluminium running its length, skewed by one bar's pitch from end to end so
@@ -438,7 +486,7 @@ export function buildStarterShaft(b: MeshBuilder) {
   // the end rings, and the fan blades on their outer faces
   for (const [a0, a1, out] of [[R.a0 - 7, R.a0, -1], [R.a1, R.a1 + 7, 1]] as Array<[number, number, number]>) {
     arcBand(b, a0, a1, [18, 18], [R.rRing, R.rRing], 0, TAU, 0, 0, MAT_ALU_TURNED, MAT_ALU_CAST, MAT_ALU_CAST, 64);
-    b.revolve({ x0: out < 0 ? a0 : a1, r0: 18, x1: out < 0 ? a0 : a1, r1: 11, n: [out, 0], m: MAT_ALU_CAST, steps: 32 });
+    b.revolve({ x0: out < 0 ? a0 : a1, r0: 18, x1: out < 0 ? a0 : a1, r1: 11, n: [out, 0], m: MAT_ALU_CAST, steps: 56 });
 
     for (let k = 0; k < 10; k++) {
       const t = (k / 10) * TAU;
@@ -453,8 +501,8 @@ export function buildStarterShaft(b: MeshBuilder) {
 
   // the speed sensor's magnet ring: a steel hub on the shaft and round it a ring of ST_POLES poles, dark and light in
   // turn, for the inverter to read the rotor's speed
-  b.revolve({ x0: 294, r0: 11, x1: 304, r1: 11, n: [0, 1], m: MAT_STEEL_BRIGHT, steps: 32 });
-  b.revolve({ x0: 294, r0: 11, x1: 294, r1: 15, n: [-1, 0], m: MAT_STEEL_BRIGHT, steps: 32 });
+  b.revolve({ x0: 294, r0: 11, x1: 304, r1: 11, n: [0, 1], m: MAT_STEEL_BRIGHT, steps: 56 });
+  b.revolve({ x0: 294, r0: 11, x1: 294, r1: 15, n: [-1, 0], m: MAT_STEEL_BRIGHT, steps: 56 });
 
   const poleArc = TAU / ST_POLES;
 
@@ -471,12 +519,16 @@ export function buildStarterShaft(b: MeshBuilder) {
 export function buildStarterPlunger(b: MeshBuilder) {
   const SQ = ST_SQ;
 
-  stRod(b, [158, 0, SQ], [240, 0, SQ], 17, MAT_STEEL_BRIGHT);
-  stRod(b, [106, 0, SQ], [158, 0, SQ], 7, MAT_STEEL_BRIGHT);
-  stRod(b, [240, 0, SQ], [276, 0, SQ], 4, MAT_STEEL_BRIGHT);
+  stRod(b, [sA(158), 0, SQ], [sA(240), 0, SQ], 17, MAT_STEEL_BRIGHT);
+  stRod(b, [106, 0, SQ], [sA(158), 0, SQ], 7, MAT_ST_ROD); // the push rod: ground and hard-chromed, a darker steel
+  // its threaded end at the fork, a lock nut on it, and a stop ring where it goes into the boot
+  stRod(b, [106, 0, SQ], [114, 0, SQ], 7.5, MAT_STEEL_BRIGHT);
+  stHex(b, 116, 0, SQ, 9.6, 4.4, 1);
+  stRod(b, [sA(118) - 3, 0, SQ], [sA(118) - 1.2, 0, SQ], 8.6, MAT_STEEL_BRIGHT);
+  stRod(b, [sA(240), 0, SQ], [sA(276), 0, SQ], 4, MAT_STEEL_BRIGHT);
   annulus(b, [106, 0, SQ], [-1, 0, 0], 4, 10, MAT_STEEL_BRIGHT, 24);
 
-  for (const a of [176, 196, 216]) stRod(b, [a, 0, SQ], [a + 1.4, 0, SQ], 17.3, MAT_ST_MICA);
+  for (const a of [176, 196, 216]) stRod(b, [sA(a), 0, SQ], [sA(a) + 1.4, 0, SQ], 17.3, MAT_ST_MICA);
 
   // the hook where the fork takes hold: a cross pin through the rod's end
   stRod(b, [106, -9, SQ], [106, 9, SQ], 3.6, MAT_ST_BRONZE);
@@ -486,10 +538,10 @@ export function buildStarterPlunger(b: MeshBuilder) {
 export function buildStarterDisc(b: MeshBuilder) {
   const SQ = ST_SQ;
 
-  stRod(b, [272, 0, SQ], [284, 0, SQ], 17, MAT_STEEL_BRIGHT);
-  stRod(b, [276, 0, SQ], [282, 0, SQ], 21, MAT_ST_COPPER);
-  annulus(b, [282.2, 0, SQ], [1, 0, 0], 6, 21, MAT_ST_COMM, 32);
-  annulus(b, [271.8, 0, SQ], [-1, 0, 0], 17, 22, MAT_ST_MICA, 32);
+  stRod(b, [sA(272), 0, SQ], [sA(284), 0, SQ], 17, MAT_STEEL_BRIGHT);
+  stRod(b, [sA(276), 0, SQ], [sA(282), 0, SQ], 21, MAT_ST_COPPER);
+  annulus(b, [sA(282.2), 0, SQ], [1, 0, 0], 6, 21, MAT_ST_COMM, 32);
+  annulus(b, [sA(271.8), 0, SQ], [-1, 0, 0], 17, 22, MAT_ST_MICA, 32);
 }
 
 // ---- the return spring, along the part's own y: it is squeezed by scaling it ----
@@ -568,6 +620,7 @@ const NOSE_FINS: FinSet = { count: 22, a0: 18, a1: 108, t: 4.2, h: 7.5 };
 // the same fins on the bendix's drum, smaller, as it is: along its clutch's shell (and, on the solid engine, the sleeve)
 // and on the solenoid, the coil that throws the bendix forward: the same fins along its case, all round its own axis
 const SOLENOID_FINS: FinSet = { count: 20, a0: 136, a1: 302, t: 7.6, h: 3.6 };
+const SOLENOID_FINS_SHORT = (): FinSet => ({ ...SOLENOID_FINS, a0: sA(SOLENOID_FINS.a0), a1: sA(SOLENOID_FINS.a1) });
 const DRIVE_FINS: FinSet = { count: 18, a0: 18, a1: 56, t: 3.4, h: 5.5 };
 
 function noseFins(b: MeshBuilder, t0: number, t1: number, noseR: (a: number) => number, F: FinSet = NOSE_FINS, cq = 0, light = false) {
@@ -659,13 +712,13 @@ function starterHousings(b: MeshBuilder, t0: number, t1: number, yoke = true) {
   }
 
   // the solenoid: its end plate, its case with the crimped rim, its cap and the cap's black end, and the rubber boot
-  band(126, 134, [8, 8], [36, 36], SQ, MAT_ALU_CAST, MAT_ALU_CAST, 32);
-  band(126.6, 268, [30, 30], [35.7, 35.7], SQ, MAT_ST_SOL, MAT_ST_YOKE_IN);
-  band(266, 270, [34, 34], [37.6, 37.6], SQ, MAT_ST_SOL, MAT_ST_YOKE_IN, 28);
-  band(268, 306.6, [32, 32], [36, 36], SQ, MAT_ST_SOL, MAT_ST_YOKE_IN);
-  band(306, 312, [6, 6], [36, 36], SQ, MAT_ST_BLACKPL, MAT_ST_BLACKPL);
-  noseFins(b, t0, t1, (a) => (a < 268 ? 35.7 : 36), SOLENOID_FINS, SQ, true);
-  band(118, 134, [7.6, 11], [9.6, 13], SQ, MAT_ST_RUBBER, MAT_ST_RUBBER, 24);
+  band(sA(126), sA(134), [8, 8], [36, 36], SQ, MAT_ALU_CAST, MAT_ALU_CAST, 32);
+  band(sA(126.6), sA(268), [30, 30], [35.7, 35.7], SQ, MAT_ST_SOL, MAT_ST_YOKE_IN);
+  band(sA(266), sA(270), [34, 34], [37.6, 37.6], SQ, MAT_ST_SOL, MAT_ST_YOKE_IN, 28);
+  band(sA(268), sA(306.6), [32, 32], [36, 36], SQ, MAT_ST_SOL, MAT_ST_YOKE_IN);
+  band(sA(306), sA(312), [6, 6], [36, 36], SQ, MAT_ST_BLACKPL, MAT_ST_BLACKPL);
+  noseFins(b, t0, t1, (a) => (a < sA(268) ? 35.7 : 36), SOLENOID_FINS_SHORT(), SQ, true);
+  band(sA(118), sA(134), [7.6, 11], [9.6, 13], SQ, MAT_ST_RUBBER, MAT_ST_RUBBER, 24);
 }
 
 // The motor's yoke, the steel tube round the stator, with its seam
@@ -901,34 +954,34 @@ export function buildStarterBody(b: MeshBuilder) {
 
   // the two windings, on a sleeve of insulation round the plunger, between the bobbin's flanges, cut open with the case: the
   // pull-in winding of heavier wire underneath, the hold-in winding of finer wire over it
-  arcBand(b, 138, 258, [20.6, 20.6], [22, 22], 0, ST_HALF, 0, SQ, MAT_ST_MICA, MAT_ST_MICA, MAT_ST_CUT, 32);
-  cutCoil(b, 139, 257, 22, 2, 1.05, 0, SQ, MAT_ST_ENAMEL);
-  cutCoil(b, 139, 257, 26.1, 2, 0.85, 0, SQ, MAT_ST_COPPER);
-  arcBand(b, 135.5, 138.5, [21.5, 21.5], [30, 30], 0, ST_HALF, 0, SQ, MAT_ST_BLACKPL, MAT_ST_BLACKPL, MAT_ST_CUT, 32);
-  arcBand(b, 257.5, 260.5, [21.5, 21.5], [30, 30], 0, ST_HALF, 0, SQ, MAT_ST_BLACKPL, MAT_ST_BLACKPL, MAT_ST_CUT, 32);
-  stRod(b, [150, 0, SQ], [160, 0, SQ], 19.5, MAT_ST_BRONZE); // the plunger's guide
-  stRod(b, [260, 0, SQ], [272, 0, SQ], 17, MAT_STEEL_BRIGHT); // the fixed core
+  arcBand(b, sA(138), sA(258), [20.6, 20.6], [22, 22], 0, ST_HALF, 0, SQ, MAT_ST_MICA, MAT_ST_MICA, MAT_ST_CUT, 32);
+  cutCoil(b, sA(139), sA(257), 22, 2, 1.05, 0, SQ, MAT_ST_ENAMEL);
+  cutCoil(b, sA(139), sA(257), 26.1, 2, 0.85, 0, SQ, MAT_ST_COPPER);
+  arcBand(b, sA(135.5), sA(138.5), [21.5, 21.5], [30, 30], 0, ST_HALF, 0, SQ, MAT_ST_BLACKPL, MAT_ST_BLACKPL, MAT_ST_CUT, 32);
+  arcBand(b, sA(257.5), sA(260.5), [21.5, 21.5], [30, 30], 0, ST_HALF, 0, SQ, MAT_ST_BLACKPL, MAT_ST_BLACKPL, MAT_ST_CUT, 32);
+  stRod(b, [sA(150), 0, SQ], [sA(160), 0, SQ], 19.5, MAT_ST_BRONZE); // the plunger's guide
+  stRod(b, [sA(260), 0, SQ], [sA(272), 0, SQ], 17, MAT_STEEL_BRIGHT); // the fixed core
 
   // the cap, with its two studs, their nuts and washers, and the two push-on terminals
 
   for (const p of [-21, 21]) {
-    stRod(b, [272, p, SQ], [318, p, SQ], 7.5, MAT_INJ_BRASS);
-    stRod(b, [284, p, SQ], [292, p, SQ], 9.6, MAT_ST_COMM); // the stud's contact face, inside the cap
-    stHex(b, 306, p, SQ, 11, 7, 1);
-    annulus(b, [306, p, SQ], [-1, 0, 0], 7.5, 13, MAT_WASHER, 24);
-    stHex(b, 316, p, SQ, 11, 7, 1);
+    stRod(b, [sA(272), p, SQ], [sA(318), p, SQ], 7.5, MAT_INJ_BRASS);
+    stRod(b, [sA(284), p, SQ], [sA(292), p, SQ], 9.6, MAT_ST_COMM); // the stud's contact face, inside the cap
+    stHex(b, sA(306), p, SQ, 11, 7, 1);
+    annulus(b, [sA(306), p, SQ], [-1, 0, 0], 7.5, 13, MAT_WASHER, 24);
+    stHex(b, sA(316), p, SQ, 11, 7, 1);
   }
 
-  b.box(296, 316, -3, 3, -70, -62, MAT_INJ_BRASS);
-  b.box(298, 314, -7, 7, -78, -66, MAT_ST_PLASTIC);
-  stRod(b, [306, 0, -78], [306, 0, -92], 1.8, MAT_ST_BLACKPL);
+  b.box(sA(296), sA(316), -3, 3, -70, -62, MAT_INJ_BRASS);
+  b.box(sA(298), sA(314), -7, 7, -78, -66, MAT_ST_PLASTIC);
+  stRod(b, [sA(306), 0, -78], [sA(306), 0, -92], 1.8, MAT_ST_BLACKPL);
 
   // the battery cable, red, from the big stud, with its lug and its boot, and the bare copper of its cut end
-  stRod(b, [310, 21, SQ], [332, 21, SQ], 8, MAT_ST_RUBBER);
-  annulus(b, [318, 21, SQ], [1, 0, 0], 5, 12, MAT_ST_COPPER, 24);
+  stRod(b, [sA(310), 21, SQ], [sA(332), 21, SQ], 8, MAT_ST_RUBBER);
+  annulus(b, [sA(318), 21, SQ], [1, 0, 0], 5, 12, MAT_ST_COPPER, 24);
   sweepTube(
-    b, roundedCurve([[330, 21, SQ], [352, 21, SQ], [352, 56, SQ - 38], [352, 96, SQ - 76]], 22, 4), () => 5.5, MAT_ST_CABLE,
+    b, roundedCurve([[sA(330), 21, SQ], [sA(338), 21, SQ], [sA(338), 50, SQ - 30], [sA(296), 74, SQ - 54]], 22, 4), () => 5.5, MAT_ST_CABLE,
     { segments: 14, capStart: true, capEnd: true }
   );
-  stRod(b, [352, 96, SQ - 76], [352, 100.4, SQ - 80.1], 3.8, MAT_ST_COMM);
+  stRod(b, [sA(296), 74, SQ - 54], [sA(296) - 5.2, 75.6, SQ - 55.6], 3.8, MAT_ST_COMM); // (led back along the solenoid, clear of the exhaust)
 }

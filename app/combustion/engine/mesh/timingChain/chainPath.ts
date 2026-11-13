@@ -242,13 +242,13 @@ function makeChain(circles: ChainCircle[], tensioned: boolean[], teeth: number[]
 }
 
 // The intermediate shaft, on the bank's centre line, in the bank's frame: about 180 above the crank, placed exactly so that
-// the primary chain, with its one tensioner pushing in moderately, is a whole even number of links long
+// the primary chain, with its two tensioners pushing in moderately, is a whole even number of links long
 const primaryCircles = (y: number): ChainCircle[] => [{ y: 0, z: 0, r: VT_RC }, { y, z: 0, r: VT_RC * 2 }];
 const PRIMARY_PUSH = 12;
 const IDLER_NEAR = -180 - ROD_LIFT / 2; // about halfway up, with the head raised for the longer rods
 
 export const IDLER_Y = (() => {
-  const lengthAt = (y: number) => buildChainPath(primaryCircles(y), [true, false], PRIMARY_PUSH).total;
+  const lengthAt = (y: number) => buildChainPath(primaryCircles(y), [true, true], PRIMARY_PUSH).total;
   const links = 2 * Math.round(lengthAt(IDLER_NEAR) / VT_PITCH / 2);
   let lo = IDLER_NEAR - 50; // longer
   let hi = IDLER_NEAR + 50; // shorter
@@ -265,7 +265,7 @@ export const IDLER_Y = (() => {
 
 export const PRIMARY = makeChain(
   primaryCircles(IDLER_Y),
-  [true, false],
+  [true, true], // a tensioner on each of its two runs, the two sides alike
   [CRANK_TEETH, IDLER_TEETH],
   [1, 0.5]
 );

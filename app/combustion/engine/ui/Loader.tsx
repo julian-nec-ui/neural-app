@@ -10,17 +10,18 @@ const CSS = `
 @keyframes ak-spin { to { transform: rotate(360deg); } }
 @keyframes ak-dot2 { 0%, 24.9% { opacity: 0; } 25%, 100% { opacity: 1; } }
 @keyframes ak-dot3 { 0%, 49.9% { opacity: 0; } 50%, 100% { opacity: 1; } }
-.ak-piston { animation: ak-stroke 0.5s ease-in-out infinite; will-change: transform; }
-.ak-crank { animation: ak-spin 0.5s linear infinite; will-change: transform; }
-@keyframes ak-burn { 0% { opacity: 0; transform: scale(0.6); } 3% { opacity: 1; transform: scale(1.1); }
-  14% { opacity: 0.55; transform: scale(1); } 22%, 100% { opacity: 0; transform: scale(0.9); } }
-@keyframes ak-exhaust { 0%, 22% { opacity: 0; transform: translateY(18px) scaleY(1.4); } 30% { opacity: 0.75; }
-  50% { opacity: 0; transform: translateY(0) scaleY(0.7); } 100% { opacity: 0; } }
-@keyframes ak-intake { 0%, 52% { opacity: 0; transform: translateY(0); } 58% { opacity: 0.8; }
-  78% { opacity: 0; transform: translateY(20px); } 100% { opacity: 0; transform: translateY(20px); } }
-.ak-burn { animation: ak-burn 1s ease-out infinite; will-change: transform, opacity; }
-.ak-exhaust { animation: ak-exhaust 1s ease-out infinite; will-change: transform, opacity; }
-.ak-intake { animation: ak-intake 1s ease-in infinite; will-change: transform, opacity; }
+.ak-piston { animation: ak-stroke 0.3s ease-in-out infinite; will-change: transform; }
+.ak-crank { animation: ak-spin 0.3s linear infinite; will-change: transform; }
+/* the four strokes over one cycle (two turns): 0% the top, the spark; 25% the bottom; 50% the top; 75% the bottom.
+   The gases fill the chamber over the piston, from its lowest crown up to the head: the piston hides what is below it */
+@keyframes ak-burn { 0% { opacity: 0; } 2% { opacity: 1; filter: brightness(1.6); } 9% { opacity: 1; filter: brightness(1.1); }
+  20% { opacity: 0.55; filter: brightness(0.9); } 26%, 100% { opacity: 0; } }
+@keyframes ak-exhaust { 0%, 23% { opacity: 0; } 29% { opacity: 0.95; } 44% { opacity: 0.6; } 51%, 100% { opacity: 0; } }
+@keyframes ak-intake { 0%, 49% { opacity: 0; } 56% { opacity: 0.55; } 74% { opacity: 0.9; } 96% { opacity: 1; }
+  100% { opacity: 0; } }
+.ak-burn { animation: ak-burn 0.6s linear infinite; will-change: opacity, filter; }
+.ak-exhaust { animation: ak-exhaust 0.6s linear infinite; will-change: opacity; }
+.ak-intake { animation: ak-intake 0.6s linear infinite; will-change: opacity; }
 @keyframes ak-sweep { from { transform: translateX(-100%); } to { transform: translateX(460%); } }
 .ak-sweep { animation: ak-sweep 0.3s linear infinite; will-change: transform; }
 .ak-dot2 { animation: ak-dot2 1s step-end infinite; will-change: opacity; }
@@ -156,18 +157,18 @@ function Bank({ lean, delay, id }: { lean: number; delay: string; id: string }) 
         <rect x="35.8" y="-17.4" width="2.4" height="3.6" rx="0.8" fill={g("steel")} />
       </svg>
 
-      {/* the gases over the piston, inside the bore: the flame at the top, the exhaust, the fresh air */}
+      {/* the gases in the chamber over the piston, from its lowest crown up to the head (the piston, drawn over them,
+          hides what is below its crown): the burning charge, the smoky exhaust, the cool blue fresh air */}
       <div
         className="ak-burn"
         style={{
           position: "absolute",
-          left: -22,
-          bottom: 135,
-          width: 44,
-          height: 14,
-          borderRadius: "40%",
-          background: "radial-gradient(ellipse at 50% 60%, #fff3c4 0%, #ffb347 35%, #ff5a1f 65%, rgba(255, 60, 20, 0) 100%)",
-          boxShadow: "0 0 14px rgba(255, 120, 40, 0.8)",
+          left: -25,
+          bottom: 122,
+          width: 50,
+          height: 29,
+          background: "radial-gradient(ellipse 70% 60% at 50% 15%, #ffffff 0%, #fff1b8 18%, #ffb12e 42%, #ff5418 70%, rgba(220, 40, 10, 0.75) 100%)",
+          boxShadow: "0 -4px 16px rgba(255, 130, 40, 0.85), inset 0 0 10px rgba(255, 230, 160, 0.6)",
           animationDelay: delay,
         }}
       />
@@ -175,12 +176,12 @@ function Bank({ lean, delay, id }: { lean: number; delay: string; id: string }) 
         className="ak-exhaust"
         style={{
           position: "absolute",
-          left: -22,
-          bottom: 120,
-          width: 44,
-          height: 24,
-          borderRadius: "40%",
-          background: "radial-gradient(ellipse, rgba(203, 213, 225, 0.85), rgba(148, 163, 184, 0))",
+          left: -25,
+          bottom: 122,
+          width: 50,
+          height: 29,
+          background:
+            "radial-gradient(ellipse 45% 40% at 30% 30%, rgba(226, 232, 240, 0.9), rgba(226, 232, 240, 0) 100%), radial-gradient(ellipse 50% 45% at 70% 60%, rgba(148, 163, 184, 0.85), rgba(148, 163, 184, 0) 100%), linear-gradient(180deg, rgba(120, 130, 142, 0.85), rgba(80, 88, 98, 0.7))",
           animationDelay: delay,
         }}
       />
@@ -188,12 +189,12 @@ function Bank({ lean, delay, id }: { lean: number; delay: string; id: string }) 
         className="ak-intake"
         style={{
           position: "absolute",
-          left: -17,
-          bottom: 133,
-          width: 34,
-          height: 12,
-          borderRadius: "50%",
-          background: "radial-gradient(ellipse, rgba(102, 204, 255, 0.9), rgba(87, 175, 219, 0))",
+          left: -25,
+          bottom: 122,
+          width: 50,
+          height: 29,
+          background: "radial-gradient(ellipse 80% 70% at 50% 20%, rgba(150, 220, 255, 0.95), rgba(40, 140, 230, 0.75) 60%, rgba(20, 90, 200, 0.55) 100%)",
+          boxShadow: "inset 0 0 8px rgba(160, 225, 255, 0.5)",
           animationDelay: delay,
         }}
       />
@@ -296,10 +297,13 @@ export function Loader({ hidden }: { hidden: boolean }) {
     >
       <style>{CSS}</style>
 
+      {/* all of it drawn a fifth smaller than it was made: scaled as a whole, so that every detail stays as it was (it is
+          all vector: the banks, the crank's SVG, the lettering, crisp at any scale) */}
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, transform: "scale(0.8)", transformOrigin: "50% 50%" }}>
       {/* the V: two banks at 90° to each other over the crank, apart */}
       <div style={{ position: "relative", width: 340, height: 200 }}>
         <Bank lean={-45} delay="0s" id="ak-l" />
-        <Bank lean={45} delay="-0.25s" id="ak-r" />
+        <Bank lean={45} delay="-0.15s" id="ak-r" />
         {/* the crank: a toothed wheel, turning about its very centre, shaded the same all round (so that it looks round as it
             turns), with a red line from its middle to its rim */}
         <div
@@ -401,6 +405,7 @@ export function Loader({ hidden }: { hidden: boolean }) {
             }}
           />
         </div>
+      </div>
       </div>
     </div>
   );

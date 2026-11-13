@@ -6,8 +6,8 @@ import { vadd, vcross, vnorm, vscale, vsub } from "../math/vec3";
 import type { FwMaterial, FwVec3 } from "./builder";
 import { MODULES, modulePoint } from "./exhaust";
 import type { TModule } from "./exhaust";
-import { MAT_ALU_TURNED, MAT_CASE_GREY, MAT_EXH_GUNMETAL, MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE, MAT_FIN_BACK, MAT_IC_FIN, MAT_IC_FIN_DEEP, MAT_IC_PLATE, MAT_IC_RUBBER, MAT_IC_TANK, MAT_IC_TUBE, MAT_PIPE_BLACK, MAT_STEEL_BRIGHT, MAT_WELD } from "./materials";
-import { OUTLET_DROP, PIPES, PLENUM_INLETS, PORT_JOINT, weld } from "./plumbing";
+import { MAT_ALU_TURNED, MAT_COOL_PIPE, MAT_CASE_GREY, MAT_EXH_GUNMETAL, MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE, MAT_FIN_BACK, MAT_IC_FIN, MAT_IC_FIN_DEEP, MAT_IC_PLATE, MAT_IC_RUBBER, MAT_IC_TANK, MAT_IC_TUBE, MAT_PIPE_BLACK, MAT_STEEL_BRIGHT, MAT_WELD } from "./materials";
+import { PIPES, PLENUM_INLETS, PORT_JOINT, weld } from "./plumbing";
 import { curveAt, curveFromPoints, flangeJoint, roundedCurve, sweepTube } from "./tubes";
 import type { Curve, MeshBuilder } from "./tubes";
 import { IC, IC_HALF } from "./turbo";
@@ -231,10 +231,19 @@ export function buildIntercooler(b: MeshBuilder) {
   }
 }
 
+// The low tank's hot port: a neck cast on its face toward the engine, a little out from the middle of its length, where
+// the hot pipe comes straight in from the turbocharger; the sensor's boss moved to the other side of the middle for it
+const HOT_PORT_Y = -36;
+const HOT_PORT_Z = -6; // across the tank, from its middle, toward its closed end
+const HOT_NECK_CLEAR = 34; // the fins on that face part this far each side of it
+const sensorY = (low: boolean) => (low ? 46 : -30);
+
 // The fins on an end tank's broad faces (see buildIntercoolerTank)
 const TANK_FIN = { pitch: 4.8, h: 5.4, root: 1.0, tip: 0.6, z0: -21, z1: 9, endRun: 12, dy: 3 };
 
-function tankFins(b: MeshBuilder, side: number) {
+function tankFins(b: MeshBuilder, side: number, low = false) {
+  const sy = sensorY(low);
+  const hp = low ? HOT_PORT_Y : null; // the hot pipe's cast port, on the low tank's face toward the engine
   // the tank's half width and half height at a point along it, from its sections
   const secAt = (zl: number, k: 1 | 2) => {
     const s = IC_TANK_SECTIONS;
@@ -266,7 +275,10 @@ function tankFins(b: MeshBuilder, side: number) {
       const ax = secAt(zl, 1);
       const ay = secAt(zl, 2) - 16; // clear of the rounded corners
       // the runs of this fin along the tank: on the face toward the engine (+x), parted round the sensor's boss
-      const runs: Array<[number, number]> = sx > 0 && Math.abs(zl + 3) < 13 ? [[-ay, -30 - 15], [-30 + 15, ay]] : [[-ay, ay]];
+      let runs: Array<[number, number]> = sx > 0 && Math.abs(zl + 3) < 13 ? [[-ay, sy - 15], [sy + 15, ay]] : [[-ay, ay]];
+
+      // (and round the hot port's neck)
+      if (sx > 0 && hp !== null) runs = runs.flatMap(([a, c]): Array<[number, number]> => [[a, Math.min(c, hp - HOT_NECK_CLEAR)], [Math.max(a, hp + HOT_NECK_CLEAR), c]]).filter(([a, c]) => c - a > 6);
 
       for (const [ya, yb] of runs) {
         const n = Math.max(2, Math.ceil((yb - ya) / F.dy));
@@ -373,8 +385,9 @@ export function buildIntercoolerTank(b: MeshBuilder, side: number, low = false, 
   // the tank, a stadium-shaped boss that rises out of the tank's skin, flush with it, from deep inside it; the far one is
   // machined, on the neck, with a gasket between, and the two are held by two bolts screwed into the cast half ----
   if (port) {
-    const up = low ? IC_PORT_LOW_UP : IC_PORT_UP;
-    const at = (y: number): FwVec3 => [0, py * y, 0];
+    const up = IC_PORT_UP;
+    const axis: FwVec3 = [0, py, 0];
+    const at = (y: number): FwVec3 => vscale(axis, y);
     const castTop = IC_TANK_SECTIONS[0][2] + 6; // the joint: a little above the tank's highest point
     const neck = curveFromPoints([at(castTop + 7), at(up)], 2);
 
@@ -382,7 +395,7 @@ export function buildIntercoolerTank(b: MeshBuilder, side: number, low = false, 
     // cooled charge's outlet: the tank's flange and the pipe's, dark grey metal, a gasket between, six bolts; and the
     // pipe's end standing on it
     sweepTube(b, curveFromPoints([at(30), at(castTop - 8)], 2), () => PORT_NECK_R, MAT_IC_TANK, { segments: 40 });
-    flangeJoint(b, at(castTop - 8 + PORT_JOINT.castT), [0, py, 0], PORT_JOINT);
+    flangeJoint(b, at(castTop - 8 + PORT_JOINT.castT), axis, PORT_JOINT);
     sweepTube(b, neck, () => 17, MAT_ALU_TURNED, { segments: 32 });
   }
 
@@ -391,9 +404,11 @@ export function buildIntercoolerTank(b: MeshBuilder, side: number, low = false, 
     const xSide = IC_TANK_SECTIONS[2][1];
     const yTop = IC_TANK_SECTIONS[2][2];
 
-    b.prismDir([xSide - 1, -30, side * -3], [1, 0, 0], [0, 1, 0], [0, 0, 1], 9.4, 7, 24, 0, MAT_IC_PLATE, MAT_IC_PLATE);
-    b.prismDir([xSide + 6, -30, side * -3], [1, 0, 0], [0, 1, 0], [0, 0, 1], 6.4, 5.6, 6, 0.2, MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE);
-    b.prismDir([xSide + 11.6, -30, side * -3], [1, 0, 0], [0, 1, 0], [0, 0, 1], 2.6, 3.4, 12, 0, MAT_STEEL_BRIGHT, MAT_STEEL_BRIGHT);
+    const sy = sensorY(low);
+
+    b.prismDir([xSide - 1, sy, side * -3], [1, 0, 0], [0, 1, 0], [0, 0, 1], 9.4, 7, 24, 0, MAT_IC_PLATE, MAT_IC_PLATE);
+    b.prismDir([xSide + 6, sy, side * -3], [1, 0, 0], [0, 1, 0], [0, 0, 1], 6.4, 5.6, 6, 0.2, MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE);
+    b.prismDir([xSide + 11.6, sy, side * -3], [1, 0, 0], [0, 1, 0], [0, 0, 1], 2.6, 3.4, 12, 0, MAT_STEEL_BRIGHT, MAT_STEEL_BRIGHT);
 
     b.prismDir([12, -py * (yTop - 1), side * 4], [0, -py, 0], [1, 0, 0], [0, 0, 1], 5.6, 6, 18, 0, MAT_IC_PLATE, MAT_IC_PLATE);
     b.prismDir([12, -py * (yTop + 5), side * 4], [0, -py, 0], [1, 0, 0], [0, 0, 1], 3.4, 4, 12, 0, MAT_IC_RUBBER, MAT_IC_RUBBER);
@@ -402,11 +417,11 @@ export function buildIntercoolerTank(b: MeshBuilder, side: number, low = false, 
   // ---- cooling fins cast on its two broad faces, front and back: thin blades standing out of the skin, running the
   // tank's length, close together across it; rounded at their tips, thicker at their roots, their ends sloping down into
   // the skin before the tank's rounded corners; on the face toward the engine they part round the sensor's boss ----
-  tankFins(b, side);
+  tankFins(b, side, low);
 
   // ---- ribs cast into the tank's top and bottom faces, along the engine's length ----
   for (const sy of [-1, 1]) {
-    for (const sx of sy === py ? [-30, 30] : [-18, 0, 18]) {
+    for (const sx of sy === py && !low ? [-30, 30] : [-18, 0, 18]) {
       const y0 = sy * 96;
 
       b.box(sx - 1.4, sx + 1.4, Math.min(y0, y0 + sy * 3.2), Math.max(y0, y0 + sy * 3.2), Math.min(side * -23, side * -2), Math.max(side * -23, side * -2), MAT_IC_TANK);
@@ -427,8 +442,6 @@ export const IC_CHARGE_OUT_Z = IC_OUTER_Z; // and the one the cooled charge leav
 
 export const IC_STAND_Y = 237; // where the intercooler was built to stand, in front of the engine
 export const IC_PORT_Y = IC_STAND_Y - IC_PORT_UP; // the level of the tanks' hose ports' ends (on top)
-export const IC_PORT_LOW_UP = IC_PORT_UP; // the port under the low tank, toward the engine, where the hot pipe comes straight in
-export const IC_PORT_LOW_Y = IC_STAND_Y + IC_PORT_LOW_UP; // the end of that port
 
 // ---- THE INTERCOOLERS AT THE FRONT, LEANING WITH THE BANKS. The intercooler is built as it was, two cores side by side,
 // each with its two tanks and its fan; each half is then set in front of its own bank, in the bank's frame, so that it
@@ -463,43 +476,65 @@ export function icPlace(zs: number, p: FwVec3): FwVec3 {
 const PORT_NECK_R = 19; // the cast neck it stands on
 
 // the outlet's neck, cast with the tank: how far it starts inside the tank, and how far out its flange stands
-const NECK_IN = 20;
-const NECK_OUT = 26;
-const COOL_OUT_DY = -86; // where along the high tank its outlet leaves its back face // the cooled charge pipe's elbow
+// The cooled charge's outlet: out of the high tank's inner end, along the tank (parallel to the core), a neck cast as one
+// with the tank, blending out of its end into a round throat, and on it the cast flange. In the tank's own frame (x
+// across, y along it, toward its inner end, z from the header toward its closed end)
+const OUT_Z0 = -6; // the throat's middle, from the tank's middle, toward its closed end
+const OUT_R = 29; // the throat, round: the pipe's thickness and a little
+const OUT_RINGS: Array<[number, number, number, number]> = [ // [y, half width, half depth, squareness: 2 round .. square]
+  [64, 34, 15, 9],
+  [94, 37, 17, 8],
+  [106, 34, 22, 4.5],
+  [118, 30, 27, 2.6],
+  [128, OUT_R, OUT_R, 2],
+];
+const OUT_FLANGE_Y = 128 + 10; // the joint's plane (the cast flange is under it, on the throat)
+const HOT_FLANGE_X = 58; // the hot port's joint, out from the tank's middle toward the engine
+export const hotPortLocal = (zs: number, lx: number, ly: number, lz: number) =>
+  icPlace(zs, [IC.x + lx, IC_STAND_Y + ly, zs * IC_CHARGE_IN_Z - zs * lz]);
+export const coolOutLocal = (zs: number, lx: number, ly: number, lz: number) =>
+  icPlace(zs, [IC.x + lx, IC_STAND_Y + ly, zs * IC_CHARGE_OUT_Z + zs * lz]);
+// the cooled pipe's bend at the top, from its rise into the throttle's mouth: its radius, and how far ahead of the mouth
+// the rise stands, so that the bend has room to be that broad (with a straight stretch after it, for the coupler)
+const TOP_BEND = 46;
+const S_AHEAD = 84; // how far in front of the throttle's mouth the pipe's last S turns it back in
 const COOL_ELBOW: Array<{ s0: number; s1: number }> = []; // where each pipe's elbow starts and ends, along it
 
 export const CHARGE_PIPES = (() => {
-  // The hot pipe, the short way: down out of the compressor a little, straight on toward the low tank, and with one small
-  // bend into the port under it, on its side toward the engine
+  // The hot pipe, the short way: down out of the compressor a little, forward along the side, down in front of the engine,
+  // and up into the port in the bottom of the intercooler, out of the low tank's closed end
   const hot = (m: TModule, zSign: number) => {
-    const bank = bankOfSide(zSign);
-    const B = (p: FwVec3): FwVec3 => bankPoint(bank, p[0], p[1], p[2]);
-    const inv = bank.mInv;
-    const inBank = (p: FwVec3): FwVec3 => [p[0], inv[4] * p[1] + inv[7] * p[2], inv[5] * p[1] + inv[8] * p[2]];
+    // straight from the compressor to the low tank's cast port, on its face toward the engine: down out of the compressor a
+    // little, forward and out along the side, above the dry sump's pump and clear of its outer side, and square into the
+    // port. One run, broad bends, nothing under the engine
     const o = modulePoint(m, PIPES.outlet);
-    const ob = inBank(o);
-    const port = icPlace(zSign, [IC.x, IC_PORT_LOW_Y, zSign * IC_CHARGE_IN_Z]);
-    const pb = inBank(port);
+    const port = hotPortLocal(zSign, HOT_FLANGE_X, HOT_PORT_Y, HOT_PORT_Z);
+    const d = vnorm(vsub(modulePoint(m, vadd(PIPES.outlet, [0, 10, 0])), o));
+    const near: FwVec3 = [port[0] + 64, port[1], port[2]]; // straight behind the port, in its line
 
-    return roundedCurve([o, B([ob[0], ob[1] + OUTLET_DROP + 14, ob[2]]), B([pb[0], pb[1], pb[2] - 52]), port], 44, 5);
+    return roundedCurve([o, vadd(o, vscale(d, 26)), [o[0] - 110, 80, zSign * 135], [-290, 86, zSign * 202], near, port], 50, 5);
   };
 
   // The cold pipe: out of the high tank's port, up the front of the engine and in, toward the middle, and at the height
   // of the plenum on top of the V, one bend back, square into its throttle's mouth, which faces forward (plumbing.ts,
   // plenum.ts)
   const cool = (bank: Bank, zSign: number) => {
-    const start = icPlace(zSign, [IC.x + 41, IC_STAND_Y + COOL_OUT_DY, zSign * IC_CHARGE_OUT_Z]);
+    // out of the flange along the tank, toward the middle, then in one broad bend forward and in, and up the front to
+    // the U at the top, as before
+    const start = coolOutLocal(zSign, 0, OUT_FLANGE_Y, OUT_Z0);
+    const d = vnorm(vsub(coolOutLocal(zSign, 0, OUT_FLANGE_Y + 10, OUT_Z0), start));
     const inlet = PLENUM_INLETS[zSign < 0 ? 0 : 1];
-    const xu = Math.min(start[0], inlet[0]) - 62; // the front of its rise, behind the turbochargers
-    const yLow = start[1] - 22; // its run in, across the front, low
-    const k0: FwVec3 = [xu, yLow, start[2]];
-    const k1: FwVec3 = [xu, yLow, inlet[2]];
-    const k2: FwVec3 = [xu, inlet[1], inlet[2]];
-    const c = roundedCurve([start, k0, k1, k2, inlet], 50, 4);
+    // out along the tank as it is, then an S up and in toward the middle, close in front of the engine, and a second S
+    // that lays it level, square into the throttle's mouth: no long run forward, no right angles
+    const k0 = vadd(start, vscale(d, 64));
+    const k1: FwVec3 = [inlet[0] - S_AHEAD * 0.55, (k0[1] + inlet[1]) / 2 + 30, (k0[2] + inlet[2]) / 2];
+    const k2: FwVec3 = [inlet[0] - S_AHEAD, inlet[1] + 40, inlet[2]];
+    const k3: FwVec3 = [inlet[0] - S_AHEAD * 0.5, inlet[1], inlet[2]];
+    const c = roundedCurve([start, k0, k1, k2, k3, inlet], TOP_BEND, 4);
     // the bend at the top, a mandrel-bent piece welded in: from where the rise comes near it to where it leaves it
     const near = (p: FwVec3, d: number) => c.pts.map((q, k) => [Math.hypot(q[0] - p[0], q[1] - p[1], q[2] - p[2]), k]).filter(([l]) => l < d).map(([, k]) => k);
-    const s0 = c.cum[Math.min(...near(k2, 70))];
-    const s1 = c.cum[Math.max(...near(k2, 70))];
+    const s0 = c.cum[Math.min(...near(k2, TOP_BEND + 8))];
+    const s1 = c.cum[Math.max(...near(k2, TOP_BEND + 8))];
 
     COOL_ELBOW.push({ s0, s1 });
     void bank;
@@ -527,24 +562,32 @@ export const chargeRadius = (s: number, total: number, big = CHARGE_R) => {
   return CHARGE_END_R + (big - CHARGE_END_R) * k;
 };
 
-export function buildChargePipes(b: MeshBuilder) {
-  // polished aluminium, as the cooled charge's pipes
-  for (const c of CHARGE_PIPES.hot) sweepTube(b, c, (u) => chargeRadius(u * c.total, c.total), MAT_ALU_TURNED, { segments: 32 });
+export function buildChargePipes(b: MeshBuilder, bi: number) {
+  // polished aluminium, as the cooled charge's pipes (one bank's)
+  for (const c of [CHARGE_PIPES.hot[bi]]) sweepTube(b, c, (u) => chargeRadius(u * c.total, c.total), MAT_ALU_TURNED, { segments: 32 });
 }
 
 // The cooled charge's pipes, from the intercoolers to the distributors: drawn more as metal than as glass, polished
 // aluminium, each with a welded elbow at each end (the welds are with the couplers, solid)
 export const COOL_R = 27; // round and thick
 
-export function buildCoolPipes(b: MeshBuilder) {
-  for (const c of CHARGE_PIPES.cool) {
-    sweepTube(b, c, () => COOL_R, MAT_ALU_TURNED, { segments: 44 });
+export function buildCoolPipes(b: MeshBuilder, bi: number) {
+  for (const c of [CHARGE_PIPES.cool[bi]]) {
+    sweepTube(b, c, () => COOL_R, MAT_COOL_PIPE, { segments: 44 });
   }
 }
 
 // The metal couplers: at the tanks, and at the throttle bodies (those at the compressors' outlets are with the turbochargers)
 export function buildChargeCouplers(b: MeshBuilder) {
-  // (the hot pipes are bolted on at both ends by flanges: at the compressor, with the turbocharger; at the tank, with it)
+  // (the hot pipes are bolted on at both ends by flanges: at the compressor, with the turbocharger; at the tank, on the
+  // tank's cast port: its flange cast with it, a gasket, the pipe's flange)
+  for (const zs of [-1, 1]) {
+    const c = CHARGE_PIPES.hot[zs < 0 ? 0 : 1];
+    const end = c.pts[c.pts.length - 1];
+
+    castHotPort(b, zs);
+    flangeJoint(b, end, [1, 0, 0], { ...PORT_JOINT, cast: MAT_IC_TANK });
+  }
 
   for (const c of CHARGE_PIPES.cool) {
     const bi = CHARGE_PIPES.cool.indexOf(c);
@@ -557,28 +600,100 @@ export function buildChargeCouplers(b: MeshBuilder) {
     weld(b, c, c.total - 2.2, COOL_R);
     coolElbowDetail(b, c, s0, s1);
 
-    // the cooled pipe's root on the tank (drawn solid, as the tank is): a round neck cast with the tank, running straight out of it, smooth and plain, flush with its
-    // skin; and at the neck's end a round bolted flange joint: the tank's flange, cast on the neck, a gasket, and the
-    // pipe's flange, both dark grey metal like the distributor's, held by eight bolts with their washers and nuts
+    // the cooled pipe's root on the tank (drawn solid, as the tank is): a neck cast as one with the tank, blending out of
+    // its inner end into a round throat, and the cast flange on it, the same casting; then a gasket and the pipe's
+    // flange, dark grey metal, held by eight bolts with their washers and nuts
+    const zs = bi === 0 ? -1 : 1;
     const p0 = c.pts[0];
     const dir = vnorm(vsub(c.pts[2], c.pts[0]));
-    const neck = curveFromPoints([vadd(p0, vscale(dir, -NECK_IN)), vadd(p0, vscale(dir, NECK_OUT))], 2);
 
-    sweepTube(b, neck, () => COOL_R + 2, MAT_IC_TANK, { segments: 48 });
-    flangeJoint(b, vadd(p0, vscale(dir, NECK_OUT)), dir, {
+    castOutlet(b, zs);
+    flangeJoint(b, p0, dir, {
       pipeR: COOL_R - 1,
       r: COOL_R + 16,
-      castT: 9,
+      castT: 10,
       mateT: 8,
       bolts: 8,
       pitch: COOL_R + 9.5,
-      cast: MAT_EXH_GUNMETAL, // dark grey metal, as the distributor's flange joint
+      cast: MAT_IC_TANK, // cast with the tank
       mate: MAT_EXH_GUNMETAL,
       gasket: MAT_PIPE_BLACK,
       bolt: 4.4,
     });
   }
 
+}
+
+// The cast outlet on a high tank's inner end: a loft from a rounded rectangle, sunk in the tank, out through its end,
+// to the round throat under the flange; smooth normals, the same casting as the tank
+function castOutlet(b: MeshBuilder, zs: number) {
+  const N = 48;
+  const rings = OUT_RINGS.map(([y, hx, hz, n]) => {
+    const pts: FwVec3[] = [];
+
+    for (let j = 0; j < N; j++) {
+      const a = (j / N) * TAU;
+      const c = Math.cos(a);
+      const sn = Math.sin(a);
+      const px = hx * Math.sign(c) * Math.pow(Math.abs(c), 2 / n);
+      const pz = hz * Math.sign(sn) * Math.pow(Math.abs(sn), 2 / n);
+
+      pts.push(coolOutLocal(zs, px, y, OUT_Z0 + pz));
+    }
+
+    return { pts, mid: coolOutLocal(zs, 0, y, OUT_Z0) };
+  });
+  // the throat runs on, round, into the cast flange
+  const last = rings[rings.length - 1];
+  const yEnd = OUT_FLANGE_Y - 4;
+
+  rings.push({ pts: last.pts.map((q) => vadd(q, vsub(coolOutLocal(zs, 0, yEnd, OUT_Z0), last.mid))), mid: coolOutLocal(zs, 0, yEnd, OUT_Z0) });
+
+  loftCast(b, rings);
+}
+
+// A cast neck's skin: a loft through rings of points round their middles, smooth normals, the tank's casting
+function loftCast(b: MeshBuilder, rings: Array<{ pts: FwVec3[]; mid: FwVec3 }>) {
+  const N = rings[0].pts.length;
+  const P = (i: number, j: number) => rings[i].pts[((j % N) + N) % N];
+  const normal = (i: number, j: number): FwVec3 => {
+    const around = vsub(P(i, j + 1), P(i, j - 1));
+    const along = vsub(P(Math.min(rings.length - 1, i + 1), j), P(Math.max(0, i - 1), j));
+    const n = vnorm(vcross(around, along));
+    const out = vsub(P(i, j), rings[i].mid);
+
+    return n[0] * out[0] + n[1] * out[1] + n[2] * out[2] < 0 ? vscale(n, -1) : n;
+  };
+
+  for (let i = 0; i < rings.length - 1; i++) {
+    for (let j = 0; j < N; j++) {
+      const v: Array<[FwVec3, FwVec3]> = [[P(i, j), normal(i, j)], [P(i, j + 1), normal(i, j + 1)], [P(i + 1, j + 1), normal(i + 1, j + 1)], [P(i + 1, j), normal(i + 1, j)]];
+
+      for (const k of [0, 1, 2, 0, 2, 3]) b.push(v[k][0], v[k][1], MAT_IC_TANK, 1);
+    }
+  }
+}
+
+// The hot pipe's cast port on a low tank: a neck that grows out of the tank's face toward the engine, from a broad rounded
+// oblong sunk in the casting to the round throat under the flange
+function castHotPort(b: MeshBuilder, zs: number) {
+  const N = 40;
+  const spec: Array<[number, number, number, number]> = [[24, 30, 20, 8], [40, 28, 21, 5], [46, 24, 22.5, 3], [51, 21.5, 21.5, 2]];
+  const rings = spec.map(([x, hy, hz, n]) => {
+    const pts: FwVec3[] = [];
+
+    for (let j = 0; j < N; j++) {
+      const a = (j / N) * TAU;
+      const c = Math.cos(a);
+      const sn = Math.sin(a);
+
+      pts.push(hotPortLocal(zs, x, HOT_PORT_Y + hy * Math.sign(c) * Math.pow(Math.abs(c), 2 / n), HOT_PORT_Z + hz * Math.sign(sn) * Math.pow(Math.abs(sn), 2 / n)));
+    }
+
+    return { pts, mid: hotPortLocal(zs, x, HOT_PORT_Y, HOT_PORT_Z) };
+  });
+
+  loftCast(b, rings);
 }
 
 // The elbow's details, solid: a machined band round the stub just above the flange's weld; on the elbow's outside, at

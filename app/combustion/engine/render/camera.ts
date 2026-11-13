@@ -37,8 +37,8 @@ const VIEW_PRESETS = {
   below: { yaw: 210, pitch: -38 },
   bottom: { yaw: 180, pitch: -84 },
   // Close to the turbocharger, and to the intercooler
-  // the two turbochargers, centred between them (they stand at y -307, z ±198), from the front, a little from above
-  turbo: { yaw: 266, pitch: 14, zoom: 3.3, focus: [-570, -290, 0] },
+  // bank A's turbocharger, on the side of the engine half way along, with its headers coming down into it, from outside
+  turbo: { yaw: 180, pitch: 6, zoom: 2.6, focus: [80, -20, -240] },
   // the two intercoolers, centred between them (their cores' middles at x -480, y 31, z ±326), squarely from the front
   intercooler: { yaw: 270, pitch: 4, zoom: 2.4, focus: [-480, 31, 0] },
 } satisfies Record<string, ViewPreset>;

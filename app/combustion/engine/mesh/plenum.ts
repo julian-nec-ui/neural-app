@@ -8,12 +8,14 @@
 // the Y on both.
 
 import { BANKS, CT_X, TAU, bankPoint } from "../core/constants";
+import { FW_STRIDE } from "./builder";
 import type { FwVec3 } from "./builder";
-import { MAT_ALU_CAST, MAT_ALU_TURNED, MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE, MAT_CLAMP_BLACK, MAT_CLAMP_BLACK_DEEP, MAT_FIN_GREY, MAT_FIN_GREY_CREST, MAT_FIN_GREY_ROOT, MAT_PIPE_BLACK, MAT_PLENUM_RED, MAT_PLENUM_RED_DEEP, MAT_STEEL_BRIGHT } from "./materials";
+import { MAT_ALU_CAST, MAT_ALU_TURNED, MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE, MAT_CLAMP_BLACK, MAT_CLAMP_BLACK_DEEP, MAT_COVER_FIN, MAT_FIN_GREY, MAT_FIN_GREY_CREST, MAT_HEAD_CAST, MAT_FIN_GREY_ROOT, MAT_PIPE_BLACK, MAT_PLENUM_RED, MAT_PLENUM_RED_DEEP, MAT_STEEL_BRIGHT } from "./materials";
 import { curveAt, curveFromPoints, flangeBolt, flangeJoint, roundedCurve, sweepTube } from "./tubes";
 import type { Curve, MeshBuilder } from "./tubes";
 import { PIPES, PLENUM, PLENUM_INLETS, Y_BRANCH, bodySection, headY, lidHeight, plenumW, socketCap } from "./plumbing";
 import { vadd, vnorm, vscale } from "../math/vec3";
+import { LID_SIG } from "./headText";
 
 const GREY = MAT_PLENUM_RED; // (the plenum's red, matte, with its sandpaper grit)
 const DEEP = MAT_PLENUM_RED_DEEP;
@@ -65,7 +67,57 @@ function plate(b: MeshBuilder, pts: Array<[number, number]>, y0: number, y1: num
   b.flatFan([cx, y1, 0], [...pts, pts[0]].map(([x, z]): FwVec3 => [x, y1, z]), [0, 1, 0], side);
 }
 
+// The red of the intake's lid and body runs as a gradient along the engine: from the front a deeper red (30% darker
+// than the plain #cc0000), held for its first quarter or so, then slowly, gently lightening toward the back, where it
+// ends lighter than it began but a touch darker than the plain red. Only the red changes (its deep red in the valleys
+// in step); its grit, its sheen and everything else stay as they are
+const RED_FRONT: FwVec3 = [143, 0, 0]; // at the front
+const RED_BACK: FwVec3 = [192, 0, 0]; // and at the back
+const RED_HOLD = 0.27; // the share of the length, from the front, before it begins to lighten
+const RED_END: FwVec3 = [214, 8, 6]; // where the back half ends: a little lighter than RED_BACK
+// the front half's red at a share u of the length (as the gradient first was, from RED_FRONT toward RED_BACK)
+function redFirst(u: number): FwVec3 {
+  const v = Math.max(0, Math.min(1, (u - RED_HOLD) / (1 - RED_HOLD)));
+  const t = v * v * (3 - 2 * v);
+
+  return [RED_FRONT[0] + (RED_BACK[0] - RED_FRONT[0]) * t, RED_FRONT[1] + (RED_BACK[1] - RED_FRONT[1]) * t, RED_FRONT[2] + (RED_BACK[2] - RED_FRONT[2]) * t];
+}
+let redSpan: [number, number] = [0, 1]; // the lid's length, front to back (set as it is built)
+
+function redGradient(b: MeshBuilder, start: number) {
+  const out = b.out;
+  const plain = MAT_PLENUM_RED.color[0] / 255;
+
+  for (let i = start * FW_STRIDE; i < out.length; i += FW_STRIDE) {
+    const r = out[i + 6];
+
+    // the plenum's reds only: pure reds, no green or blue in them
+    if (r <= 0 || out[i + 7] !== 0 || out[i + 8] !== 0) continue;
+
+    const u = Math.max(0, Math.min(1, (out[i] - redSpan[0]) / (redSpan[1] - redSpan[0] || 1)));
+    const k = r / plain; // the deep red keeps its share of the plain red
+    let c: FwVec3;
+
+    if (u <= 0.5) {
+      // the front half: the gradient as it was
+      c = redFirst(u);
+    } else {
+      // the back half: on from where the front half ends, lightening a little further, slowly, to RED_END
+      const m = redFirst(0.5);
+      const w = (u - 0.5) / 0.5;
+      const t = w * w * (3 - 2 * w);
+
+      c = [m[0] + (RED_END[0] - m[0]) * t, m[1] + (RED_END[1] - m[1]) * t, m[2] + (RED_END[2] - m[2]) * t];
+    }
+
+    out[i + 6] = (c[0] / 255) * k;
+    out[i + 7] = (c[1] / 255) * k;
+    out[i + 8] = (c[2] / 255) * k;
+  }
+}
+
 export function buildVPlenum(b: MeshBuilder) {
+  const start = b.out.length / FW_STRIDE;
   const xs = stations();
 
   buildLid(b, xs);
@@ -74,6 +126,16 @@ export function buildVPlenum(b: MeshBuilder) {
   buildBody(b, xs);
   buildVClose(b);
   runnerPads(b);
+
+  // its length, from its front to the back of its reds
+  let x1 = -1e9;
+
+  for (let i = start * FW_STRIDE; i < b.out.length; i += FW_STRIDE) {
+    if (b.out[i + 6] > 0 && b.out[i + 7] === 0 && b.out[i + 8] === 0) x1 = Math.max(x1, b.out[i]);
+  }
+
+  redSpan = [PLENUM.xf, x1];
+  redGradient(b, start);
 }
 
 // The lid: its dome over the flange, two lobes and the valley between them, its edges rolling down on to the flange
@@ -108,7 +170,9 @@ function buildLid(b: MeshBuilder, xs: number[]) {
 // flywheel; each with a fillet where it grows out of the lid, walls with a little draft and a round machined crest, and
 // rounded down into the lid at both its ends
 const LID_FIN = {
-  across: [-0.985, -0.86, -0.7, -0.54, -0.38, -0.22, -0.07, 0.07, 0.22, 0.38, 0.54, 0.7, 0.86, 0.985], // in shares of the lid's half width (the outermost two down its sides)
+  // in shares of the lid's half width; the outer four down each side evenly spaced along its curved skin (from the foot
+  // by the head up to where it rounds over onto the top)
+  across: [-0.985, -0.93, -0.843, -0.7, -0.54, -0.38, -0.22, -0.07, 0.07, 0.22, 0.38, 0.54, 0.7, 0.843, 0.93, 0.985],
   t: [9, 3.6], // the thickness at the foot, at the front and at the back
   h: [15, 5], // how far it stands out
 };
@@ -166,8 +230,18 @@ function buildLidFins(b: MeshBuilder) {
         continue;
       }
 
+      // the fins in the middle stop short of the signature cut into the lid there, a margin all round it, and round down
+      // into the lid at the gap as they do at their ends
+      const gx = Math.abs(x - LID_SIG.x) - (LID_SIG.hx + LID_SIG.margin);
+      const inBand = Math.abs(z - LID_SIG.z) < LID_SIG.hz + LID_SIG.margin;
+
+      if (inBand && gx < 0) {
+        rows.push(null);
+        continue;
+      }
+
       const u = k / n;
-      const ends = Math.min(1, (x - x0) / 26, (x1 - x) / 40);
+      const ends = Math.min(1, (x - x0) / 26, (x1 - x) / 40, inBand ? gx / 22 : 1);
       const h = Math.max(0.5, (LID_FIN.h[0] + (LID_FIN.h[1] - LID_FIN.h[0]) * Math.pow(u, 0.9)) * Math.sqrt(Math.max(0, ends)));
       const t = (LID_FIN.t[0] + (LID_FIN.t[1] - LID_FIN.t[0]) * Math.pow(u, 0.9)) * (0.55 + 0.45 * Math.sqrt(Math.max(0, ends)));
       const p0 = P(x, z);
@@ -338,9 +412,18 @@ function runnerPads(b: MeshBuilder) {
   }
 }
 
-// The gate, the throttle and the Y, on the solid engine and on the see-through one alike
-export function buildIntakeManifold(b: MeshBuilder) {
-  const { xf, gateLen, gateR, yGate: y, xn, throttle: T } = PLENUM;
+// (the gate: buildPlenumGate) The throttle and the Y, on the solid engine and on the see-through one alike
+// The gate: the funnel out of the plenum's front, its bosses and the square flange with its fins. A part of the plenum:
+// drawn on the solid engine only, taken away with it on the see-through one
+export function buildPlenumGate(b: MeshBuilder) {
+  const gateStart = b.out.length / FW_STRIDE;
+
+  buildGateParts(b);
+  redGradient(b, gateStart); // (at the front: the deeper red, as the lid's front)
+}
+
+function buildGateParts(b: MeshBuilder) {
+  const { xf, gateLen, gateR, yGate: y } = PLENUM;
   const xg = xf - gateLen; // the square flange's face
 
   // the funnel, from the plenum's front out to the flange, narrowing
@@ -368,6 +451,41 @@ export function buildIntakeManifold(b: MeshBuilder) {
     socketCap(b, [xg - 0.6, y + dy * (half - 12), dz * (half - 12)], [-1, 0, 0], 4.6);
   }
 
+  // fins in relief on its face, upright, close together, as on the timing chain's cover: each a thin bar, parted round the
+  // bore and stopping short of the bolts at the corners
+  {
+    const pitch = 9;
+    const t = 1.3; // half a fin's thickness
+    const h = 5; // how far it stands out of the face
+    const clearBore = gateR + 8;
+    const clearBolt = 11;
+    const face = xg - 0.6;
+
+    for (let z = -half + 8; z <= half - 8 + 1e-6; z += pitch) {
+      const runs: Array<[number, number]> = [];
+      let a = y - half + 6;
+      const end = y + half - 6;
+      // the stretches of y along this fin that are clear of the bore and of the corner bolts
+      const blocked = (yy: number) => Math.hypot(yy - y, z) < clearBore
+        || [[-1, -1], [-1, 1], [1, -1], [1, 1]].some(([dy, dz]) => Math.hypot(yy - (y + dy * (half - 12)), z - dz * (half - 12)) < clearBolt);
+
+      for (let yy = a; yy <= end; yy += 0.5) {
+        if (blocked(yy)) {
+          if (yy - a > 3) runs.push([a, yy]);
+          a = yy + 0.5;
+        }
+      }
+      if (end - a > 3) runs.push([a, end]);
+
+      for (const [y0, y1] of runs) b.box(face - h, face, y0, y1, z - t, z + t, MAT_COVER_FIN);
+    }
+  }
+
+}
+
+export function buildIntakeManifold(b: MeshBuilder) {
+  const { yGate: y, xn, throttle: T } = PLENUM;
+
   buildThrottle(b, 1, y, 0);
 
   // the Y in front of the throttle: two branches, each from where an intercooler's pipe is bolted on, joined into one
@@ -382,8 +500,9 @@ export function buildIntakeManifold(b: MeshBuilder) {
 
     const branchR = (u: number) => Y_BRANCH.r + (T.r - 8 - Y_BRANCH.r) * u * u;
 
-    sweepTube(b, branch, branchR, GREY, { segments: 48 });
+    sweepTube(b, branch, branchR, MAT_HEAD_CAST, { segments: 48 }); // (the U in the heads' own sand-cast navy, #0c1826)
     branchFins(b, branch, branchR);
+    if (zs > 0) crossFins(b, branch, branchR, mouth, y);
     // where the intercooler's pipe comes into the branch: the black clamp flange, six hex bolts
     flangeJoint(b, inlet, [1, 0, 0], {
       pipeR: 27, r: 43, castT: 8, mateT: 7, bolts: 6, pitch: 35,
@@ -427,6 +546,92 @@ function branchFins(b: MeshBuilder, branch: Curve, radius: (u: number) => number
       rows.push(finSection(t, h).map((q) => ({
         p: vadd(vadd(p0, vscale(side, q.p[0])), vscale(nn, q.p[1] - 0.8)),
         n: vnorm(vadd(vscale(side, q.n[0]), vscale(nn, q.n[1]))),
+        m: q.m,
+      })));
+    }
+
+    for (let k = 0; k < n; k++) {
+      const A = rows[k];
+      const B = rows[k + 1];
+
+      for (let j = 0; j + 1 < A.length; j++) {
+        const m = A[j].m === A[j + 1].m ? A[j].m : MAT_FIN_GREY;
+
+        for (const q of [A[j], B[j], B[j + 1], A[j], B[j + 1], A[j + 1]]) b.push(q.p, q.n, m, 1);
+      }
+    }
+  }
+}
+
+// Where the inner fins of the two branches cross, on top of the Y and under it: one fin on from the crossing, as broad
+// as the crossing, straight along the joined bore to the Y's clamp, so that the two V's of fins run into one ridge
+function crossFins(b: MeshBuilder, branch: Curve, radius: (u: number) => number, mouth: number, y: number) {
+  const L = branch.total;
+  const at: FwVec3 = [0, 0, 0];
+  const dir: FwVec3 = [0, 0, 0];
+  // the branch's middle and radius, sampled along it
+  const samples: Array<{ x: number; z: number; r: number }> = [];
+
+  for (let k = 0; k <= 400; k++) {
+    const sk = (L * k) / 400;
+
+    curveAt(branch, sk, at, dir);
+    samples.push({ x: at[0], z: at[2], r: radius(sk / L) });
+  }
+
+  for (const vs of [-1, 1]) {
+    // the inner fin (toward z = 0) on this face: where it crosses z = 0
+    const a = vs < 0 ? TAU / 8 : (3 * TAU) / 8;
+    let xc = mouth - 30;
+    let yc = y; // and the fins' foot there (where the new fin starts, bridging over between the two bores)
+
+    for (let k = 0; k <= 400; k++) {
+      const sk = BRANCH_FIN.from + ((L - BRANCH_FIN.to - BRANCH_FIN.from) * k) / 400;
+
+      curveAt(branch, sk, at, dir);
+
+      const across = vnorm([dir[2], 0, -dir[0]]);
+      const nn = vnorm(vadd(vscale([0, -1, 0], Math.cos(a)), vscale(across, Math.sin(a))));
+      const rr = radius(sk / L);
+      const fp: FwVec3 = vadd(at, vscale(nn, rr + BRANCH_FIN.h * 0.5));
+      // where the fin's crest comes within its own breadth of the middle: the two V's meet there
+
+      if (fp[2] <= BRANCH_FIN.t * 1.1) {
+        xc = fp[0];
+        yc = fp[1] - vs * BRANCH_FIN.h * 0.5;
+        break;
+      }
+    }
+
+    const x0 = xc - 3;
+    const x1 = mouth - 2;
+    const n = 40;
+    const rows: Array<Array<{ p: FwVec3; n: FwVec3; m: typeof MAT_FIN_GREY }>> = [];
+    const up: FwVec3 = [0, vs, 0]; // out of the face: up (-y) on top, down under it
+    const side: FwVec3 = [0, 0, 1];
+
+    for (let k = 0; k <= n; k++) {
+      const x = x0 + ((x1 - x0) * k) / n;
+      // the joined bore's skin at z = 0, or, where the two bores do not yet meet there, the crossing fins' foot
+      // (the tube as a string of spheres along its middle: the highest of them over (x, 0))
+      let hMax = 0;
+
+      for (const q of samples) {
+        const d2 = (x - q.x) * (x - q.x) + q.z * q.z;
+
+        if (d2 < q.r * q.r) hMax = Math.max(hMax, Math.sqrt(q.r * q.r - d2));
+      }
+
+      const skin = y + vs * hMax;
+      const yb = vs < 0 ? Math.min(skin, yc) : Math.max(skin, yc);
+      const e = Math.sqrt(Math.max(0, Math.min(1, (x - x0) / 6, (x1 - x) / 8)));
+      const h = Math.max(0.5, BRANCH_FIN.h * (0.6 + 0.4 * e));
+      const t = BRANCH_FIN.t * 1.7 * (0.7 + 0.3 * e); // as broad as the crossing
+      const p0: FwVec3 = [x, yb, 0];
+
+      rows.push(finSection(t, h).map((q) => ({
+        p: vadd(vadd(p0, vscale(side, q.p[0])), vscale(up, q.p[1] - 1.2)),
+        n: vnorm(vadd(vscale(side, q.n[0]), vscale(up, q.n[1]))),
         m: q.m,
       })));
     }
