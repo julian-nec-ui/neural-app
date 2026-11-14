@@ -37,7 +37,7 @@ export const CT = {
 
 // Each throw's angle on the shaft (its axial position is CT_X)
 // (the V12's crank: six throws)
-export const CT_BETA = [0, 240, 120, 120, 240, 0].map((d) => (d * Math.PI) / 180);
+export const CT_BETA = [0, 120, 240, 240, 120, 0].map((d) => (d * Math.PI) / 180); // (for the firing order 1-12-5-8-3-10-6-7-2-11-4-9: core/constants.ts)
 
 // The crankshaft ends right at the crank sprocket (inside its hub), instead
 // of sticking out through the plane of the chain

@@ -51,7 +51,7 @@ const LAYOUT_CSS = `
   .ak-stage { flex: none !important; height: min(62dvh, 118vw); min-height: 280px !important; }
   .ak-row1 { grid-template-columns: minmax(0, 1fr); justify-items: center; row-gap: 10px; }
   .ak-sliders { justify-content: center; }
-  .ak-hints { justify-self: center; width: 100% !important; text-align: center; max-width: 100% !important; }
+  .ak-hints { justify-self: center; width: 100% !important; text-align: center !important; max-width: 100% !important; } /* (the lines centred as one block, still flush right with one another) */
   .ak-hint-line { font-size: max(7.5px, min(11px, 2.6cqw)); }
   .ak-row2 { flex-direction: column; align-items: stretch; }
   .ak-left { display: flex; width: 100%; }
@@ -153,47 +153,27 @@ export default function Engine() {
 
   // The firing order, as a row of cylinder numbers under the stage: the one that fired last is lit, and fades
   const chipRefs = useRef<Array<HTMLSpanElement | null>>([]);
-  // the hints start exactly where the firing order's lines do (both banks', aligned left), on a computer, where they stand over them
+  // the hints end exactly where the firing order's lines do, on the right: their right edge on the last cylinder's chip,
+  // set flush right, on a computer, where they stand over them
   const hintsRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const align = () => {
       const hints = hintsRef.current;
-      const chip = chipRefs.current[0]?.parentElement; // the firing order's block (both banks' lines start together)
+      const row = chipRefs.current[0]?.parentElement; // a bank's line (both banks' lines end together)
+      const last = row?.lastElementChild as HTMLElement | null | undefined;
 
-      if (!hints || !chip) return;
-
-      const dials = hints.previousElementSibling as HTMLElement | null;
-      const sliders = dials?.previousElementSibling as HTMLElement | null;
+      if (!hints || !last) return;
 
       hints.style.marginLeft = "";
       hints.style.width = "100%";
-      if (dials) dials.style.transform = "";
+      hints.style.paddingRight = "";
 
       if (window.matchMedia("(max-width: 1024px), (max-height: 640px)").matches) return;
 
-      // the gauges keep their place in the middle unless the firing order reaches in under them: then they step left
-      // just enough to leave the hints room to start where it does (never into the sliders on their left)
-      const target = chip.getBoundingClientRect().left;
+      const gap = hints.getBoundingClientRect().right - last.getBoundingClientRect().right;
 
-      if (dials) {
-        const d = dials.getBoundingClientRect();
-        // (the sliders' own right edge: of what is in their column, not of the column)
-        const slidersRight = sliders ? Math.max(...Array.from(sliders.children).map((c) => c.getBoundingClientRect().right)) : d.left;
-        const room = d.left - (slidersRight + 16);
-        const shift = Math.min(Math.max(0, d.right + 10 - target), Math.max(0, room));
-
-        if (shift > 0) dials.style.transform = `translateX(${(-shift).toFixed(1)}px)`;
-      }
-
-      // (its right edge stays where it is: only its left edge moves, onto the firing order's, and the line's size follows
-      // its width; but never in under the gauges, if they could not step far enough aside)
-      const start = hints.getBoundingClientRect().left;
-      const floor = dials ? dials.getBoundingClientRect().right + 4 - start : -Infinity;
-      const gap = Math.max(target - start, floor);
-
-      hints.style.marginLeft = `${gap.toFixed(1)}px`;
-      hints.style.width = `calc(100% - ${gap.toFixed(1)}px)`;
+      hints.style.paddingRight = `${Math.max(0, gap).toFixed(1)}px`;
     };
     const watch = new ResizeObserver(align);
 
@@ -621,26 +601,32 @@ export default function Engine() {
               className="ak-hints text-slate-500"
               style={{
                 boxSizing: "border-box",
+                textAlign: "right",
                 width: "100%", // the whole of its column: the line of hints fits it, its size shrinking to keep it on one line
                 fontSize: "clamp(9px, 1vw, 11px)",
                 color: "#64748b",
                 lineHeight: 1.3,
               }}
             >
-              <div className="ak-hint-line">
-                Drag to rotate · scroll or pinch to zoom · double-tap for the next view
-              </div>
-              <div style={{ marginTop: 5 }}>Crank : cam = 2 : 1 · One shared animation clock</div>
-              <div className="ak-legend flex flex-wrap items-center justify-start gap-x-1.5 gap-y-1" style={{ marginTop: 7, fontSize: 10.5, whiteSpace: "nowrap" }}>
-                <span className="text-[9.5px] font-semibold uppercase tracking-widest text-slate-500">Legend:</span>
-                <Legend color="#4a9fe0" label="Intake" />
-                <Legend color="#ffe48a" label="Compression" />
-                <Legend color="#ff8c1a" label="Power" />
-                <Legend color="#d6dce4" label="Exhaust" />
-                <Legend color="#D3CDCD" label="Crank" />
-                {/* These two only while the airflow is on: the legend grows to the right */}
-                {air && <Legend color="#52B6FF" label="Cold intake air" />}
-                {air && <Legend color="#FF4A0A" label="Hot exhaust gas" />}
+              {/* the lines as one block, as wide as its longest line (Drag to rotate), the block set right on a computer (its
+                  right edge on the last cylinder's), centred on a tablet or a phone; Crank : cam starts where Drag to rotate
+                  does, and so does the legend (all three aligned left) */}
+              <div style={{ display: "inline-flex", flexDirection: "column", alignItems: "flex-start", maxWidth: "100%", textAlign: "left" }}>
+                <div className="ak-hint-line">
+                  Drag to rotate · scroll or pinch to zoom · double-tap for the next view
+                </div>
+                <div style={{ marginTop: 5 }}>Crank : cam = 2 : 1 · One shared animation clock</div>
+                <div className="ak-legend flex flex-wrap items-center justify-start gap-x-1.5 gap-y-1" style={{ marginTop: 7, fontSize: 10.5, whiteSpace: "nowrap", justifyContent: "flex-start", alignSelf: "flex-start" }}>
+                  <span className="text-[9.5px] font-semibold uppercase tracking-widest text-slate-500">Legend:</span>
+                  <Legend color="#4a9fe0" label="Intake" />
+                  <Legend color="#ffe48a" label="Compression" />
+                  <Legend color="#ff8c1a" label="Power" />
+                  <Legend color="#d6dce4" label="Exhaust" />
+                  <Legend color="#D3CDCD" label="Crank" />
+                  {/* These two only while the airflow is on: the legend grows to the right */}
+                  {air && <Legend color="#52B6FF" label="Cold intake air" />}
+                  {air && <Legend color="#FF4A0A" label="Hot exhaust gas" />}
+                </div>
               </div>
             </div>
 
@@ -754,14 +740,16 @@ export default function Engine() {
                   style={{ justifyContent: "flex-start", padding: 2, gap: 6 }}
                 >
                   <span className="font-semibold uppercase text-slate-500" style={{ fontSize: 9.5, minWidth: 0, padding: "0 0 0 2px", marginRight: -0.6, letterSpacing: "0.03em", whiteSpace: "nowrap", display: "inline-flex", alignItems: "center" }}>
-                    Firing order ·&nbsp;<span style={{ color: bank === 0 ? "#52B6FF" : "#FF8A4C" }}>Bank {bank === 0 ? "A" : "B"}</span>
+                    Cylinders ·&nbsp;<span style={{ color: bank === 0 ? "#52B6FF" : "#FF8A4C" }}>Bank {bank === 0 ? "A" : "B"}</span>
                     {/* a chevron, in the bank's colour, pointing at its first cylinder: 5 px from the letter, 7 px to the chip */}
                     <svg width="10" height="12" viewBox="0 0 10 12" aria-hidden="true" style={{ marginLeft: 3.9, flex: "none" }}>
                       <path d="M2 1.5 L7.5 6 L2 10.5" fill="none" stroke={bank === 0 ? "#52B6FF" : "#FF8A4C"} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                   </span>
 
-                  {FIRING_ORDER.map((f, k) => (f.bank !== bank ? null : (
+                  {/* in their places along the engine, from the front (the chains) back: A 1 to 6, B 12 down to 7, so that each
+                      stands over the one opposite it (12 under 1, 7 under 6); each lights as its cylinder fires */}
+                  {FIRING_ORDER.map((f, k) => ({ f, k })).filter(({ f }) => f.bank === bank).sort((a, b) => a.f.cyl.k - b.f.cyl.k).map(({ f, k }) => (
                     <span
                       key={f.no}
                       ref={(el) => {
@@ -778,7 +766,7 @@ export default function Engine() {
                       <span className="font-bold tabular-nums text-white" style={{ fontSize: 24.2, lineHeight: "24.2px", width: "2.1ch", textAlign: "center", flex: "none" }}>{f.no}</span>
                       <span className="tabular-nums" style={{ fontWeight: 650, fontSize: 17.3, lineHeight: "18.5px", width: "calc(3ch + 0.6em)", textAlign: "right", flex: "none" }}>{f.deg}°</span>
                     </span>
-                  )))}
+                  ))}
                 </div>
               ))}
             </div>

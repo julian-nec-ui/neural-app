@@ -57,8 +57,9 @@ export const CRANK_DIRECTION = -1;
 // faces the valley, as the first's does. Everything of a bank is made in the bank's own frame, upright, and
 // turned into the engine's by the bank's matrix.
 // The two cylinders on a crank pin stand side by side along the shaft.
-// B has the cylinders 1 to 6, A the cylinders 7 to 12, each bank numbered from the timing chains back, so that 1
-// and 7 share the first pin; the firing order is 1-12-4-9-2-11-6-7-3-10-5-8, one cylinder every 60 degrees.
+// Numbered as Ferrari numbers its V12s: seen from the front (the timing chains, the radiators), the left bank (the frame B,
+// shown as bank A) has the cylinders 1 to 6, from the front back; the right bank (the frame A, shown as bank B) 7 to 12
+// from the back forward, so that 7 stands opposite 6 and 12 opposite 1; one cylinder fires every 60 degrees.
 const BANK_HALF_ANGLE = Math.PI / 6;
 const BANK_ROD_DX = 12.5; // each of the two rods on a pin is this far from the middle of the throw
 
@@ -110,16 +111,17 @@ function makeBank(name: string, phi: number, mirror: boolean, phase: number[], d
   };
 }
 
-// At 60 degrees the V12 fires evenly. The crank has six throws, in the order 0, 240, 120, 120, 240, 0 degrees; on each
-// pin, B's cylinder comes to the top 60 degrees before A's. Each bank fires every 120 degrees, the two banks in turn,
+// At 60 degrees the V12 fires evenly, in Ferrari's order 1-12-5-8-3-10-6-7-2-11-4-9. The crank has six throws, in the order
+// 0, 120, 240, 240, 120, 0 degrees (crankTrain/dimensions.ts, CT_BETA); on each pin, the left bank's cylinder comes to the
+// top 60 degrees before the right one's. Each bank fires every 120 degrees (the left 1-5-3-6-2-4), the two banks in turn,
 // at these crank angles (of 720), cylinder by cylinder from the front:
-const V12_FIRE_A = [30, 270, 510, 150, 630, 390]; // cylinders 7 to 12
-const V12_FIRE_B = [330, 570, 90, 450, 210, 690]; // cylinders 1 to 6
+const V12_FIRE_A = [390, 150, 630, 270, 510, 30]; // the right bank, front to back (cylinders 12 down to 7)
+const V12_FIRE_B = [330, 90, 570, 210, 450, 690]; // the left bank, front to back (cylinders 1 to 6)
 const phaseOfFire = (deg: number) => (((0.5 - deg / 720) % 1) + 1) % 1;
 
 export const BANKS: Bank[] = [
-  makeBank("A", BANK_HALF_ANGLE, true, V12_FIRE_A.map(phaseOfFire), BANK_ROD_DX, [7, 8, 9, 10, 11, 12], ORIENT.BANK_A),
-  makeBank("B", -BANK_HALF_ANGLE, false, V12_FIRE_B.map(phaseOfFire), -BANK_ROD_DX, [1, 2, 3, 4, 5, 6], ORIENT.BANK_B),
+  makeBank("A", BANK_HALF_ANGLE, true, V12_FIRE_A.map(phaseOfFire), BANK_ROD_DX, [12, 11, 10, 9, 8, 7], ORIENT.BANK_A), // (the right bank, seen from the front: 7 at the flywheel end, up to 12 opposite 1)
+  makeBank("B", -BANK_HALF_ANGLE, false, V12_FIRE_B.map(phaseOfFire), -BANK_ROD_DX, [1, 2, 3, 4, 5, 6], ORIENT.BANK_B), // (the left bank, seen from the front: 1 by the radiators, back to 6)
 ];
 
 // The heads and the timing drives of the two banks stand at the same place along the crank, the place of the bank nearer
@@ -144,7 +146,9 @@ export const FIRING_ORDER = CYLS.map((cy) => ({
   no: cy.number,
   deg: fireDeg(cy),
   cyl: cy,
-  bank: cy.bank.name === "A" ? 0 : 1,
+  // the bank as it is shown: the left one, seen from the front (the timing chains and the radiators), is bank A (0) and
+  // the right one bank B (1), Ferrari's way (the frames' own names, A and B, are the other way round)
+  bank: cy.bank.name === "B" ? 0 : 1,
 })).sort((a, b) => ((a.deg - FIRST_FIRE + 720) % 720) - ((b.deg - FIRST_FIRE + 720) % 720));
 
 // A bank's turn composed with another turn: first `t`, then the bank's
