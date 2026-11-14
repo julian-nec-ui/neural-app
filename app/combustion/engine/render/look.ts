@@ -45,9 +45,9 @@ export const STARTER_YOKE_OPACITY = 0.3; // the starter motor's yoke, on the cut
 
 // The air's bodies: one density for both, so they are equally see-through
 export const FOG_DENSITY = 0.2; // the air shows plainly
-const FOG_COLD: FwVec3 = [0.12, 0.72, 1.0]; // the air going in: bright metallic sky blue
-const FOG_COLD_ACCENT: FwVec3 = [0.02, 0.38, 1.0]; // through cobalt...
-const FOG_COLD_PALE: FwVec3 = [0.1, 0.5, 1.0]; // ...to a deeper blue, as it is compressed and warmed (blue all the way: as in the plenum)
+const FOG_COLD: FwVec3 = [0.42, 0.72, 0.94]; // the air going in: a soft, diffuse sky blue
+const FOG_COLD_ACCENT: FwVec3 = [0.3, 0.54, 0.9]; // through a muted cobalt...
+const FOG_COLD_PALE: FwVec3 = [0.34, 0.6, 0.92]; // ...to a deeper blue, as it is compressed and warmed (blue all the way: as in the plenum)
 const FOG_HOT: FwVec3 = [1.0, 0.22, 0.0]; // the gas going out: metallic orange, saturated and lively
 const FOG_HOT_COOLER: FwVec3 = [0.86, 0.04, 0.02]; // a deeper red-orange, as it cools
 const FOG_HOT_ACCENT: FwVec3 = [1.0, 0.48, 0.02]; // by way of gold
@@ -66,12 +66,17 @@ export const smooth01 = (x: number) => {
 export const mix3 = (a: FwVec3, b: FwVec3, t: number): FwVec3 => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
 
 export const FOG_PALETTE: Array<{ base: FwVec3; accent: FwVec3; tone: FwVec3; glow: number; rich: number; alpha?: number }> = [
-  { base: FOG_COLD, accent: FOG_COLD_ACCENT, tone: FOG_COLD_PALE, glow: 0.1, rich: 1.0 },
+  { base: FOG_COLD, accent: FOG_COLD_ACCENT, tone: FOG_COLD_PALE, glow: 0.05, rich: 0.7, alpha: 0.72 }, // (diffuse, less intense)
   { base: FOG_HOT, accent: FOG_HOT_ACCENT, tone: FOG_HOT_COOLER, glow: 0.2, rich: 1.0 },
   { base: FOG_CORE, accent: FOG_CORE_ACCENT, tone: FOG_CORE_B, glow: 0.75, rich: 0.6 },
-  { base: FOG_COLD, accent: FOG_COLD_ACCENT, tone: FOG_COLD, glow: 0.1, rich: 1.0, alpha: 0.4 }, // soft: spread through the housing
+  { base: FOG_COLD, accent: FOG_COLD_ACCENT, tone: FOG_COLD, glow: 0.05, rich: 0.7, alpha: 0.3 }, // soft: spread through the housing
   // the gas in the runners, the collectors and on to the turbines: a light orange, not the ports' fiery red
   // (and much fainter: a light veil, so that the engine's cycle shows clearly through the headers from every side)
   { base: [1.0, 0.56, 0.22], accent: [1.0, 0.68, 0.34], tone: [0.96, 0.5, 0.18], glow: 0.06, rich: 0.5, alpha: 0.28 },
+  // the jet out of the tail pipes: white smoke at the mouth, going a soft smoke grey as it spreads; denser than the gas
+  // inside (revved, it takes a cool steel sheen: JET_STEEL, renderer.ts)
+  { base: [0.96, 0.96, 0.97], accent: [0.86, 0.87, 0.89], tone: [0.6, 0.62, 0.65], glow: 0.04, rich: 0.25, alpha: 0.6 },
 ];
+// the jet's sheen at the top speed: a cool, metallic steel grey
+export const JET_STEEL: FwVec3 = [0.74, 0.79, 0.86];
 export const BACKGROUND: FwVec3 = [0, 0, 0];

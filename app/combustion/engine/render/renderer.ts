@@ -20,7 +20,7 @@ import { VT } from "../mesh/valvetrain";
 import { CAM_FOV, LIGHT_FILL, LIGHT_KEY, LIGHT_KICK, viewProjection } from "./camera";
 import type { CameraController } from "./camera";
 import { blurSteps, createMotionBlur } from "./motionBlur";
-import { BACKGROUND, BLOCK_RIM, STARTER_YOKE_OPACITY, CAM_NEAR_DEPTH, CASING_OPACITY, COOL_PIPE_OPACITY, DECK_OPACITY, HOT_CHARGE_OPACITY, EXHAUST_PALE, FLOOR_Y, FOG_DENSITY, FOG_PALETTE, HOT_PIPE_OPACITY, INTAKE_DUCT_OPACITY, OIL_BAND, PIPE_OPACITY, PIPE_RIM, RIM_CHARGE, RIM_EXHAUST, RIM_STEEL, SUMP_OPACITY, headOpacityAt, mix3, smooth01 } from "./look";
+import { BACKGROUND, BLOCK_RIM, STARTER_YOKE_OPACITY, CAM_NEAR_DEPTH, CASING_OPACITY, COOL_PIPE_OPACITY, DECK_OPACITY, HOT_CHARGE_OPACITY, EXHAUST_PALE, JET_STEEL, FLOOR_Y, FOG_DENSITY, FOG_PALETTE, HOT_PIPE_OPACITY, INTAKE_DUCT_OPACITY, OIL_BAND, PIPE_OPACITY, PIPE_RIM, RIM_CHARGE, RIM_EXHAUST, RIM_STEEL, SUMP_OPACITY, headOpacityAt, mix3, smooth01 } from "./look";
 import { FLOOR_FRAGMENT_SHADER, FLOOR_VERTEX_SHADER, FOG_FRAGMENT_SHADER, FOG_VERTEX_SHADER, GLASS_FRAGMENT_SHADER, GLASS_VERTEX_SHADER, PART_FRAGMENT_SHADER, POINT_FRAGMENT_SHADER, POINT_VERTEX_SHADER, SCENE_VERTEX_SHADER, STREAK_FRAGMENT_SHADER, STREAK_VERTEX_SHADER, VOLUME_FRAGMENT_SHADER, VOLUME_VERTEX_SHADER } from "./shaders";
 import { computeSceneCommands } from "../scene/commands";
 import type { DrawCmd } from "../scene/commands";
@@ -58,6 +58,7 @@ ORIENTATIONS[ORIENT.STARTER_AXIAL] = composeTurn(ORIENTATIONS[ORIENT.STARTER], [
 ORIENTATIONS[ORIENT.STARTER_FORK] = composeTurn(ORIENTATIONS[ORIENT.STARTER], [0, 1, 0, -1, 0, 0, 0, 0, 1]);
 
 let exhaustHeat = 0; // the exhaust's heat for its colour, 0 to 1, from the rpm
+let jetLoad = 0; // how hard the jet out of the tails is driven, 0 to 1, from the rpm
 
 export type EngineRenderer = {
   draw: (frame: EngineFrame, still?: boolean) => void;
@@ -458,14 +459,18 @@ export function createEngineRenderer(
       // the starter's housings' upper half: on the plain, solid engine, the starter whole and closed; see-through, it is cut
       if (!SCENE_OPTIONS.seeThrough) ghost(HEAD_RANGE.starterShell, 1, ORIENT.STARTER, ST_AT);
       // and its yoke, all round: see-through on the cut starter, so that the windings all round the stator show
-      ghost(HEAD_RANGE.starterYoke, STARTER_YOKE_OPACITY, ORIENT.STARTER, ST_AT, 0.25);
+      // (solid engine only: see-through, the motor shows bare, no grey veil over its windings)
+      if (!SCENE_OPTIONS.seeThrough) ghost(HEAD_RANGE.starterYoke, STARTER_YOKE_OPACITY, ORIENT.STARTER, ST_AT, 0.25);
 
       for (const bank of BANKS) {
-        ghostInBank(bank, HEAD_RANGE.intakePipes, PIPE_OPACITY, PIPE_RIM, RIM_CHARGE, true);
+        // (the intake ports behind the heads: solid engine only; see-through, only the cylinders working are shown)
+        if (!SCENE_OPTIONS.seeThrough) ghostInBank(bank, HEAD_RANGE.intakePipes, PIPE_OPACITY, PIPE_RIM, RIM_CHARGE, true);
         // (the stubs out of the exhaust ports go with the headers: solid engine only)
         if (!SCENE_OPTIONS.seeThrough) ghostInBank(bank, HEAD_RANGE.exhaustStubs, HOT_PIPE_OPACITY, PIPE_RIM, RIM_CHARGE, true);
-        ghostInBank(bank, bankPart(bank, "deckSlab"), DECK_OPACITY);
-        ghostInBank(bank, bankPart(bank, "headShell"), headOpacity(bank), 0.22);
+        // (the deck plate under it, in the same blue casting: likewise, solid engine only)
+        if (!SCENE_OPTIONS.seeThrough) ghostInBank(bank, bankPart(bank, "deckSlab"), DECK_OPACITY);
+        // the head's blue casting: only on the plain, solid engine; see-through, it is left out, so that the valve train shows bare
+        if (!SCENE_OPTIONS.seeThrough) ghostInBank(bank, bankPart(bank, "headShell"), headOpacity(bank), 0.22);
         // the timing cover over its drive: only on the plain, solid engine; see-through, the drive shows bare
         if (!SCENE_OPTIONS.seeThrough) ghost(HEAD_RANGE.timingCover, 1, bank.orient, [DRIVE_DX, 0, 0], 0.3); // where both banks' drives stand
         // the fittings on the cover's top (plug caps, oil filler cap, the plates): only on the plain, solid engine; see-through,
@@ -702,26 +707,52 @@ export function createEngineRenderer(
       const accentU = uniform(fogProgram, "uAccent");
       const richU = uniform(fogProgram, "uRich");
       const smoothU = uniform(fogProgram, "uSmooth");
+      const jetAtU = uniform(fogProgram, "uJetAt");
+      const jetAxisU = uniform(fogProgram, "uJetAxis");
+      const jetScaleU = uniform(fogProgram, "uJetScale");
 
       for (let i = 0; i < FOG_GROUPS.length; i++) {
         const g = FOG_GROUPS[i];
         const pal = FOG_PALETTE[g.kind];
         // the exhaust's gas past the collectors (kind 4) goes from a pale, smoky colour to its orange with the speed
         const heat = g.kind === 4 ? exhaustHeat : 1;
-        const base = mix3(EXHAUST_PALE, pal.base, heat);
-        const tone = mix3(EXHAUST_PALE, pal.tone, heat);
-        const accent = mix3(EXHAUST_PALE, pal.accent, heat);
+        let base = mix3(EXHAUST_PALE, pal.base, heat);
+        let tone = mix3(EXHAUST_PALE, pal.tone, heat);
+        let accent = mix3(EXHAUST_PALE, pal.accent, heat);
+        let rich = pal.rich;
+        let glow = pal.glow;
+
+        // the jet out of the tails (kind 5): white vapour at idle; revved, it thickens and a cool steel sheen comes into
+        // it, its finer pulses and highlights showing more, like hot gas rushing out at speed
+        if (g.kind === 5) {
+          base = mix3(base, JET_STEEL, 0.35 * jetLoad);
+          accent = mix3(accent, JET_STEEL, 0.5 * jetLoad);
+          tone = mix3(tone, [0.55, 0.58, 0.63], 0.4 * jetLoad);
+          rich += 0.75 * jetLoad;
+          glow += 0.12 * jetLoad;
+        }
 
         gl.bindBuffer(gl.ARRAY_BUFFER, fogBuffers[i]);
         bindAttribs(fogAttribs);
         gl.uniform1f(phaseU, g.phase);
         gl.uniform1f(driveU, g.drive * (pal.alpha ?? 1));
-        gl.uniform1f(glowU, pal.glow);
+        gl.uniform1f(glowU, glow);
         gl.uniform3f(accentU, accent[0], accent[1], accent[2]);
-        gl.uniform1f(richU, pal.rich);
+        gl.uniform1f(richU, rich);
         // the pipes' air and gas flow on smoothly; only the ports' and the jets', driven by the valves, pulse
         gl.uniform1f(smoothU, g.cyl < 0 ? 1 : 0);
         gl.uniform3f(baseU, base[0], base[1], base[2]);
+
+        // the jet: short and narrow at idle, longer and a little wider as the engine revs (in step with its speed)
+        if (g.jetAt && g.jetAxis) {
+          gl.uniform3f(jetAtU, g.jetAt[0], g.jetAt[1], g.jetAt[2]);
+          gl.uniform3f(jetAxisU, g.jetAxis[0], g.jetAxis[1], g.jetAxis[2]);
+          gl.uniform2f(jetScaleU, 0.72 + 0.85 * jetLoad, 0.85 + 0.35 * jetLoad);
+        } else {
+          gl.uniform3f(jetAtU, 0, 0, 0);
+          gl.uniform3f(jetAxisU, 1, 0, 0);
+          gl.uniform2f(jetScaleU, 1, 1);
+        }
         gl.uniform3f(toneU, tone[0], tone[1], tone[2]);
         gl.drawArrays(gl.TRIANGLES, 0, g.mesh.count);
       }
@@ -829,6 +860,7 @@ export function createEngineRenderer(
       lastFrame = frame;
       // how hot the exhaust past the collectors shows: pale below 2000 rpm, turning orange as the speed rises above it
       exhaustHeat = smooth01(((frame.rpm ?? 0) - 2000) / (RPM_MAX - 2000));
+      jetLoad = smooth01((frame.rpm ?? 0) / RPM_MAX);
 
       // If frames arrive late, spend fewer sub-frames, so the blur never costs
       // the smoothness it is there to give

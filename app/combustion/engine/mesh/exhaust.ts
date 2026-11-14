@@ -4,7 +4,8 @@ import { BANKS, CT_X, FLYWHEEL_WORLD_X, HEAD_PORT_DZ, ORIENT, TAU, bankPoint, co
 import type { Bank } from "../core/constants";
 import { vadd, vcross, vnorm, vscale, vsub } from "../math/vec3";
 import type { FwVec3 } from "./builder";
-import { MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE, MAT_HDR_BLUE, MAT_HDR_BRONZE, MAT_HDR_FLANGE, MAT_HEAT_SHIELD, MAT_INJ_BRASS, MAT_PIPE_BLACK, MAT_MUFFLER_WIRE, MAT_SHIELD_STREAK, MAT_STEEL_BRIGHT, MAT_WELD } from "./materials";
+import { MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE, MAT_HDR_BLUE, MAT_HDR_BRONZE, MAT_HDR_FLANGE, MAT_HDR_PORT_FLANGE, MAT_HEAT_SHIELD, MAT_INJ_BRASS, MAT_PIPE_BLACK, MAT_MUFFLER_WIRE, MAT_SHIELD_STREAK, MAT_STEEL_BRIGHT, MAT_WELD } from "./materials";
+import { buildTrapezoidTail } from "./exhaustTail";
 import { lobedPlate } from "./shapes";
 import type { P2 } from "./shapes";
 import { tintedStretches, weld } from "./plumbing";
@@ -295,14 +296,9 @@ export function buildMufflerPart(b: MeshBuilder) {
   for (const side of [-1, 1]) buildMufflers(b, side);
 
   // and the tails out of them: plain grey metal, the silencers' own, solid, no sleeve; the tip a wider rolled end
-  for (const tail of TAILS) {
-    const t = tail.total;
-
-    sweepTube(b, tail, () => TAIL_R, MAT_MUFFLER_WIRE, { segments: 40 });
-    collar(b, tail, t - 52, TAIL_R, TAIL_R + 7, 3, MAT_MUFFLER_WIRE, MAT_MUFFLER_WIRE);
-    sweepTube(b, subCurve(tail, t - 50, t, 3), () => TAIL_R + 7, MAT_MUFFLER_WIRE, { segments: 40 });
-    collar(b, tail, t - 2, TAIL_R + 1, TAIL_R + 8, 3, MAT_MUFFLER_WIRE, MAT_MUFFLER_WIRE);
-  }
+  // and the tails out of them: as big as the old rolled tips, an upside-down rounded trapezoid in section, with a
+  // separate darker collar at the mouth (exhaustTail.ts)
+  for (const side of [-1, 1]) buildTrapezoidTail(b, MUFFLER.x1 + 1, TAIL_X, MUFFLER_Y, side * MUFFLER.z);
 }
 
 // The silencers: each an oval box of brushed stainless, its two ends pressed in with a rolled seam, a seam along its
@@ -671,7 +667,7 @@ export function buildExhaustFlanges(b: MeshBuilder) {
 
       return [[p[0], p[1], flip ? -z : z], [n[0], n[1], flip ? n[2] : -n[2]]];
     });
-    lobedPlate(b, outline, 0, PLATE_T, 2.2, MAT_HDR_FLANGE);
+    lobedPlate(b, outline, 0, PLATE_T, 2.2, MAT_HDR_PORT_FLANGE);
     b.setTurn(flip ? (p, n) => [[p[0], p[1], -p[2]], [n[0], n[1], -n[2]]] : null);
 
     // its four studs, one in each ear: on each a washer and a brass hex nut, its top chamfered, the stud's threaded end

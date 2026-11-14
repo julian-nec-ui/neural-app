@@ -10,12 +10,12 @@
 import { BANKS, CT_X, TAU, bankPoint } from "../core/constants";
 import { FW_STRIDE } from "./builder";
 import type { FwVec3 } from "./builder";
-import { MAT_ALU_CAST, MAT_ALU_TURNED, MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE, MAT_CLAMP_BLACK, MAT_CLAMP_BLACK_DEEP, MAT_COVER_FIN, MAT_FIN_GREY, MAT_FIN_GREY_CREST, MAT_HEAD_CAST, MAT_FIN_GREY_ROOT, MAT_PIPE_BLACK, MAT_PLENUM_RED, MAT_PLENUM_RED_DEEP, MAT_STEEL_BRIGHT } from "./materials";
+import { MAT_ALU_CAST, MAT_ALU_TURNED, MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE, MAT_CLAMP_BLACK, MAT_CLAMP_BLACK_DEEP, MAT_COVER_FIN, MAT_FIN_GREY, MAT_FIN_GREY_CREST, MAT_HEAD_CAST, MAT_FIN_GREY_ROOT, MAT_PIPE_BLACK, MAT_PLENUM_RED, MAT_PLENUM_RED_DEEP, MAT_STEEL_BRIGHT, MAT_THROTTLE_BODY, MAT_THROTTLE_RING } from "./materials";
 import { curveAt, curveFromPoints, flangeBolt, flangeJoint, roundedCurve, sweepTube } from "./tubes";
 import type { Curve, MeshBuilder } from "./tubes";
 import { PIPES, PLENUM, PLENUM_INLETS, Y_BRANCH, bodySection, headY, lidHeight, plenumW, socketCap } from "./plumbing";
 import { vadd, vnorm, vscale } from "../math/vec3";
-import { LID_SIG } from "./headText";
+import { LID_SIG, lidInk } from "./headText";
 
 const GREY = MAT_PLENUM_RED; // (the plenum's red, matte, with its sandpaper grit)
 const DEEP = MAT_PLENUM_RED_DEEP;
@@ -218,8 +218,54 @@ function buildLidFins(b: MeshBuilder) {
     return vnorm([-hx, -1, -hz]);
   };
 
+  // which fins the writing's band cuts; of those, the outermost on each side runs on past the band and stops only where it
+  // would come to the writing itself (its ink, a margin round it), rounding down into the lid there as at its ends
+  const cut = (c: number) => {
+    for (let k = 0; k <= n; k++) {
+      const x = x0 + ((x1 - x0) * k) / n;
+      const z = c * (plenumW(x) - 4);
+
+      if (Math.abs(z - LID_SIG.z) < LID_SIG.hz + LID_SIG.margin && Math.abs(x - LID_SIG.x) < LID_SIG.hx + LID_SIG.margin) return true;
+    }
+
+    return false;
+  };
+  const cutFins = LID_FIN.across.filter(cut);
+  const joined = new Set([Math.min(...cutFins), Math.max(...cutFins)]);
+  // the ink, in cells of 8, for finding how far a point is from it
+  const INK_CELL = 8;
+  const inkCells = new Map<string, number[]>();
+  const ink = lidInk();
+
+  for (let k = 0; k < ink.length; k += 2) {
+    const key = `${Math.floor(ink[k] / INK_CELL)},${Math.floor(ink[k + 1] / INK_CELL)}`;
+    const cell = inkCells.get(key);
+
+    if (cell) cell.push(ink[k], ink[k + 1]);
+    else inkCells.set(key, [ink[k], ink[k + 1]]);
+  }
+  const inkDist = (x: number, z: number, reach: number) => {
+    let d = reach;
+    const r = Math.ceil(reach / INK_CELL);
+    const cx = Math.floor(x / INK_CELL);
+    const cz = Math.floor(z / INK_CELL);
+
+    for (let i = -r; i <= r; i++) {
+      for (let j = -r; j <= r; j++) {
+        const cell = inkCells.get(`${cx + i},${cz + j}`);
+
+        if (cell) for (let q = 0; q < cell.length; q += 2) d = Math.min(d, Math.hypot(cell[q] - x, cell[q + 1] - z));
+      }
+    }
+
+    return d;
+  };
+  const INK_CLEAR = 5; // how far the fin's flank keeps from the ink
+  const INK_EASE = 12; // over how long it rounds down to the gap
+
   for (const c of LID_FIN.across) {
     const rows: Array<Array<{ p: FwVec3; n: FwVec3; m: typeof MAT_FIN_GREY }> | null> = [];
+    const join = joined.has(c);
 
     for (let k = 0; k <= n; k++) {
       const x = x0 + ((x1 - x0) * k) / n;
@@ -233,15 +279,17 @@ function buildLidFins(b: MeshBuilder) {
       // the fins in the middle stop short of the signature cut into the lid there, a margin all round it, and round down
       // into the lid at the gap as they do at their ends
       const gx = Math.abs(x - LID_SIG.x) - (LID_SIG.hx + LID_SIG.margin);
-      const inBand = Math.abs(z - LID_SIG.z) < LID_SIG.hz + LID_SIG.margin;
+      const inBand = !join && Math.abs(z - LID_SIG.z) < LID_SIG.hz + LID_SIG.margin;
+      const u = k / n;
+      const tFoot = LID_FIN.t[0] + (LID_FIN.t[1] - LID_FIN.t[0]) * Math.pow(u, 0.9);
+      const gInk = join ? inkDist(x, z, tFoot / 2 + INK_CLEAR + INK_EASE) - (tFoot / 2 + INK_CLEAR) : 1e9;
 
-      if (inBand && gx < 0) {
+      if ((inBand && gx < 0) || gInk < 0) {
         rows.push(null);
         continue;
       }
 
-      const u = k / n;
-      const ends = Math.min(1, (x - x0) / 26, (x1 - x) / 40, inBand ? gx / 22 : 1);
+      const ends = Math.min(1, (x - x0) / 26, (x1 - x) / 40, inBand ? gx / 22 : 1, gInk / INK_EASE);
       const h = Math.max(0.5, (LID_FIN.h[0] + (LID_FIN.h[1] - LID_FIN.h[0]) * Math.pow(u, 0.9)) * Math.sqrt(Math.max(0, ends)));
       const t = (LID_FIN.t[0] + (LID_FIN.t[1] - LID_FIN.t[0]) * Math.pow(u, 0.9)) * (0.55 + 0.45 * Math.sqrt(Math.max(0, ends)));
       const p0 = P(x, z);
@@ -665,10 +713,10 @@ function buildThrottle(b: MeshBuilder, zs: number, y: number, z: number) {
 
   for (const xc of [x0 - 3, x0 - 11]) b.prismDir([xc, y, z], fwd, e1, e2, neckR + 4, 2.4, 56, 0, MAT_ALU_TURNED, MAT_STEEL_BRIGHT);
 
-  b.prismDir([xb, y, z], fwd, e1, e2, T.r, T.len, 64, 0, MAT_STEEL_BRIGHT, MAT_STEEL_BRIGHT);
-  b.prismDir([xb, y, z], fwd, e1, e2, T.r + 6, 7, 64, 0, MAT_ALU_TURNED, MAT_ALU_TURNED);
-  b.prismDir([xb - T.len + 7, y, z], fwd, e1, e2, T.r + 6, 7, 64, 0, MAT_ALU_TURNED, MAT_ALU_TURNED);
-  b.prismDir([xb - T.len, y, z], fwd, e1, e2, T.r + 3, 4, 64, 0, MAT_STEEL_BRIGHT, MAT_STEEL_BRIGHT); // the rolled lip
+  b.prismDir([xb, y, z], fwd, e1, e2, T.r, T.len, 64, 0, MAT_THROTTLE_BODY, MAT_THROTTLE_BODY);
+  b.prismDir([xb, y, z], fwd, e1, e2, T.r + 6, 7, 64, 0, MAT_THROTTLE_RING, MAT_THROTTLE_RING);
+  b.prismDir([xb - T.len + 7, y, z], fwd, e1, e2, T.r + 6, 7, 64, 0, MAT_THROTTLE_RING, MAT_THROTTLE_RING);
+  b.prismDir([xb - T.len, y, z], fwd, e1, e2, T.r + 3, 4, 64, 0, MAT_THROTTLE_BODY, MAT_THROTTLE_BODY); // the rolled lip
 
   for (let k = 0; k < 6; k++) {
     const a = (k / 6) * TAU + 0.3;
@@ -725,7 +773,7 @@ function buildYClamp(b: MeshBuilder, x: number, y: number, r: number) {
   b.prismDir([x - 1.2, y, 0], fwd, e1, e2, R - 3, 1.2, 72, 0, D, D);
   b.prismDir([x - 2.4, y, 0], fwd, e1, e2, R - 1.5, tF - 3.6, 72, 0, C, C);
   b.prismDir([x - tF + 1.2, y, 0], fwd, e1, e2, R - 3, 1.2, 72, 0, D, D);
-  b.prismDir([x - tF + 0.2, y, 0], fwd, e1, e2, r + 1.5, 1, 64, 0, MAT_ALU_TURNED, MAT_ALU_TURNED); // the groove's ring
+  b.prismDir([x - tF + 0.2, y, 0], fwd, e1, e2, r + 1.5, 1, 64, 0, MAT_THROTTLE_RING, MAT_THROTTLE_RING); // the groove's ring
 
   for (let k = 0; k < 6; k++) {
     const a = (k / 6) * TAU + Math.PI / 6;

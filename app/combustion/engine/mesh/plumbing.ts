@@ -3,10 +3,10 @@
 import { BANKS, CT_X, HEAD_PORT_DZ, TAU } from "../core/constants";
 import { vadd, vcross, vnorm, vscale, vsub } from "../math/vec3";
 import type { FwMaterial, FwVec3 } from "./builder";
-import { MAT_ALU_CAST, MAT_ALU_TURNED, MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE, MAT_EXH_GUNMETAL, MAT_HDR_BLUE, MAT_HDR_FLANGE, MAT_HDR_GOLD, MAT_HDR_PURPLE, MAT_IRON, MAT_MANIFOLD_GREY, MAT_MANIFOLD_GREY_DEEP, MAT_PIPE_BLACK, MAT_STEEL_BRIGHT, MAT_TURBO_GRAIN, MAT_WELD } from "./materials";
-import { collar, curveAt, curveFromPoints, flangeJoint, ovalFlare, pipeFlange, roundedCurve, subCurve, sweepTube } from "./tubes";
+import { MAT_ALU_CAST, MAT_ALU_TURNED, MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE, MAT_EXH_GUNMETAL, MAT_HDR_BLUE, MAT_TURBO_INLET_PLATE, MAT_HDR_GOLD, MAT_HDR_PURPLE, MAT_IRON, MAT_MANIFOLD_GREY, MAT_MANIFOLD_GREY_DEEP, MAT_BOLT_MATTE_HEAD, MAT_BOLT_MATTE_SIDE, MAT_INTAKE_FLANGE, MAT_INTAKE_FLANGE_EDGE, MAT_PIPE_BLACK, MAT_RAIL_FACE, MAT_STEEL_BRIGHT, MAT_TURBO_GRAIN, MAT_WELD, MAT_FLANGE_BLACK, MAT_AIR_DUCT } from "./materials";
+import { collar, curveAt, curveFromPoints, flangeJoint, ovalFlare, roundedCurve, subCurve, sweepTube } from "./tubes";
 import type { Curve, MeshBuilder } from "./tubes";
-import { COLLECTOR_CONE, COLLECTOR_LEN, COMPRESSOR_OUTLET_LEN, HDR_CX, HDR_CZ, HDR_MOUTH_Y, PLENUM_Y, PLENUM_Z, PORT_Y, TB, collectorRadius, compressorCentre, turboWorld } from "./turbo";
+import { COLLECTOR_CONE, COLLECTOR_LEN, COMPRESSOR_OUTLET_LEN, HDR_CX, HDR_CZ, HDR_MOUTH_Y, PLENUM_Y, PLENUM_Z, PORT_Y, TB, collectorRadius, compressorCentre, turboWorld, TURBO_SCALE } from "./turbo";
 import { IN_SIDE, VT, valveX } from "./valvetrain";
 import { buildAirFilter } from "./airFilter";
 import { lobedPlate } from "./shapes";
@@ -228,14 +228,18 @@ export const PIPES = (() => {
   // The air intake leaves the compressor's inlet along the shaft, turns out from the engine, runs out level, and bends
   // down into the air filter
   const intakeStart = turboWorld([135, 0, 0]);
-  const intakeBend: FwVec3 = vadd(intakeStart, [-34 + 118 * INTAKE_OUT[0], 118 * INTAKE_OUT[1], 118 * INTAKE_OUT[2]]);
+  // (it runs on straight a little further before it turns, and turns in a broader, gentler bend)
+  // (its first run straight on along the turbo's own axis, turned a little as the turbocharger is, so that its flange
+  // sits square and flush on the compressor's inlet flange)
+  const intakeRun = turboWorld([135 + 70 / TURBO_SCALE, 0, 0]);
+  const intakeBend: FwVec3 = vadd(intakeRun, vscale(INTAKE_OUT, 118));
   const intake = roundedCurve([
     intakeStart,
-    [intakeStart[0] - 34, intakeStart[1], intakeStart[2]],
+    intakeRun,
     // a bend, out from the engine, level, a long run out; and a broad bend down, the filter on its end
     intakeBend,
     vadd(intakeBend, vscale(FILTER_DIR, 58)), // (its leg down to the filter: the same bend, a shorter straight after it)
-  ], 48, 12);
+  ], 72, 12);
 
   return { log, plenum, runner, collectorEnd, outlet, outletRun, intake, throttleEnd };
 })();
@@ -274,16 +278,29 @@ export function buildIntakeWelds(b: MeshBuilder) {
   b.setTurn(turn);
 
   b.box(x0, x1, RAIL.y0, RAIL.y1, zf, zf + RAIL.t, MAT_MANIFOLD_GREY);
-  b.box(x0 + 2, x1 - 2, RAIL.y0 + 2, RAIL.y1 - 2, zf + RAIL.t, zf + RAIL.t + 1.2, MAT_ALU_TURNED); // its machined face's edge
+  b.box(x0 + 2, x1 - 2, RAIL.y0 + 2, RAIL.y1 - 2, zf + RAIL.t, zf + RAIL.t + 1.2, MAT_RAIL_FACE); // its machined face: grey, ribbed in relief
 
   for (let i = 0; i < CT_X.length; i++) {
     ovalFlare(b, CT_X[i], PORT_Y, zf + RAIL.t, 16, 23, 19, 14, MAT_MANIFOLD_GREY);
   }
 
-  // the bolts: four round each runner's port, hex-headed, on washers
+  // each runner's own flange, standing out of the rail: a square plate round its port, its edges chamfered, in a dark
+  // graphite steel knurled in sharp pyramids (pattern 15), held by its four bolts
+  const FL = { half: 37, t: 2.6, ch: 0.9 };
+
+  for (const x of CT_X) {
+    const z0 = zf + RAIL.t + 1.2;
+    const ya = RAIL.y0 + 1;
+    const yb = RAIL.y1 - 1;
+
+    b.box(x - FL.half, x + FL.half, ya, yb, z0, z0 + FL.t - FL.ch, MAT_INTAKE_FLANGE_EDGE);
+    b.box(x - FL.half + FL.ch, x + FL.half - FL.ch, ya + FL.ch, yb - FL.ch, z0 + FL.t - FL.ch, z0 + FL.t, MAT_INTAKE_FLANGE);
+  }
+
+  // the bolts: four round each runner's port, hex-headed, on washers (on the flange)
   for (const x of CT_X) {
     for (const dx of [-29, 29]) {
-      for (const y of [RAIL.y0 + 9, RAIL.y1 - 9]) hexBolt(b, [x + dx, y, zf + RAIL.t + 1.2], [0, 0, 1], 5, 0.4 + 0.11 * x + y);
+      for (const y of [RAIL.y0 + 9, RAIL.y1 - 9]) hexBolt(b, [x + dx, y, zf + RAIL.t + 1.2 + FL.t], [0, 0, 1], 5, 0.4 + 0.11 * x + y, true);
     }
   }
 
@@ -369,15 +386,18 @@ export function buildIntakeWelds(b: MeshBuilder) {
 
 // A socket-head cap screw's head at p, facing `dir`: a black round head, chamfered, its hex socket dark in it
 // A hex-headed bolt on its washer: the washer, the head with its six flats and its top chamfered, a maker's mark ring
-export function hexBolt(b: MeshBuilder, p: FwVec3, dir: FwVec3, r: number, rot = 0) {
+export function hexBolt(b: MeshBuilder, p: FwVec3, dir: FwVec3, r: number, rot = 0, matte = false) {
+  const HEAD = matte ? MAT_BOLT_MATTE_HEAD : MAT_CT_NUT_HEAD;
+  const SIDE = matte ? MAT_BOLT_MATTE_SIDE : MAT_CT_NUT_SIDE;
+  const WASHER = matte ? MAT_BOLT_MATTE_SIDE : MAT_STEEL_BRIGHT;
   const d = vnorm(dir);
   const e1 = vnorm(vcross(d, Math.abs(d[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0]));
   const e2 = vcross(d, e1);
 
-  b.prismDir(p, d, e1, e2, r * 1.45, r * 0.18, 24, 0, MAT_STEEL_BRIGHT, MAT_STEEL_BRIGHT);
-  b.prismDir(vadd(p, vscale(d, r * 0.18)), d, e1, e2, r * 1.1, r * 0.72, 6, rot, MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE);
-  b.prismDir(vadd(p, vscale(d, r * 0.9)), d, e1, e2, r * 0.98, r * 0.16, 6, rot, MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE); // the chamfer
-  b.prismDir(vadd(p, vscale(d, r * 1.06 - 0.05)), d, e1, e2, r * 0.55, 0.1, 20, 0, MAT_STEEL_BRIGHT, MAT_STEEL_BRIGHT); // the mark
+  b.prismDir(p, d, e1, e2, r * 1.45, r * 0.18, 24, 0, WASHER, WASHER);
+  b.prismDir(vadd(p, vscale(d, r * 0.18)), d, e1, e2, r * 1.1, r * 0.72, 6, rot, HEAD, SIDE);
+  b.prismDir(vadd(p, vscale(d, r * 0.9)), d, e1, e2, r * 0.98, r * 0.16, 6, rot, HEAD, SIDE); // the chamfer
+  b.prismDir(vadd(p, vscale(d, r * 1.06 - 0.05)), d, e1, e2, r * 0.55, 0.1, 20, 0, WASHER, WASHER); // the mark
 }
 
 export function socketCap(b: MeshBuilder, p: FwVec3, dir: FwVec3, r: number) {
@@ -392,7 +412,7 @@ export function socketCap(b: MeshBuilder, p: FwVec3, dir: FwVec3, r: number) {
 
 // A turbocharger module's air intake, from the compressor up to the filter
 export function buildTurboIntakePipe(b: MeshBuilder) {
-  sweepTube(b, PIPES.intake, () => 20, MAT_ALU_TURNED, { segments: 26 });
+  sweepTube(b, PIPES.intake, () => 20, MAT_AIR_DUCT, { segments: 26 });
 }
 
 // The exhaust collector's skin, drawn see-through with a steel contour: the cone and its stub
@@ -574,7 +594,7 @@ export function buildCollectorFittings(b: MeshBuilder) {
 
     lobedPlate(b, ring, -9, 0, 1.2, MAT_TURBO_GRAIN);
     lobedPlate(b, ring.map(([x, y]) => [x * 0.97, y * 0.97] as P2), 0, 1, 0.2, MAT_PIPE_BLACK);
-    lobedPlate(b, ring, 1, 10, 1.4, MAT_HDR_FLANGE);
+    lobedPlate(b, ring, 1, 10, 1.4, MAT_TURBO_INLET_PLATE);
 
     for (let k = 0; k < 3; k++) {
       const a = (k * TAU) / 3 + 0.5;
@@ -639,7 +659,31 @@ export function buildTurboFittings(b: MeshBuilder) {
 
   const intake = PIPES.intake;
 
-  pipeFlange(b, intake, false, 30, MAT_ALU_TURNED);
+  // the intake's flange, cast as one with its pipe, black, set flush on the compressor's inlet flange (as wide as it): no
+  // gap between them; its four nuts on its face
+  {
+    const T = 6;
+    const R = 32 * TURBO_SCALE - 0.3;
+
+    sweepTube(b, subCurve(intake, 0, T, 2), () => R, MAT_FLANGE_BLACK, { segments: 40, capStart: true, capEnd: true });
+    // a fillet where the pipe grows out of it
+    sweepTube(b, subCurve(intake, T, T + 4, 1), (u) => 20 + 3.5 * (1 - u) * (1 - u), MAT_FLANGE_BLACK, { segments: 32 });
+
+    const c: FwVec3 = [0, 0, 0];
+    const d: FwVec3 = [0, 0, 0];
+
+    curveAt(intake, T, c, d);
+
+    const e1 = vnorm(vcross(d, Math.abs(d[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0]));
+    const e2 = vcross(d, e1);
+
+    for (let k = 0; k < 4; k++) {
+      const a = (k / 4) * TAU + Math.PI / 4;
+      const at = vadd(c, vadd(vscale(e1, Math.cos(a) * (R - 6)), vscale(e2, Math.sin(a) * (R - 6))));
+
+      b.prismDir(at, d, e1, e2, 2.6, 2.4, 6, a, MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE);
+    }
+  }
   collar(b, intake, intake.total * 0.55, 20, 22.5, 4, MAT_ALU_TURNED);
   collar(b, intake, intake.total - 3, 20, 24.5, 6, MAT_ALU_TURNED);
   // The air filter, hanging from the intake's open end: a K&N-style cone

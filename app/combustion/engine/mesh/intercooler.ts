@@ -6,7 +6,7 @@ import { vadd, vcross, vnorm, vscale, vsub } from "../math/vec3";
 import type { FwMaterial, FwVec3 } from "./builder";
 import { MODULES, modulePoint } from "./exhaust";
 import type { TModule } from "./exhaust";
-import { MAT_ALU_TURNED, MAT_COOL_PIPE, MAT_CASE_GREY, MAT_EXH_GUNMETAL, MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE, MAT_FIN_BACK, MAT_IC_FIN, MAT_IC_FIN_DEEP, MAT_IC_PLATE, MAT_IC_RUBBER, MAT_IC_TANK, MAT_IC_TUBE, MAT_PIPE_BLACK, MAT_STEEL_BRIGHT, MAT_WELD } from "./materials";
+import { MAT_ALU_TURNED, MAT_COOL_PIPE, MAT_CASE_GREY, MAT_EXH_GUNMETAL, MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE, MAT_FIN_BACK, MAT_IC_FIN, MAT_IC_FIN_DEEP, MAT_IC_PLATE, MAT_IC_RUBBER, MAT_IC_TANK, MAT_IC_TUBE, MAT_PIPE_BLACK, MAT_STEEL_BRIGHT, MAT_WELD, MAT_AIR_DUCT } from "./materials";
 import { PIPES, PLENUM_INLETS, PORT_JOINT, weld } from "./plumbing";
 import { curveAt, curveFromPoints, flangeJoint, roundedCurve, sweepTube } from "./tubes";
 import type { Curve, MeshBuilder } from "./tubes";
@@ -530,11 +530,35 @@ export const CHARGE_PIPES = (() => {
     const k1: FwVec3 = [inlet[0] - S_AHEAD * 0.55, (k0[1] + inlet[1]) / 2 + 30, (k0[2] + inlet[2]) / 2];
     const k2: FwVec3 = [inlet[0] - S_AHEAD, inlet[1] + 40, inlet[2]];
     const k3: FwVec3 = [inlet[0] - S_AHEAD * 0.5, inlet[1], inlet[2]];
-    const c = roundedCurve([start, k0, k1, k2, k3, inlet], TOP_BEND, 4);
+    // broad bends, then smoothed along: each point eased toward its neighbours, many times over, the two ends (square out
+    // of the tank's flange and into the throttle's mouth) held, so that the pipe runs in long, even curves, no knees
+    const rough = roundedCurve([start, k0, k1, k2, k3, inlet], TOP_BEND + 22, 2);
+    const pts = rough.pts.map((q) => [q[0], q[1], q[2]] as FwVec3);
+    const hold = (k: number) => rough.cum[k] < 22 || rough.total - rough.cum[k] < 30;
+
+    for (let pass = 0; pass < 60; pass++) {
+      const prev = pts.map((q) => [q[0], q[1], q[2]] as FwVec3);
+
+      for (let k = 2; k < pts.length - 2; k++) {
+        if (hold(k)) continue;
+
+        for (let a = 0; a < 3; a++) pts[k][a] = (prev[k - 2][a] + 2 * prev[k - 1][a] + 2 * prev[k][a] + 2 * prev[k + 1][a] + prev[k + 2][a]) / 8;
+      }
+    }
+
+    const c = curveFromPoints(pts.filter((_, k) => k % 2 === 0 || k === pts.length - 1), 4); // (every other point: as fine as before)
     // the bend at the top, a mandrel-bent piece welded in: from where the rise comes near it to where it leaves it
     const near = (p: FwVec3, d: number) => c.pts.map((q, k) => [Math.hypot(q[0] - p[0], q[1] - p[1], q[2] - p[2]), k]).filter(([l]) => l < d).map(([, k]) => k);
-    const s0 = c.cum[Math.min(...near(k2, TOP_BEND + 8))];
-    const s1 = c.cum[Math.max(...near(k2, TOP_BEND + 8))];
+    // (the smoothed pipe passes a little off the corner: the elbow is the stretch round the point nearest it)
+    let kNear = 0;
+
+    c.pts.forEach((q, k) => {
+      if (Math.hypot(q[0] - k2[0], q[1] - k2[1], q[2] - k2[2]) < Math.hypot(c.pts[kNear][0] - k2[0], c.pts[kNear][1] - k2[1], c.pts[kNear][2] - k2[2])) kNear = k;
+    });
+
+    const s0 = Math.max(40, c.cum[kNear] - (TOP_BEND + 12));
+    const s1 = Math.min(c.total - 60, c.cum[kNear] + (TOP_BEND + 12));
+    void near;
 
     COOL_ELBOW.push({ s0, s1 });
     void bank;
@@ -564,7 +588,7 @@ export const chargeRadius = (s: number, total: number, big = CHARGE_R) => {
 
 export function buildChargePipes(b: MeshBuilder, bi: number) {
   // polished aluminium, as the cooled charge's pipes (one bank's)
-  for (const c of [CHARGE_PIPES.hot[bi]]) sweepTube(b, c, (u) => chargeRadius(u * c.total, c.total), MAT_ALU_TURNED, { segments: 32 });
+  for (const c of [CHARGE_PIPES.hot[bi]]) sweepTube(b, c, (u) => chargeRadius(u * c.total, c.total), MAT_AIR_DUCT, { segments: 32 });
 }
 
 // The cooled charge's pipes, from the intercoolers to the distributors: drawn more as metal than as glass, polished

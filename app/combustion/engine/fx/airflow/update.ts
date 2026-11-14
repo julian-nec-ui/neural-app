@@ -6,7 +6,7 @@ import type { FwVec3 } from "../../mesh/builder";
 import { MODULES, modulePoint } from "../../mesh/exhaust";
 import { TB, turboWorld } from "../../mesh/turbo";
 import { VT, VT_LIFT_PEAK, camLift } from "../../mesh/valvetrain";
-import { ENGINE_GAS } from "../../sim/clock";
+import { ENGINE_GAS, RPM_MAX } from "../../sim/clock";
 import type { EngineFrame } from "../../sim/clock";
 import { GLOW, addPoint } from "../points";
 import { FOG_GROUPS } from "./bodies";
@@ -60,8 +60,12 @@ export function pushAirflow(frame: EngineFrame) {
       }
     }
 
+    // The jet out of a tail: faint at idle, stronger and stronger as the engine speeds up, in step with the crank's own
+    // speed (up to about two and a half times the gas's at the top speed)
+    if (g.jet) g.drive = 1.0 + 1.3 * Math.pow(Math.min(1, (frame.rpm ?? 0) / RPM_MAX), 0.75);
+
     // the hot gas (kinds 1 and 2) is as full as the exhaust side, the air (kinds 0 and 3) as the intake side
-    g.drive *= g.kind === 1 || g.kind === 2 || g.kind === 4 ? exhaust : intake;
+    g.drive *= g.kind === 1 || g.kind === 2 || g.kind === 4 || g.kind === 5 ? exhaust : intake;
   }
 
   for (let n = 0; n < AIR_FLOWS.length; n++) {

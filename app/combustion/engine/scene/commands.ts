@@ -127,7 +127,7 @@ function computeBankCommands(frame: EngineFrame, bank: Bank) {
 
   // The flanges at the ports, and the welds where the intake runners leave the plenum and meet the head
   if (!SCENE_OPTIONS.seeThrough) emitInBank(bank, r.exhaustFlanges, 1, 0, dx, 0, 0); // (the headers' port flanges: with the headers, solid engine only)
-  emitInBank(bank, r.intakeWelds, 1, 0, dx, 0, 0);
+  if (!SCENE_OPTIONS.seeThrough) emitInBank(bank, r.intakeWelds, 1, 0, dx, 0, 0); // (the intake rail and its port flanges behind the head: solid engine only)
 
   // Camshafts: this bank's, made for its own phases and its own sense of turn
   const cc = Math.cos(camAlpha);

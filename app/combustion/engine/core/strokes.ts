@@ -10,33 +10,22 @@ export const STROKE_COLORS = {
   intake: {
     start: [130, 212, 255],
     end: [0, 140, 255],
-    label: "#12a5ff",
   },
   compression: {
     start: [255, 232, 90],
     end: [255, 176, 0],
-    label: "#ffb800",
   },
   power: {
     start: [255, 84, 0],
     end: [255, 150, 30],
-    label: "#ff5a00",
   },
   exhaust: {
     start: [246, 251, 255],
     end: [206, 220, 242],
-    label: "#eaf2ff",
   },
 };
 
 export type Stroke = keyof typeof STROKE_COLORS;
-
-export const STROKE_LABEL: Record<Stroke, string> = {
-  intake: "INTAKE",
-  compression: "COMPRESSION",
-  power: "POWER",
-  exhaust: "EXHAUST",
-};
 
 export function strokeOf(p: number): Stroke {
   if (p < 0.25) return "intake";

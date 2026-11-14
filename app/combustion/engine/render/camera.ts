@@ -212,6 +212,12 @@ export function createCameraController(options: CameraOptions) {
       goal.shiftY = clamp(goal.shiftY + direction * CAM_SHIFT_STEP, -CAM_SHIFT_MAX, CAM_SHIFT_MAX);
     },
 
+    // Back to the middle of the stage, gliding there (the joystick's double tap): the view itself is kept
+    recenter() {
+      goal.shift = 0;
+      goal.shiftY = 0;
+    },
+
     // Any view at all: from yaw and pitch (degrees), this close, at this point
     lookAt(focus: FwVec3, yaw: number, pitch: number, zoom: number) {
       goal.yaw = yaw;

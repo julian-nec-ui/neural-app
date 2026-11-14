@@ -162,6 +162,15 @@ export const LID_SIG = (() => {
   return { x: (xf + 30 + xr - 50) / 2, z: 0, hx: ((i1 - i0) / 2) * g, hz: ((j1 - j0) / 2) * g * 1.2, margin: 12 };
 })();
 
+// Where the lid's writing is inked, as [x, z] pairs; worked out once, by laying the writing down on nothing
+let LID_INK: number[] | null = null;
+
+export function lidInk(): number[] {
+  if (!LID_INK) stampSignature({ flatTri: () => {} } as unknown as MeshBuilder, LID_SIG.x, 0, -1, true);
+
+  return LID_INK ?? [];
+}
+
 export function buildLidSignature(b: MeshBuilder) {
   stampSignature(b, LID_SIG.x, 0, -1, true);
 }
@@ -316,6 +325,13 @@ function stampSignature(b: MeshBuilder, xc: number, zBase: number, su: number, o
 
     return [xc + su * (i - nx / 2) * g, HEAD.yTop + drop(z) - h, z];
   };
+  // (on the lid, where every inked cell lies, kept once: for the fins that run past the writing to stop short of it)
+  if (onLid && !LID_INK) {
+    const pts: number[] = [];
+
+    for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) if (inked(i, j)) { const q = P(i, j, 0); pts.push(q[0], q[2]); }
+    LID_INK = pts;
+  }
   const LU = -0.55; // the light comes from the upper left of the writing
   const LV = 0.83;
 

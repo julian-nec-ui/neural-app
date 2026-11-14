@@ -157,6 +157,100 @@ float spotTurn(vec2 p, vec2 light, out vec2 d) {
   return clamp(0.82 * fan + 0.18 * rings - 0.25 * smoothstep(R - 0.06, R, rr), 0.0, 1.0);
 }
 
+// Engine turning in a square grid (pattern 13), as on the exhaust's port flanges: round spots a cell and a half across,
+// each overlapping its neighbours above and to its left (the later spot lies over the earlier: down a column, along a
+// row), so that every spot shows two arcs of its rim; each spot is turned in fine circles round its middle and dished
+// a little toward it. Returns the fans' brightness (0..1); rel: where p is in its spot (in cells, from its middle),
+// edge: how close to the rim of the spot over it (1 on the rim)
+float spotGrid(vec2 p, vec2 light, out vec2 rel, out float edge) {
+  const float R = 0.74;
+  vec2 cell = floor(p);
+  float best = -1e9;
+
+  rel = vec2(0.0);
+  edge = 0.0;
+
+  for (int dy = -1; dy <= 1; dy++) {
+    for (int dx = -1; dx <= 1; dx++) {
+      vec2 c = cell + vec2(float(dx), float(dy)) + 0.5;
+      vec2 r = p - c;
+      float order = c.y * 1000.0 + c.x; // down a column first, then along a row
+
+      if (length(r) < R && order > best) { best = order; rel = r; }
+    }
+  }
+
+  float rr = length(rel) + 1e-4;
+  vec2 rad = rel / rr;
+
+  edge = smoothstep(R - 0.07, R - 0.01, rr);
+
+  float fan = 0.5 + 0.5 * cos(2.0 * (atan(rad.y, rad.x) - atan(light.y, light.x)));
+
+  return clamp(fan, 0.0, 1.0);
+}
+
+// A knurl's height and slope in one plane at a given number of grooves per unit (two soft waves crossing)
+float knurlAt(vec2 uv, float K, out vec2 slope) {
+  float a = (uv.x + uv.y) * K * 6.2832;
+  float b = (uv.x - uv.y) * K * 6.2832;
+  float ca = 0.5 - 0.5 * cos(a);
+  float cb = 0.5 - 0.5 * cos(b);
+
+  slope = 0.5 * sin(a) * cb * vec2(1.0, 1.0) + 0.5 * sin(b) * ca * vec2(1.0, -1.0);
+
+  return ca * cb;
+}
+
+// A square pyramid's height, its lit share and its slope, in a plane, for pyramids every P units on the diagonal
+float pyrAt(vec2 sp, float P, out vec2 slope, out float groove) {
+  vec2 q = vec2(sp.x + sp.y, sp.x - sp.y) * (0.7071 / P);
+  vec2 f = fract(q) - 0.5;
+  vec2 a = abs(f);
+  vec2 sq = a.x > a.y ? vec2(sign(f.x), 0.0) : vec2(0.0, sign(f.y));
+
+  slope = vec2(sq.x + sq.y, sq.x - sq.y) * 0.7071;
+  groove = smoothstep(0.43, 0.5, max(a.x, a.y));
+
+  return 1.0 - 2.0 * max(a.x, a.y);
+}
+
+// For a pattern that must show at every zoom: its size here (base, or twice, four times... as the pixels grow), and how
+// far toward the next size up (blended, so that it never jumps). pix: a pixel's size in units at this distance
+void zoomLevel(float base, float pix, float minPx, out float s0, out float t) {
+  float lvl = max(0.0, log2(pix * minPx / base));
+
+  s0 = base * exp2(floor(lvl));
+  t = smoothstep(0.0, 1.0, fract(lvl));
+}
+
+// Hammered metal: the nearest of a jittered grid of dents to p (a cell's width 1), its offset from p, and how near the
+// second nearest is (for a soft ridge between dents)
+vec2 hammerCell(vec2 p, out float f1, out float f2) {
+  vec2 c = floor(p);
+  vec2 best = vec2(0.0);
+
+  f1 = 9.0;
+  f2 = 9.0;
+
+  for (int dy = -1; dy <= 1; dy++) {
+    for (int dx = -1; dx <= 1; dx++) {
+      vec2 g = c + vec2(float(dx), float(dy));
+      vec2 o = g + 0.15 + 0.7 * vec2(hash21(g), hash21(g + 19.7));
+      vec2 r = p - o;
+      float d = dot(r, r);
+
+      if (d < f1) { f2 = f1; f1 = d; best = r; }
+      else if (d < f2) f2 = d;
+    }
+  }
+
+  f1 = sqrt(f1);
+  f2 = sqrt(f2);
+
+  return best;
+}
+
 float emboss(vec2 p, out vec2 gr) {
     float f = 1.45; // a dimple every 4 units or so
     float s = mod(floor(p.y * 0.085 + 0.35 * sin(p.x * 0.05)), 2.0) < 0.5 ? 1.0 : -1.0;
@@ -269,47 +363,208 @@ float emboss(vec2 p, out vec2 gr) {
     float isSand = step(8.5, vPattern) * (1.0 - step(9.5, vPattern));
     float isShield = step(9.5, vPattern) * (1.0 - step(10.5, vPattern));
     float isSpot = step(10.5, vPattern) * (1.0 - step(11.5, vPattern));
-    float isKnurl = step(11.5, vPattern);
+    float isKnurl = step(11.5, vPattern) * (1.0 - step(12.5, vPattern));
+    float isGrid = step(12.5, vPattern) * (1.0 - step(13.5, vPattern));
+    float isRidge = step(13.5, vPattern) * (1.0 - step(14.5, vPattern));
+    float isPyr = step(14.5, vPattern) * (1.0 - step(15.5, vPattern));
+    float isScale = step(15.5, vPattern);
 
-    // Knurled relief (pattern 12): a fine diamond knurl pressed into the metal, two sets of grooves crossing at an angle,
-    // each diamond a little pyramid standing out, its faces turned to the light; projected on the face's three planes
-    float knurlH = 0.0;
+    // Engine-turned scales (pattern 16), on the tail pipes: big overlapping spots in offset rows, each polished in circles
+    // round its middle (its bright and dark fans turning with the eye), each dished a little toward its middle, a step of
+    // shadow where it lies over the one below; at every zoom (the spots grow as the eye draws back, blended)
+    float scaleV = 0.5;
+
+    if (isScale > 0.5) {
+      vec3 w = abs(n);
+      vec2 sp;
+      vec2 l2;
+
+      if (w.x >= w.y && w.x >= w.z) { sp = vWorld.zy; l2 = vec2(keyDir.z, keyDir.y) + vec2(view.z, view.y); }
+      else if (w.y >= w.z) { sp = vWorld.xz; l2 = vec2(keyDir.x, keyDir.z) + vec2(view.x, view.z); }
+      else { sp = vWorld.xy; l2 = vec2(keyDir.x, keyDir.y) + vec2(view.x, view.y); }
+
+      float pix = length(uEye - vWorld) / 1100.0;
+      float S0;
+      float tl;
+
+      zoomLevel(5.6, pix, 12.0, S0, tl); // (finer: more of them, more detail)
+
+      vec2 ld = normalize(l2 + vec2(1e-4));
+      vec2 d1;
+      vec2 d2;
+      float v1 = spotTurn(sp / S0, ld, d1);
+      float v2 = spotTurn(sp / (2.0 * S0), ld, d2);
+
+      scaleV = mix(v1, v2, tl) * smoothstep(0.05, 0.25, abs(dot(n, view))) + 0.5 * (1.0 - smoothstep(0.05, 0.25, abs(dot(n, view))));
+    }
+
+    // Pyramid knurl (pattern 15): sharp square pyramids milled in rows on the diagonal, each with four flat faces, the
+    // faces toward the light bright and those away dark; fading to plain satin far off so that they never shimmer
+    float pyrH = 0.5;
+    float pyrFace = 0.0;
+
+    if (isPyr > 0.5) {
+      vec3 w = abs(n);
+      vec2 sp;
+      vec3 eu;
+      vec3 ev;
+
+      if (w.x >= w.y && w.x >= w.z) { sp = vWorld.zy; eu = vec3(0.0, 0.0, 1.0); ev = vec3(0.0, 1.0, 0.0); }
+      else if (w.y >= w.z) { sp = vWorld.xz; eu = vec3(1.0, 0.0, 0.0); ev = vec3(0.0, 0.0, 1.0); }
+      else { sp = vWorld.xy; eu = vec3(1.0, 0.0, 0.0); ev = vec3(0.0, 1.0, 0.0); }
+
+      // at every zoom: a pyramid every 3.6 units close up, twice and twice again as the eye draws back (each at least
+      // some 10 pixels across), blended from one size to the next
+      float pix = length(uEye - vWorld) / 1100.0;
+      float P0;
+      float tl;
+
+      zoomLevel(3.6, pix, 10.0, P0, tl);
+
+      float fade = smoothstep(0.08, 0.3, abs(dot(n, view))); // (only edge-on does it fade)
+      vec2 s1;
+      vec2 s2;
+      float gr1;
+      float gr2;
+      float h1 = pyrAt(sp, P0, s1, gr1);
+      float h2 = pyrAt(sp, P0 * 2.0, s2, gr2);
+      vec2 slope = mix(s1, s2, tl);
+      float groove = mix(gr1, gr2, tl);
+      vec3 g = eu * slope.x + ev * slope.y;
+
+      pyrH = mix(0.5, mix(h1, h2, tl), fade);
+      pyrFace = fade * (1.0 - groove);
+      g -= n * dot(n, g);
+      n = normalize(n + 1.5 * fade * g); // (steep faces: the light falls on two, the other two in shade)
+      pyrH -= 0.35 * groove * fade;
+    }
+
+    // Raised grid (pattern 14), on the rail between the flanges: fine ribs both along it (horizontal) and across it
+    // (vertical), each a narrow rounded bead standing a little out of the face, a shade lighter, their sides turned to
+    // the light; a faint fine grain between them; fading to plain satin far off so that they never shimmer
+    float ridgeH = 0.5;
+    float ridgeLine = 0.0;
+
+    if (isRidge > 0.5) {
+      vec3 w = abs(n);
+      vec3 acr = w.y > w.z ? vec3(0.0, 0.0, 1.0) : vec3(0.0, 1.0, 0.0); // across the rail, in the face
+      const float PITCH = 5.0;
+      // A bead never narrower than about a pixel and a half, however far off: the grid stays to be seen at every zoom,
+      // its lines only widening as they shrink (the size of a pixel at this distance, from the camera's field of view)
+      float pix = length(uEye - vWorld) / 1100.0;
+      float HALF = max(0.6, 0.85 * pix);
+      float fade = smoothstep(0.06, 0.25, abs(dot(n, view))); // (only edge-on does it fade)
+      float pu = dot(vWorld, acr) / PITCH;
+      float pv = vWorld.x / PITCH;
+      float du = (fract(pu) - 0.5) * PITCH; // from the nearest line, in units
+      float dv = (fract(pv) - 0.5) * PITCH;
+      // a bead's height across it (1 on its crest, 0 off it), and its slope
+      float hu = 1.0 - smoothstep(0.0, HALF, abs(du));
+      float hv = 1.0 - smoothstep(0.0, HALF, abs(dv));
+      float su = abs(du) < HALF ? -sign(du) * (1.0 - abs(du) / HALF) : 0.0;
+      float sv = abs(dv) < HALF ? -sign(dv) * (1.0 - abs(dv) / HALF) : 0.0;
+
+      ridgeLine = fade * max(hu, hv);
+      ridgeH = 0.5 + 0.5 * ridgeLine + 0.06 * (vnoise(vWorld.yz * 3.0 + vWorld.x) - 0.5);
+
+      vec3 g = acr * su + vec3(1.0, 0.0, 0.0) * sv;
+      g -= n * dot(n, g);
+      n = normalize(n - 0.9 * fade * g);
+    }
+
+    // Engine-turned port flanges (pattern 13): projected on the face's dominant plane; each spot dished a little toward
+    // its middle (its normal leaning out toward the rim), a bright lip and a dark step where it lies over its neighbour,
+    // and fine turning rings in it (fading away with distance, so that they never shimmer)
+    float gridV = 0.5;
+    float gridEdge = 0.0;
+    float gridRing = 0.5;
+
+    if (isGrid > 0.5) {
+      vec3 w = abs(n);
+      vec2 sp;
+      vec2 l2;
+      vec3 eu;
+      vec3 ev;
+
+      if (w.x >= w.y && w.x >= w.z) { sp = vWorld.zy; l2 = vec2(keyDir.z, keyDir.y) + vec2(view.z, view.y); eu = vec3(0.0, 0.0, 1.0); ev = vec3(0.0, 1.0, 0.0); }
+      else if (w.y >= w.z) { sp = vWorld.xz; l2 = vec2(keyDir.x, keyDir.z) + vec2(view.x, view.z); eu = vec3(1.0, 0.0, 0.0); ev = vec3(0.0, 0.0, 1.0); }
+      else { sp = vWorld.xy; l2 = vec2(keyDir.x, keyDir.y) + vec2(view.x, view.y); eu = vec3(1.0, 0.0, 0.0); ev = vec3(0.0, 1.0, 0.0); }
+
+      const float CELL = 7.0; // a spot every 7 units
+      vec2 rel;
+      float far = 1.0 - smoothstep(320.0, 760.0, length(uEye - vWorld));
+
+      gridV = spotGrid(sp / CELL, normalize(l2 + vec2(1e-4)), rel, gridEdge);
+      gridRing = mix(0.5, 0.5 + 0.5 * sin(length(rel) * 150.0), 0.55 * (1.0 - smoothstep(110.0, 260.0, length(uEye - vWorld))));
+
+      // dished toward its middle, and the rim's step
+      vec3 radial = eu * rel.x + ev * rel.y;
+      vec3 tilt = radial * (0.22 + 1.1 * gridEdge);
+
+      n = normalize(n + far * (tilt - n * dot(n, tilt)));
+    }
+
+    // Dimpled sheet (pattern 12), on the cooled charge's pipes: deep oval pits pressed in a diagonal grid, flat bright lands
+    // between them; each pit a smooth bowl, steep at its rim and dark in its depth, its far wall catching a bright streak;
+    // at every zoom (the pits grow as the eye draws back, blended), so that it is never grainy
+    float knurlH = 0.5;
+    float pitDepth = 0.0;
 
     if (isKnurl > 0.5) {
       vec3 w = abs(n);
       w = w * w * w * w;
       w /= (w.x + w.y + w.z);
-      const float K = 0.42; // grooves per unit (each diamond a little over 2 units across)
-      // The knurl fades away where its diamonds would come under a few pixels (far off, or seen edge-on), so that it
-      // never shimmers or crawls as the engine turns: there the pipe is plain satin
-      float dist = length(uEye - vWorld);
-      float facing = abs(dot(n, view));
-      float fade = (1.0 - smoothstep(480.0, 1000.0, dist / max(facing, 0.25))) * smoothstep(0.08, 0.32, facing);
+
+      float pix = length(uEye - vWorld) / 1100.0;
+      float P0;
+      float tl;
+
+      zoomLevel(4.2, pix, 14.0, P0, tl);
+
+      float fade = smoothstep(0.08, 0.32, abs(dot(n, view)));
       vec3 g = vec3(0.0);
       float h = 0.0;
+      float dep = 0.0;
 
-      // a smooth diamond's height in a plane (u, v), and its slope: two soft waves crossing, no hard edges to alias
       for (int ax = 0; ax < 3; ax++) {
         vec2 uv = ax == 0 ? vWorld.yz : (ax == 1 ? vWorld.zx : vWorld.xy);
-        float a = (uv.x + uv.y) * K * 6.2832;
-        float b = (uv.x - uv.y) * K * 6.2832;
-        float ca = 0.5 - 0.5 * cos(a);
-        float cb = 0.5 - 0.5 * cos(b);
-        float hh = ca * cb;
-        vec2 da = 0.5 * sin(a) * cb * vec2(1.0, 1.0);
-        vec2 db = 0.5 * sin(b) * ca * vec2(1.0, -1.0);
-        vec2 slope = da + db;
+        float hh = 0.0;
+        float dd = 0.0;
+        vec2 sl = vec2(0.0);
+
+        for (int lv = 0; lv < 2; lv++) {
+          float P = lv == 0 ? P0 : 2.0 * P0;
+          // the diagonal grid: a pit at every lattice point turned 45 degrees
+          vec2 q = vec2(uv.x + uv.y, uv.x - uv.y) * (0.7071 / P);
+          vec2 f = fract(q) - 0.5;
+          // back to the plane, the offset from the pit's middle, the pit a little taller than wide
+          vec2 r = vec2(f.x + f.y, f.x - f.y) * 0.7071;
+          vec2 e = r / vec2(0.40, 0.47);
+          float rr = length(e);
+          float inside = 1.0 - smoothstep(0.92, 1.0, rr);
+          // the bowl's depth (1 at its bottom) and its slope: steepest near the rim
+          float depth = inside * (1.0 - rr * rr);
+          vec2 s = rr < 1.0 ? (e / max(rr, 1e-3)) * (2.2 * rr) * inside : vec2(0.0);
+          float k = lv == 0 ? 1.0 - tl : tl;
+
+          hh += k * (1.0 - depth);
+          dd += k * depth;
+          sl += k * s;
+        }
+
         float wt = ax == 0 ? w.x : (ax == 1 ? w.y : w.z);
 
         h += hh * wt;
-        if (ax == 0) g += wt * vec3(0.0, slope.x, slope.y);
-        else if (ax == 1) g += wt * vec3(slope.y, 0.0, slope.x);
-        else g += wt * vec3(slope.x, slope.y, 0.0);
+        dep += dd * wt;
+        if (ax == 0) g += wt * vec3(0.0, sl.x, sl.y);
+        else if (ax == 1) g += wt * vec3(sl.y, 0.0, sl.x);
+        else g += wt * vec3(sl.x, sl.y, 0.0);
       }
 
       knurlH = mix(0.5, h, fade);
+      pitDepth = dep * fade;
       g -= n * dot(n, g);
-      n = normalize(n - 2.3 * fade * g); // (steep: tall diamonds, their sides turned well away)
+      n = normalize(n - 0.85 * fade * g); // (the walls lean in toward the pit's middle)
     }
 
     // Engine-turned spots (pattern 11): projected on the face's dominant plane, small, in offset rows
@@ -355,7 +610,10 @@ float emboss(vec2 p, out vec2 gr) {
     if (isCarbon > 0.5) {
       // a 2x2 twill: tiles stepped one along each row, so that the weave runs in diagonals; each tile a tow of fibres,
       // rounded across (lit on its crown, dark into the seams between tows), its fine fibres catching the light along it
-      vec2 q = vec2(vPos.y + vPos.x, vPos.z) * 0.24;
+      // (laid on the face's own plane: on a face toward x as it always was, on faces toward y or z the same weave turned
+      // onto them, so that it lies evenly round a pipe instead of stretching)
+      vec3 wa = abs(n);
+      vec2 q = (wa.x >= wa.y && wa.x >= wa.z ? vec2(vPos.y + vPos.x, vPos.z) : (wa.y >= wa.z ? vec2(vPos.x, vPos.z) : vec2(vPos.x, vPos.y))) * 0.24;
       vec2 cell = floor(q);
       vec2 f = fract(q);
       float par = mod(cell.x + floor((cell.y + mod(cell.x, 2.0)) * 0.5) * 2.0 + cell.y, 2.0);
@@ -369,7 +627,8 @@ float emboss(vec2 p, out vec2 gr) {
       weave = clamp((0.12 + 0.62 * crown + 0.12 * fibres + 0.22 * sheen) * (0.35 + 0.65 * seam), 0.0, 1.0);
 
       // the tow's roundness turns the normal across it, so that the light runs over the weave as the engine turns
-      vec3 tAcross = par > 0.5 ? vec3(0.0, 1.0, 0.0) : vec3(0.0, 0.0, 1.0);
+      vec3 tAcross = wa.x >= wa.y && wa.x >= wa.z ? (par > 0.5 ? vec3(0.0, 1.0, 0.0) : vec3(0.0, 0.0, 1.0))
+        : (wa.y >= wa.z ? (par > 0.5 ? vec3(1.0, 0.0, 0.0) : vec3(0.0, 0.0, 1.0)) : (par > 0.5 ? vec3(1.0, 0.0, 0.0) : vec3(0.0, 1.0, 0.0)));
 
       n = normalize(n + tAcross * (0.5 - across) * 0.55 * seam);
     }
@@ -386,7 +645,11 @@ float emboss(vec2 p, out vec2 gr) {
       + isSand * (-0.16 + 0.30 * sandGrit)
       + isShield * (0.34 * shieldH - 0.04) // (the pits fall darker, the crowns lighter: relief)
       + isSpot * (-0.22 + 0.44 * spotV)
-      + isKnurl * (-0.5 + 0.68 * pow(knurlH, 0.8)); // (the grooves fall deep and dark, the diamonds' crowns lit)
+      + isKnurl * (0.06 - 0.62 * pitDepth * pitDepth) // (the lands bright, the pits deep and dark)
+      + isGrid * (-0.42 + 0.78 * gridV + 0.12 * (gridRing - 0.5) - 0.32 * gridEdge)
+      + isRidge * (-0.26 + 0.56 * ridgeH) // (the beads lighter than the face between them)
+      + isPyr * (-0.3 + 0.5 * pyrH)
+      + isScale * (-0.14 + 0.52 * scaleV); // (lighter: its dark fans a lighter grey)
 
     // Oil fills in the grain: wet surfaces look smoother
     tone = 1.0 + (tone - 1.0) * (1.0 - (0.45 + 0.3 * soaked) * wetAmt);
@@ -421,7 +684,11 @@ float emboss(vec2 p, out vec2 gr) {
       + isSand * (-0.5 + 1.5 * sandGlint)
       + isShield * (0.05 + 1.15 * max(shieldH, 0.0)) // (light only on the crowns)
       + isSpot * (-0.7 + 1.9 * spotV)
-      + isKnurl * (-0.7 + 0.75 * knurlH); // (the highlight held down: only the crowns glint, softly)
+      + isKnurl * (0.1 + 0.6 * pitDepth * (1.0 - pitDepth) * 4.0 - 0.3 * pitDepth) // (a bright streak on the pits' walls)
+      + isGrid * (-0.8 + 2.4 * gridV * gridV * gridRing + 0.5 * gridEdge)
+      + isRidge * (-0.55 + 0.9 * ridgeLine)
+      + isPyr * (-0.45 + 0.9 * pyrFace)
+      + isScale * (-0.75 + 1.6 * scaleV * scaleV); // (soft: the fans glint, the rest held down)
 
     float fres = pow(1.0 - clamp(dot(n, view), 0.0, 1.0), 3.0);
 
@@ -678,6 +945,12 @@ export const VOLUME_FRAGMENT_SHADER = `
     vec3 gas = max(vec3(grey) + (uGasColor - vec3(grey)) * 1.45, vec3(0.0));
     vec3 col = gas * (gasA * 1.95) * (1.0 - flameA) + flameCol * flameA; // the colour stands out more than the alpha does
 
+    // looked at down the bore (square over a bank, or near it), the ray runs the chamber's whole depth and the charge glares:
+    // there it is toned down, its glow and how much it hides, easing in as the view comes round onto the bore's axis
+    float down = smoothstep(0.4, 0.9, abs(rd.y));
+    col *= 1.0 - 0.8 * down;
+    alpha *= 1.0 - 0.6 * down;
+
     gl_FragColor = vec4(col, alpha);
   }
 `;
@@ -803,15 +1076,27 @@ export const FOG_VERTEX_SHADER = `
   attribute vec4 aInfo; // distance along, angle round, heat, fade
 
   uniform mat4 uViewProj;
+  // The jet out of a tail pipe is stretched along its axis and widened across it, from the pipe's mouth (uJetAt) on,
+  // with the engine's speed: short and narrow at idle, longer and wider as it revs. The mouth itself keeps its size:
+  // the widening comes in over the first stretch of the jet. Everything else: scale 1, unchanged
+  uniform vec3 uJetAt;
+  uniform vec3 uJetAxis;
+  uniform vec2 uJetScale; // along, across
 
   varying vec3 vDir;
   varying vec3 vWorld;
   varying vec4 vInfo;
 
   void main() {
-    gl_Position = uViewProj * vec4(aPos, 1.0);
+    vec3 p = aPos - uJetAt;
+    float along = dot(p, uJetAxis);
+    vec3 across = p - uJetAxis * along;
+    float wide = mix(1.0, uJetScale.y, smoothstep(0.0, 70.0, along));
+    vec3 world = uJetAt + uJetAxis * along * uJetScale.x + across * wide;
+
+    gl_Position = uViewProj * vec4(world, 1.0);
     vDir = aDir;
-    vWorld = aPos;
+    vWorld = world;
     vInfo = aInfo;
   }
 `;

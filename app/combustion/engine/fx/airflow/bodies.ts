@@ -8,7 +8,7 @@ import { DOWNPIPES, EXHAUST_RUNNERS, MODULES, MODULE_ORIGIN, exhaustStub, module
 import { CHARGE_PIPES, IC_CHARGE_IN_Z, IC_CHARGE_OUT_Z, IC_STAND_Y, icPlace } from "../../mesh/intercooler";
 import { PIPES, PLENUM_MIDS, PORT_SEAT_Y, seatX } from "../../mesh/plumbing";
 import { curveFromPoints, roundedCurve } from "../../mesh/tubes";
-import { COLLECTOR_CONE, COMPRESSOR_OUTLET_LEN, IC, IC_HALF, PORT_Y, TB, TURBINE_INLET_LEN, collectorRadius, compressorPathLocal, compressorSection, turbinePathLocal, turbineSection, turboWorld } from "../../mesh/turbo";
+import { COMPRESSOR_OUTLET_LEN, IC, IC_HALF, PORT_Y, TB, TURBINE_INLET_LEN, compressorPathLocal, compressorSection, turbinePathLocal, turbineSection, turboWorld } from "../../mesh/turbo";
 import { IN_SIDE, VT } from "../../mesh/valvetrain";
 import { mixColor, polyLength, scatter, smooth01 } from "./common";
 import { AIR_FLOWS, chamberJet } from "./flows";
@@ -108,7 +108,7 @@ function fogMesh(specsIn: FogSpec[], toEngine: ((q: FwVec3) => FwVec3) | null): 
 }
 
 // kind 4: the hot gas past the collectors (to the turbines and out), darker; kind 0: the cold air going in; kind 1: the hot gas going out; kind 2: the hot gas's
-// brighter core through the turbine; kind 3: the air's brighter, cooler core through the compressor
+// brighter core through the turbine; kind 3: the air's brighter, cooler core through the compressor; kind 5: the jet out of the tails, white smoke
 type FogGroup = {
   mesh: FogMesh;
   kind: number;
@@ -118,6 +118,9 @@ type FogGroup = {
   feeds: number[]; // for a body that is always moving: the cylinders whose exhaust it carries
   phase: number; // this frame
   drive: number; // 0..1, this frame
+  jet?: boolean; // the jet out of a tail pipe: the faster the engine, the stronger
+  jetAt?: FwVec3; // and where it leaves the pipe, and which way it goes (in the engine's frame): it stretches from there
+  jetAxis?: FwVec3;
 };
 
 // A body with one radius all along
@@ -185,8 +188,8 @@ function buildBankFog(bank: Bank, bi: number) {
 
   const zs = bank.phi > 0 ? -1 : 1; // which side of the intercooler this bank is on
 
-  const group = (mesh: FogMesh, kind: number, cyl = -1, valve = 0, feeds: number[] = []) => {
-    FOG_GROUPS.push({ mesh, kind, cyl: cyl >= 0 ? base + cyl : cyl, valve, passes: 3, feeds: feeds.map((c) => base + c), phase: 0, drive: 1 });
+  const group = (mesh: FogMesh, kind: number, cyl = -1, valve = 0, feeds: number[] = [], jet = false) => {
+    FOG_GROUPS.push({ mesh, kind, cyl: cyl >= 0 ? base + cyl : cyl, valve, passes: 3, feeds: feeds.map((c) => base + c), phase: 0, drive: 1, jet });
   };
 
   // ---- the intake, from outside to the intercooler's inlet tank ----
@@ -374,10 +377,12 @@ function buildBankFog(bank: Bank, bi: number) {
   const exitEnd = turboWorld([-135, 0, 0]);
   const downPts = DOWNPIPES[bi].pts.map(toMod); // the exhaust pipe under the engine
   const tailEnd = downPts[downPts.length - 1];
-  const plumeEnd: FwVec3 = vadd(tailEnd, vscale(vnorm(vsub(tailEnd, downPts[downPts.length - 2])), 132));
-  const gPts: FwVec3[] = [...PIPES.log.pts, ...turbinePts, centre, exitEnd, ...downPts, plumeEnd];
+  const JET_LEN = 270; // the jet out of the tail
+  const plumeEnd: FwVec3 = vadd(tailEnd, vscale(vnorm(vsub(tailEnd, downPts[downPts.length - 2])), JET_LEN));
+  // (from the turbine's inlet on: the collector's stub above it goes with the headers, taken away on the see-through engine)
+  const gPts: FwVec3[] = [...turbinePts, centre, exitEnd, ...downPts];
 
-  const logLen = polyLength([...PIPES.log.pts, turbinePts[0]]);
+  const logLen = 0;
   const turbineLen = polyLength(turbinePts);
   const spiral2 = turbineLen - TURBINE_INLET_LEN;
   const g0 = logLen + TURBINE_INLET_LEN; // the spiral's start
@@ -387,13 +392,12 @@ function buildBankFog(bank: Bank, bi: number) {
 
   {
     const gasNodes: Array<[number, number]> = [
-      [0, collectorRadius(0) * 0.85], [COLLECTOR_CONE, collectorRadius(COLLECTOR_CONE) * 0.85],
-      [COLLECTOR_CONE + 30, 24 * 0.85], [logLen, 24 * 0.85], [g0 - 10, 22],
+      [0, 24 * 0.85], [g0 - 10, 22],
     ];
 
     for (let k = 0; k <= 8; k++) gasNodes.push([g0 + (k / 8) * spiral2, turbineSection(k / 8) * 0.5]);
 
-    gasNodes.push([g1 + 40, 10], [g2, 15], [g3 - 70, 17], [g3 - 15, 21], [g3, 25], [g3 + 132, 60]);
+    gasNodes.push([g1 + 40, 10], [g2, 15], [g3 - 70, 17], [g3 - 15, 21], [g3, 25]);
 
     // this bank's gas: fed by its six cylinders
     group(
@@ -401,11 +405,31 @@ function buildBankFog(bank: Bank, bi: number) {
         points: gPts,
         nodes: gasNodes,
         // from orange to a deeper orange as it cools, along the tail and the plume
-        tone: (s) => smooth01((s - g1) / Math.max(1, g3 + 132 - g1)),
-        fadeIn: 30, fadeOut: 170,
+        tone: (s) => smooth01((s - g1) / Math.max(1, g3 - g1)),
+        fadeIn: 30, fadeOut: 20,
       }], XM),
       4, -1, 1, CT_X.map((_, c) => c) // kind 4: the gas past the collector, a darker, quieter red than in the runners
     );
+
+    // and the jet out of the tail: its own body, which grows stronger as the engine speeds up (update.ts: `jet`),
+    // spreading as it leaves, fading out as it goes
+    group(
+      fogMesh([{
+        points: [tailEnd, plumeEnd],
+        nodes: [[0, 24], [50, 34], [JET_LEN, 92]],
+        tone: (s) => smooth01(s / JET_LEN), // white at the mouth, smoke grey as it spreads
+        fadeIn: 6, fadeOut: JET_LEN - 40,
+      }], XM),
+      5, -1, 1, [], true // kind 5: the jet, white smoke
+    );
+    {
+      const jet = FOG_GROUPS[FOG_GROUPS.length - 1];
+      const a = XM(tailEnd);
+      const e = XM(plumeEnd);
+
+      jet.jetAt = a;
+      jet.jetAxis = vnorm(vsub(e, a));
+    }
 
     // Through the turbine the gas shows a hotter, brighter core, inside the body:
     // in at the inlet, round the wheel's housing, and out along the shaft
@@ -449,8 +473,6 @@ function buildBankFog(bank: Bank, bi: number) {
   const SKY: [number, number, number] = [0.25, 0.82, 1.0];
   const COBALT: [number, number, number] = [0.06, 0.42, 1.0];
   const INDIGO: [number, number, number] = [0.12, 0.48, 1.0]; // (a deeper blue: the charge stays blue the whole way)
-  const EMBER: [number, number, number] = [1.0, 0.24, 0.02];
-  const GOLD: [number, number, number] = [1.0, 0.6, 0.18];
 
   tracer(
     [
@@ -464,8 +486,7 @@ function buildBankFog(bank: Bank, bi: number) {
     (u) => mixColor(mixColor(SKY, COBALT, smooth01(u / 0.12)), INDIGO, smooth01((u - 0.14) / 0.1) * (1 - smooth01((u - 0.5) / 0.12)) * 0.7)
   );
 
-  // (from the turbine on: the headers are not shown)
-  tracer([...gPts.map(XM)], 15, 4, 9, 0, 2.3, 75, (u) => mixColor(EMBER, GOLD, smooth01(u / 0.3) * (1 - smooth01((u - 0.55) / 0.3))), true);
+  // (no tracer along the exhaust: only its gas shows, and the jet out of the tail)
 
 }
 

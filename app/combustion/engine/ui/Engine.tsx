@@ -43,14 +43,16 @@ const VIEW_BUTTONS: Array<[ViewName, string]> = VIEW_ORDER.map((name) => [name, 
 const LAYOUT_CSS = `
 .ak-root { width: 99vw; height: 99vh; display: flex; flex-direction: column; box-sizing: border-box; }
 .ak-row1 { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; column-gap: 16px; }
-.ak-hints { justify-self: end; }
+.ak-hints { justify-self: end; container-type: inline-size; }
+.ak-hint-line { white-space: nowrap; font-size: max(7.5px, min(11px, 2.6cqw)); }
 .ak-right { margin-left: auto; }
 @media (max-width: 1024px), (max-height: 640px) {
   .ak-root { width: 100%; max-width: 100vw; height: auto; min-height: 100dvh; padding: 10px; border-radius: 14px; }
   .ak-stage { flex: none !important; height: min(62dvh, 118vw); min-height: 280px !important; }
   .ak-row1 { grid-template-columns: minmax(0, 1fr); justify-items: center; row-gap: 10px; }
   .ak-sliders { justify-content: center; }
-  .ak-hints { justify-self: center; width: auto !important; text-align: center; max-width: 34rem !important; }
+  .ak-hints { justify-self: center; width: 100% !important; text-align: center; max-width: 100% !important; }
+  .ak-hint-line { font-size: max(7.5px, min(11px, 2.6cqw)); }
   .ak-row2 { flex-direction: column; align-items: stretch; }
   .ak-left { display: flex; width: 100%; }
   .ak-play { flex-wrap: wrap; justify-content: center; }
@@ -73,6 +75,9 @@ const LAYOUT_CSS = `
 @media (max-width: 480px) {
   .ak-root { padding: 6px; border-radius: 10px; }
   .ak-root button { font-size: 12px !important; padding-left: 10px; padding-right: 10px; }
+}
+@media (max-width: 600px) {
+  .ak-hint-line { white-space: normal; font-size: 11px; } /* (on a phone: readable, over two lines) */
 }
 `;
 
@@ -144,27 +149,64 @@ export default function Engine() {
   // Starts from the scene's own setting: it lives outside the component, so a
   // remount must not reset the button and leave the scene disagreeing with it
   const [air, setAir] = useState(() => SCENE_OPTIONS.airflow);
-  const [names, setNames] = useState(() => SCENE_OPTIONS.labels);
   const [see, setSee] = useState(() => SCENE_OPTIONS.seeThrough);
 
   // The firing order, as a row of cylinder numbers under the stage: the one that fired last is lit, and fades
   const chipRefs = useRef<Array<HTMLSpanElement | null>>([]);
-  // the firing order's width: the hints above it take the same, so that both start at the same place
-  const firingRef = useRef<HTMLDivElement | null>(null);
-  const [firingWidth, setFiringWidth] = useState(0);
+  // the hints start exactly where the firing order's lines do (both banks', aligned left), on a computer, where they stand over them
+  const hintsRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    const el = firingRef.current;
+    const align = () => {
+      const hints = hintsRef.current;
+      const chip = chipRefs.current[0]?.parentElement; // the firing order's block (both banks' lines start together)
 
-    if (!el || typeof ResizeObserver === "undefined") return;
+      if (!hints || !chip) return;
 
-    const observer = new ResizeObserver(() => setFiringWidth(Math.round(el.getBoundingClientRect().width)));
+      const dials = hints.previousElementSibling as HTMLElement | null;
+      const sliders = dials?.previousElementSibling as HTMLElement | null;
 
-    observer.observe(el);
+      hints.style.marginLeft = "";
+      hints.style.width = "100%";
+      if (dials) dials.style.transform = "";
 
-    return () => observer.disconnect();
+      if (window.matchMedia("(max-width: 1024px), (max-height: 640px)").matches) return;
+
+      // the gauges keep their place in the middle unless the firing order reaches in under them: then they step left
+      // just enough to leave the hints room to start where it does (never into the sliders on their left)
+      const target = chip.getBoundingClientRect().left;
+
+      if (dials) {
+        const d = dials.getBoundingClientRect();
+        // (the sliders' own right edge: of what is in their column, not of the column)
+        const slidersRight = sliders ? Math.max(...Array.from(sliders.children).map((c) => c.getBoundingClientRect().right)) : d.left;
+        const room = d.left - (slidersRight + 16);
+        const shift = Math.min(Math.max(0, d.right + 10 - target), Math.max(0, room));
+
+        if (shift > 0) dials.style.transform = `translateX(${(-shift).toFixed(1)}px)`;
+      }
+
+      // (its right edge stays where it is: only its left edge moves, onto the firing order's, and the line's size follows
+      // its width; but never in under the gauges, if they could not step far enough aside)
+      const start = hints.getBoundingClientRect().left;
+      const floor = dials ? dials.getBoundingClientRect().right + 4 - start : -Infinity;
+      const gap = Math.max(target - start, floor);
+
+      hints.style.marginLeft = `${gap.toFixed(1)}px`;
+      hints.style.width = `calc(100% - ${gap.toFixed(1)}px)`;
+    };
+    const watch = new ResizeObserver(align);
+
+    if (hintsRef.current?.parentElement) watch.observe(hintsRef.current.parentElement);
+    if (chipRefs.current[0]?.parentElement) watch.observe(chipRefs.current[0].parentElement);
+    window.addEventListener("resize", align);
+    align();
+
+    return () => {
+      watch.disconnect();
+      window.removeEventListener("resize", align);
+    };
   }, []);
-
   // The view buttons follow the camera: the one of the view shown is lit, from a button, a double click or not at all
   // (a drag, the turntable); a view chosen by a double click stops the turntable, as a button does
   useEffect(
@@ -176,7 +218,19 @@ export default function Engine() {
     [camera]
   );
 
+  // Each cylinder's chip in the firing order wears the colour of the stroke its cylinder is in now, the legend's colours
+  // made a little stronger: intake a soft blue, compression a light yellow, power (the burn) orange, exhaust a pale grey; its
+  // number and its angle in a colour that stands out on it (dark on the light ones, white on the deep ones). Each flares
+  // as its cylinder fires
   useEffect(() => {
+    const STROKE_BG = [
+      { bg: "#4a9fe0", num: "#ffffff", deg: "rgba(255, 255, 255, 0.9)" }, // intake: a softer blue
+      { bg: "#ffe48a", num: "#1a1206", deg: "rgba(26, 18, 6, 0.78)" }, // compression: a lighter yellow
+      { bg: "#ff8c1a", num: "#1f0f02", deg: "rgba(31, 15, 2, 0.8)" }, // power: orange, not red
+      { bg: "#d6dce4", num: "#0f172a", deg: "rgba(15, 23, 42, 0.75)" }, // exhaust: a pale grey
+    ];
+    const shown: number[] = [];
+
     return clock.subscribe((frame) => {
       for (let k = 0; k < FIRING_ORDER.length; k++) {
         const chip = chipRefs.current[k];
@@ -185,12 +239,24 @@ export default function Engine() {
 
         const f = FIRING_ORDER[k];
         const p = normalizeCycle(frame.t + f.cyl.bank.phase[f.cyl.k]);
+        const stroke = Math.min(3, Math.floor(p * 4));
         const since = (p - 0.5 + 1) % 1; // the share of the cycle since this cylinder fired
         const lit = Math.exp(-since * 16);
-        const [r, g, b] = f.bank === 0 ? [82, 182, 255] : [255, 122, 60];
 
-        chip.style.backgroundColor = `rgba(${r}, ${g}, ${b}, ${(0.1 + 0.8 * lit).toFixed(3)})`;
-        chip.style.boxShadow = lit > 0.08 ? `0 0 ${(12 * lit).toFixed(1)}px rgba(${r}, ${g}, ${b}, ${(0.9 * lit).toFixed(3)})` : "none";
+        if (shown[k] !== stroke) {
+          shown[k] = stroke;
+
+          const s = STROKE_BG[stroke];
+          const [num, deg] = Array.from(chip.children) as HTMLElement[];
+
+          chip.style.backgroundColor = s.bg;
+          if (num) num.style.color = s.num;
+          if (deg) deg.style.color = s.deg;
+        }
+
+        chip.style.boxShadow = lit > 0.08
+          ? `0 0 ${(12 * lit).toFixed(1)}px rgba(255, 90, 20, ${(0.9 * lit).toFixed(3)}), inset 0 0 0 1px rgba(0,0,0,0.35)`
+          : "inset 0 0 0 1px rgba(0,0,0,0.35)";
       }
     });
   }, []);
@@ -477,15 +543,6 @@ export default function Engine() {
     camera.notify();
   };
 
-  // The names of the components, all of them or none
-  const toggleNames = () => {
-    const next = !names;
-
-    SCENE_OPTIONS.labels = next;
-    setNames(next);
-    camera.notify();
-  };
-
   const changeSpin = (value: number) => {
     if (!Number.isFinite(value)) return;
 
@@ -560,17 +617,31 @@ export default function Engine() {
 
             {/* the hints, on the right: as wide as the firing order below, so that they start where it does */}
             <div
+              ref={hintsRef}
               className="ak-hints text-slate-500"
               style={{
-                width: firingWidth || undefined,
-                maxWidth: "100%", // never over the dials: narrower then, and it wraps
+                boxSizing: "border-box",
+                width: "100%", // the whole of its column: the line of hints fits it, its size shrinking to keep it on one line
                 fontSize: "clamp(9px, 1vw, 11px)",
                 color: "#64748b",
                 lineHeight: 1.3,
               }}
             >
-              Drag to turn the engine, over it or under it · wheel or pinch to zoom · double-click or double-tap for the next view
+              <div className="ak-hint-line">
+                Drag to rotate · scroll or pinch to zoom · double-tap for the next view
+              </div>
               <div style={{ marginTop: 5 }}>Crank : cam = 2 : 1 · One shared animation clock</div>
+              <div className="ak-legend flex flex-wrap items-center justify-start gap-x-1.5 gap-y-1" style={{ marginTop: 7, fontSize: 10.5, whiteSpace: "nowrap" }}>
+                <span className="text-[9.5px] font-semibold uppercase tracking-widest text-slate-500">Legend:</span>
+                <Legend color="#4a9fe0" label="Intake" />
+                <Legend color="#ffe48a" label="Compression" />
+                <Legend color="#ff8c1a" label="Power" />
+                <Legend color="#d6dce4" label="Exhaust" />
+                <Legend color="#D3CDCD" label="Crank" />
+                {/* These two only while the airflow is on: the legend grows to the right */}
+                {air && <Legend color="#52B6FF" label="Cold intake air" />}
+                {air && <Legend color="#FF4A0A" label="Hot exhaust gas" />}
+              </div>
             </div>
 
           </div>
@@ -636,17 +707,6 @@ export default function Engine() {
 
                 <button
                   type="button"
-                  onClick={toggleNames}
-                  aria-pressed={names}
-                  className={`flex-1 whitespace-nowrap rounded-md px-2 py-1 text-[11px] font-semibold text-white ${
-                    names ? "bg-violet-600 hover:bg-violet-500" : "bg-slate-700 hover:bg-slate-600"
-                  }`}
-                >
-                  {names ? "Aa Labels on" : "Aa Labels off"}
-                </button>
-
-                <button
-                  type="button"
                   onClick={toggleSee}
                   aria-pressed={see}
                   className={`flex-1 whitespace-nowrap rounded-md px-2 py-1 text-[11px] font-semibold text-white ${
@@ -681,45 +741,46 @@ export default function Engine() {
             </div>
           </div>
 
-            {/* On the right, against the stage's edge: the firing order on the switches' line, the legend at the bottom, level with the views.
-                The cylinders' numbers in the order they fire, each with the crank angle (of 720) it fires at; A's in blue,
-                B's in orange; the last to fire is lit */}
-            <div className="ak-right ml-auto flex flex-col items-end justify-between gap-2" style={{ justifyContent: "space-between" }}>
-  <div
-                ref={firingRef}
-                role="group"
-                aria-label="Firing order"
-                className="ak-firing flex flex-wrap items-center justify-end gap-1 rounded-lg bg-slate-900 p-1 ring-1 ring-white/10"
-              >
-                <span className="px-2 text-[10px] font-semibold uppercase tracking-widest text-slate-500">Firing order</span>
-
-                {FIRING_ORDER.map((f, k) => (
-                  <span
-                    key={f.no}
-                    ref={(el) => {
-                      chipRefs.current[k] = el;
-                    }}
-                    className="flex flex-col items-center rounded-md px-1.5 py-0.5"
-                    style={{ minWidth: 40, backgroundColor: "rgba(51, 65, 85, 0.45)" }}
-                  >
-                    <span className="text-sm font-bold leading-4 text-white">{f.no}</span>
-                    <span className="text-[9px] leading-3 tabular-nums" style={{ color: f.bank === 0 ? "#52B6FF" : "#FF8A4C" }}>
-                      {f.deg}°
-                    </span>
+            {/* On the right, against the stage's edge: the firing order, one line for each bank, bank A over bank B, each with
+                its cylinders in the order they fire and the crank angle (of 720) each fires at; each chip in the colour of the
+                stroke its cylinder is in now (the legend, with the hints above) */}
+            <div className="ak-right ml-auto flex flex-col items-stretch justify-center gap-2" style={{ justifyContent: "center" }}>
+              {[0, 1].map((bank) => (
+                <div
+                  key={bank}
+                  role="group"
+                  aria-label={`Firing order, bank ${bank === 0 ? "A" : "B"}`}
+                  className="ak-firing flex flex-wrap items-center justify-start rounded-lg bg-slate-900 ring-1 ring-white/10"
+                  style={{ justifyContent: "flex-start", padding: 2, gap: 6 }}
+                >
+                  <span className="font-semibold uppercase text-slate-500" style={{ fontSize: 9.5, minWidth: 0, padding: "0 0 0 2px", marginRight: -0.6, letterSpacing: "0.03em", whiteSpace: "nowrap", display: "inline-flex", alignItems: "center" }}>
+                    Firing order ·&nbsp;<span style={{ color: bank === 0 ? "#52B6FF" : "#FF8A4C" }}>Bank {bank === 0 ? "A" : "B"}</span>
+                    {/* a chevron, in the bank's colour, pointing at its first cylinder: 5 px from the letter, 7 px to the chip */}
+                    <svg width="10" height="12" viewBox="0 0 10 12" aria-hidden="true" style={{ marginLeft: 3.9, flex: "none" }}>
+                      <path d="M2 1.5 L7.5 6 L2 10.5" fill="none" stroke={bank === 0 ? "#52B6FF" : "#FF8A4C"} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
                   </span>
-                ))}
-              </div>
-                <div className="ak-legend flex flex-wrap items-center justify-end gap-x-2 gap-y-1 text-xs" style={{ minHeight: 34 }}>
-                  <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-500">Legend:</span>
-                  <Legend color="#12A5FF" label="Intake" />
-                  <Legend color="#FFB800" label="Compression" />
-                  <Legend color="#FF5A00" label="Power" />
-                  <Legend color="#EAF2FF" label="Exhaust" />
-                  <Legend color="#D3CDCD" label="Crank" />
-                  {/* These two only while the airflow is on: the legend grows to the left, its right edge stays on the stage's */}
-                  {air && <Legend color="#52B6FF" label="Cold intake air" />}
-                  {air && <Legend color="#FF4A0A" label="Hot exhaust gas" />}
+
+                  {FIRING_ORDER.map((f, k) => (f.bank !== bank ? null : (
+                    <span
+                      key={f.no}
+                      ref={(el) => {
+                        chipRefs.current[k] = el;
+                      }}
+                      className="flex items-center rounded-md"
+                      // the number and the angle each in a slot of its own, sized in the font's own units (a digit's width, ch),
+                      // so that every chip is as wide as its widest text needs on any screen and in any font, and all of them
+                      // the same width; a single-digit number stands in the middle of its slot (where a two-digit one's middle is), the
+                      // angles set to the right of theirs, so that a two-digit angle lines up with the three-digit ones on its right;
+                      // (all of it 10% bigger than it was: 4.4 px from the slots to the chip's sides, 5.5 px above and below)
+                      style={{ width: "max-content", padding: "8.5px 6.4px 8.5px 4.4px", gap: 6.6, backgroundColor: "rgba(51, 65, 85, 0.45)", transition: "background-color 0.12s linear", justifyContent: "flex-start", whiteSpace: "nowrap" }}
+                    >
+                      <span className="font-bold tabular-nums text-white" style={{ fontSize: 24.2, lineHeight: "24.2px", width: "2.1ch", textAlign: "center", flex: "none" }}>{f.no}</span>
+                      <span className="tabular-nums" style={{ fontWeight: 650, fontSize: 17.3, lineHeight: "18.5px", width: "calc(3ch + 0.6em)", textAlign: "right", flex: "none" }}>{f.deg}°</span>
+                    </span>
+                  )))}
                 </div>
+              ))}
             </div>
           </div>
 

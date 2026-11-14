@@ -1,77 +1,28 @@
 "use client";
 
-// The stage: the canvas, the labels that follow the parts, the start button and the boost gauge.
+// The stage: the canvas, the start button and the boost gauge.
 
 import { useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { BANKS, CYLS, FLYWHEEL_WORLD_X, ROD_LIFT, bankPoint } from "../core/constants";
-import type { Bank } from "../core/constants";
-import { normalizeCycle } from "../core/numbers";
-import { SCENE_OPTIONS } from "../core/options";
-import { STROKE_COLORS, STROKE_LABEL, strokeOf } from "../core/strokes";
-import type { Stroke } from "../core/strokes";
-import type { FwVec3 } from "../mesh/builder";
-import { MODULES, modulePoint } from "../mesh/exhaust";
-import { IC_CORE_Z, IC_STAND_Y, icPlace } from "../mesh/intercooler";
-import { PIPES } from "../mesh/plumbing";
-import { HDR_CX, IC, TURBO } from "../mesh/turbo";
 import { Loader } from "./Loader";
-import { CAM_BASE_DISTANCE, useCamera } from "../render/camera";
-import { FLOOR_Y } from "../render/look";
+import { useCamera } from "../render/camera";
 import { createEngineRenderer } from "../render/renderer";
 import type { EngineRenderer } from "../render/renderer";
 import { StartContext, useEngineClock } from "../sim/clock";
 import type { EngineFrame } from "../sim/clock";
-import SideButton from "./SideButton";
+import Joystick from "./Joystick";
 
 /* =========================================================
-   THE VIEW: the canvas, the labels that follow the cylinders, and the
+   THE VIEW: the canvas, and the
    pointer: drag to turn the engine, wheel or pinch to zoom, double-click to
    come back to the first view.
    ========================================================= */
 
-const LABEL_Y = -448 - ROD_LIFT; // a cylinder's label stands just over its camshafts, in the clear above the head
-const LABEL_Z = 0; // in line with the cylinder's axis: it names the cylinder under it
-const LABEL_LIFT = 85; // and raised this far, straight up, so that the name stands well above the head and is easy to see
-
-// Which components are named depends on how close the view is. Looking at the whole engine (zoomed out),
-// a component is named when it is in the frame, at least this many pixels inside its edges, and not far
-// behind the plane the camera looks at: a part at the back of the view, behind the engine, is not named.
-// Zoomed in (further than CLOSE_UP times the whole engine's view), the view is of one thing, the one at
-// the middle of the stage, and only that is named: the others, in frame or not, are not. The label
-// itself is drawn by the component, and kept inside the frame, with room for its text.
-const LABEL_MARGIN = 28;
-const ANYWHERE = -1e6; // a margin that lets a point be anywhere on the page, so long as it is in front of the camera
-const CLOSE_UP = 2.6; // the views of the turbochargers and the intercoolers still name every part: only a much closer view names one
-const FOREGROUND = 520; // in an overview, how far behind the nearest component that is named a component may be, and be named
-const CLOSE_UP_RADIUS = 0.42; // of the stage's width, from its middle: the one at the middle must be this near it
-const LABEL_ROOM_X = 70;
-const LABEL_ROOM_Y = 34;
-
-// The parts that are named. Each pair is numbered by its bank (1 is the bank of the cylinders 1 to 6, 2 the other), and each
-// name stands in the middle of its part
-type PartLabel = { text: string; at: FwVec3; behind: number; band: number };
-
-const PART_LABELS: PartLabel[] = [
-  // the one turbocharger, in the V, and its air filter
-  ...MODULES.flatMap((m): PartLabel[] => {
-    const no = m.bank.numbers.includes(1) ? 1 : 2;
-
-    return [
-      { text: `TURBO ${no}`, at: modulePoint(m, [TURBO.x, TURBO.y, TURBO.z]), behind: 300, band: 900 },
-      { text: `AIR FILTER ${no}`, at: modulePoint(m, PIPES.intake.pts[PIPES.intake.pts.length - 1]), behind: 300, band: 900 },
-    ];
-  }),
-  { text: "STARTER MOTOR", at: [FLYWHEEL_WORLD_X - 40 - 200, 120, -120], behind: 300, band: 900 },
-  // each intercooler is on the side of the bank that feeds it: bank B's, of the cylinders 1 to 6, at +Z
-  { text: "INTERCOOLER 1", at: icPlace(1, [IC.x, IC_STAND_Y, IC_CORE_Z]), behind: 300, band: 900 },
-  { text: "INTERCOOLER 2", at: icPlace(-1, [IC.x, IC_STAND_Y, -IC_CORE_Z]), behind: 300, band: 900 },
-  { text: "CRANKSHAFT", at: [HDR_CX + 270, 30, 0], behind: 300, band: 900 },
-];
-
 // The dashboard's push button, under the compass: as on a car, a brushed chrome ring in a dark bezel, the button's face
 // dark and a little domed, ENGINE START / STOP in white on it, and a small lamp above the words: dim while the engine is
 // off, amber while it is starting, green while it runs. As wide as the compass, so that the four buttons would fit in it
-const DASH_D = 3 * 37 + 2 * 4; // the compass's width
+const DASH_D = 3 * 37 + 2 * 4; // the start button's width (as the old compass's)
+const JOY_D = 90; // the joystick's, under it: smaller (7% bigger than the 84 it was, its centre kept where it was)
+const JOY_D0 = 84;
 
 function DashStartButton() {
   const { toggle, on, starting, caught } = useContext(StartContext);
@@ -101,9 +52,9 @@ function DashStartButton() {
   const ring = D * 0.86; // the chrome ring's outside
   const face = D * 0.66; // the button's face
   const lamp = starting && !running
-    ? { c: "#ffb020", glow: "0 0 6px 2px rgba(255, 176, 32, 0.85)" }
+    ? { c: "linear-gradient(180deg, #ffd08a 0%, #ff7a00 45%, #c44800 100%)", glow: "0 0 2.5px 0.5px rgba(255, 110, 0, 0.8)" } // a vivid orange, its glow tight
     : running
-    ? { c: "linear-gradient(180deg, #c8f7b4 0%, #4ccf3e 45%, #1f7a24 100%)", glow: "0 0 7px 2px rgba(74, 222, 58, 0.9)" }
+    ? { c: "linear-gradient(180deg, #8dff7a 0%, #12d425 45%, #077a12 100%)", glow: "0 0 2.5px 0.5px rgba(18, 212, 37, 0.8)" } // a deep, pure green, its glow tight
     : { c: "#24402a", glow: "inset 0 0 2px rgba(0, 0, 0, 0.8)" };
   const action = on ? "Stop the engine" : "Start the engine";
 
@@ -138,9 +89,9 @@ function DashStartButton() {
           height: face + 10,
           borderRadius: "50%",
           background: running
-            ? "conic-gradient(from 210deg, #b9f5a0, #3fbf3a 20%, #1d6e22 45%, #2f9a30 60%, #9be98a 75%, #237a26 90%, #b9f5a0)"
+            ? "conic-gradient(from 210deg, #8ff07a, #14c021 20%, #0a5e12 45%, #10951c 60%, #6fe35c 75%, #0c7016 90%, #8ff07a)"
             : "conic-gradient(from 210deg, #ff5a5a, #cc0000 25%, #7a0000 50%, #b30000 70%, #ff4040 85%, #ff5a5a)",
-          boxShadow: running ? "0 0 8px 1px rgba(74, 222, 58, 0.55), inset 0 0 0 1px rgba(0,0,0,0.5)" : "0 0 6px 1px rgba(204, 0, 0, 0.45), inset 0 0 0 1px rgba(0,0,0,0.5)",
+          boxShadow: running ? "0 0 3px 0 rgba(18, 200, 35, 0.6), inset 0 0 0 1px rgba(0,0,0,0.5)" : "0 0 6px 1px rgba(204, 0, 0, 0.45), inset 0 0 0 1px rgba(0,0,0,0.5)",
           transition: "background 0.4s ease, box-shadow 0.4s ease",
         }}
       />
@@ -176,8 +127,16 @@ function DashStartButton() {
           padding: 0,
           cursor: "pointer",
           pointerEvents: "auto",
-          // the face: dark grey, domed, lit softly from the upper left
-          background: "radial-gradient(circle at 38% 30%, #4a4e55 0%, #2e3136 38%, #1d1f23 70%, #141518 100%)",
+          // the face: dark, domed, lit softly from the upper left, and over all of it a fine raised texture: a grid of small
+          // domed studs, each lit on its upper left and shadowed below, crossed by a faint diamond knurl, a turned ring round its rim
+          background: [
+            "radial-gradient(circle at 38% 30%, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0.04) 35%, rgba(0,0,0,0) 55%, rgba(0,0,0,0.35) 100%)",
+            "radial-gradient(circle, rgba(0,0,0,0) 0 44%, rgba(255,255,255,0.10) 45.5%, rgba(0,0,0,0.55) 47%, rgba(0,0,0,0) 48.5%)",
+            "radial-gradient(circle at 38% 34%, rgba(255,255,255,0.30) 0 0.45px, rgba(150,156,166,0.18) 0.8px, rgba(0,0,0,0.6) 1.25px, rgba(0,0,0,0) 1.6px) 0 0 / 3.4px 3.4px",
+            "repeating-linear-gradient(45deg, rgba(255,255,255,0.035) 0 0.6px, rgba(0,0,0,0.18) 0.6px 1.7px)",
+            "repeating-linear-gradient(-45deg, rgba(255,255,255,0.03) 0 0.6px, rgba(0,0,0,0.16) 0.6px 1.7px)",
+            "radial-gradient(circle at 38% 30%, #3e424a 0%, #26292e 38%, #17191c 70%, #0f1012 100%)",
+          ].join(", "),
           boxShadow: pressed
             ? "inset 0 3px 6px rgba(0,0,0,0.75), inset 0 -1px 2px rgba(255,255,255,0.06), 0 0 0 rgba(0,0,0,0)"
             : "inset 0 2px 3px rgba(255,255,255,0.16), inset 0 -4px 6px rgba(0,0,0,0.6), 0 3px 4px rgba(0,0,0,0.85), 0 1px 0 rgba(255,255,255,0.05)",
@@ -204,12 +163,27 @@ function DashStartButton() {
         {/* the words, as one small drawing: each line stretched to its set width (textLength), so that they fit the
             face the same on every screen and in every browser, whatever its font and its text scaling */}
         <svg width={face * 0.8} height={face * 0.503} viewBox="0 0 70 44" aria-hidden="true" style={{ display: "block", overflow: "visible" }}>
-          <g fill="#f4f6f8" fontFamily="Arial, Helvetica, sans-serif" fontWeight="700" textAnchor="middle" style={{ filter: "drop-shadow(0 1px 0.6px rgba(0,0,0,0.7))" }}>
-            <text x="35" y="11" fontSize="12" textLength="58" lengthAdjust="spacingAndGlyphs">ENGINE</text>
-            <text x="35" y="24.5" fontSize="12" textLength="47" lengthAdjust="spacingAndGlyphs">START</text>
-            <rect x="9" y="28" width="52" height="1.4" rx="0.5" />
-            <text x="35" y="42" fontSize="12" textLength="38" lengthAdjust="spacingAndGlyphs">STOP</text>
-          </g>
+          {/* raised letters: a dark shadow under them, a bright edge over them, and their faces brushed silver, lit from above */}
+          <defs>
+            <linearGradient id="ak-start-face" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor="#ffffff" />
+              <stop offset="0.45" stopColor="#dfe3e8" />
+              <stop offset="0.55" stopColor="#aeb4bc" />
+              <stop offset="1" stopColor="#e9ecef" />
+            </linearGradient>
+          </defs>
+          {[
+            { dx: 0.35, dy: 0.9, fill: "rgba(0,0,0,0.85)", stroke: "none" },
+            { dx: -0.25, dy: -0.4, fill: "rgba(255,255,255,0.45)", stroke: "none" },
+            { dx: 0, dy: 0, fill: "url(#ak-start-face)", stroke: "rgba(40,44,50,0.55)" },
+          ].map((l, k) => (
+            <g key={k} transform={`translate(${l.dx} ${l.dy})`} fill={l.fill} stroke={l.stroke} strokeWidth={0.25} fontFamily="Arial, Helvetica, sans-serif" fontWeight="700" textAnchor="middle">
+              <text x="35" y="11" fontSize="12" textLength="58" lengthAdjust="spacingAndGlyphs">ENGINE</text>
+              <text x="35" y="24.5" fontSize="12" textLength="47" lengthAdjust="spacingAndGlyphs">START</text>
+              <rect x="9" y="28" width="52" height="1.4" rx="0.5" />
+              <text x="35" y="42" fontSize="12" textLength="38" lengthAdjust="spacingAndGlyphs">STOP</text>
+            </g>
+          ))}
         </svg>
       </button>
     </div>
@@ -221,9 +195,6 @@ export function EngineStage() {
   const camera = useCamera();
   const frameRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const labelRefs = useRef<Array<HTMLDivElement | null>>([]);
-  const flywheelLabelRef = useRef<HTMLDivElement | null>(null);
-  const partLabelRefs = useRef<Array<HTMLDivElement | null>>([]);
   const [failed, setFailed] = useState(false);
   const [loaded, setLoaded] = useState(false); // the engine is drawn: the loader goes
 
@@ -247,152 +218,8 @@ export function EngineStage() {
       }, 0);
     };
 
-    // The stroke each label shows now, so that the text changes only when the
-    // stroke does
-    const shown: Stroke[] = [];
-
-    const placeLabels = (frame: EngineFrame) => {
-      if (!renderer) return;
-
-      // Switched off, none of the component names is shown, whatever the view
-      const on = SCENE_OPTIONS.labels;
-
-      // From steeply above the labels would lie on the engine, and from the
-      // ends the cylinders hide one another: then they are not shown
-      const view = camera.view;
-      const steep = Math.abs(view.back[1]) > 0.8 || view.eye[1] > FLOOR_Y - 30;
-      const [stageW, stageH] = renderer.frame();
-
-      // Where a label goes: at its anchor, kept inside the frame, with room for its text
-      const keep = (x: number, y: number): [number, number] => [
-        Math.min(Math.max(x, LABEL_ROOM_X), Math.max(LABEL_ROOM_X, stageW - LABEL_ROOM_X)),
-        Math.min(Math.max(y, LABEL_ROOM_Y), Math.max(LABEL_ROOM_Y, stageH - LABEL_ROOM_Y)),
-      ];
-
-      // The things that can be named, by the middle of each: the twelve cylinders, the flywheel, then the
-      // parts; and how far behind the plane the camera looks at each may be, in an overview
-      const stage = renderer;
-      const named: Array<{ at: FwVec3; behind: number; band: number }> = [
-        ...CYLS.map((cy): { at: FwVec3; behind: number; band: number } => ({ at: bankPoint(cy.bank, cy.x, -150 - ROD_LIFT, 0), behind: 260, band: FOREGROUND })),
-        { at: [FLYWHEEL_WORLD_X, 0, 0], behind: 220, band: FOREGROUND },
-        ...PART_LABELS.map((p) => ({ at: p.at, behind: p.behind, band: p.band })),
-      ];
-      // Which banks show their outside to the camera: a bank's top face turned toward the eye. Only their cylinders are numbered
-      const bankIndex = CYLS.map((cy) => BANKS.indexOf(cy.bank));
-      const seen = BANKS.map((bank: Bank) => {
-        const c = bankPoint(bank, HDR_CX + bank.dx, -150 - ROD_LIFT, 0);
-        const toEye: FwVec3 = [view.eye[0] - c[0], view.eye[1] - c[1], view.eye[2] - c[2]];
-        const len = Math.hypot(toEye[0], toEye[1], toEye[2]) || 1;
-
-        return -(bank.m[3] * toEye[0] + bank.m[4] * toEye[1] + bank.m[5] * toEye[2]) / len > 0.25;
-      });
-      const closeUp = CAM_BASE_DISTANCE / view.distance > CLOSE_UP;
-      let nearestName = -1;
-      let nearestDistance = Infinity;
-      let foremost = Infinity; // of those in the frame, the one nearest the camera, along the line of sight
-      const framed: boolean[] = [];
-      const along: number[] = []; // how far each is from the camera, along the line of sight
-
-      for (let k = 0; k < named.length; k++) {
-        const c = named[k].at;
-
-        // a cylinder of a bank that turns its back to the camera is not named, and does not count
-        if (k < CYLS.length && !seen[bankIndex[k]]) {
-          framed.push(false);
-          along.push(Infinity);
-          continue;
-        }
-
-        const [px, py, front] = stage.project(c[0], c[1], c[2]);
-        const away = front ? Math.hypot(px - stageW / 2, py - stageH / 2) / stageW : Infinity;
-
-        if (away < nearestDistance) {
-          nearestDistance = away;
-          nearestName = k;
-        }
-
-        framed.push(stage.project(c[0], c[1], c[2], LABEL_MARGIN)[2]);
-        along.push(-((c[0] - view.eye[0]) * view.back[0] + (c[1] - view.eye[1]) * view.back[1] + (c[2] - view.eye[2]) * view.back[2]));
-
-        if (framed[k]) foremost = Math.min(foremost, along[k]);
-      }
-
-      // Is the k-th of them named in this view?
-      const inMainFrame = (k: number) => {
-        if (closeUp) return k === nearestName && nearestDistance <= CLOSE_UP_RADIUS;
-
-        // in an overview: in the frame, not far behind the plane the camera looks at, and not far behind
-        // the nearest component in the frame: what is behind the others is not what the view is of
-        return framed[k] && along[k] <= view.distance + named[k].behind && along[k] <= foremost + named[k].band;
-      };
-
-      // The cylinders' labels: all twelve are placed, and shown for the bank that shows its outside
-      const spots: Array<[number, number, boolean]> = CYLS.map((cy) => {
-        const w = bankPoint(cy.bank, cy.x, LABEL_Y, LABEL_Z);
-
-        return stage.project(w[0], w[1] - LABEL_LIFT, w[2], ANYWHERE);
-      });
-      const apart = BANKS.map(() => Infinity);
-
-      for (let i = 1; i < CYLS.length; i++) {
-        if (CYLS[i].bank !== CYLS[i - 1].bank) continue;
-
-        apart[bankIndex[i]] = Math.min(apart[bankIndex[i]], Math.hypot(spots[i][0] - spots[i - 1][0], spots[i][1] - spots[i - 1][1]));
-      }
-
-      for (let i = 0; i < CYLS.length; i++) {
-        const el = labelRefs.current[i];
-
-        if (!el) continue;
-
-        const show = !steep && seen[bankIndex[i]] && apart[bankIndex[i]] > 78;
-        const [ax, ay, front] = spots[i];
-        const [x, y] = keep(ax, ay);
-
-        el.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) translate(-50%, -100%)`;
-        el.style.opacity = on && front && show && inMainFrame(i) ? "1" : "0";
-
-        const stroke = strokeOf(normalizeCycle(frame.t + CYLS[i].bank.phase[CYLS[i].k]));
-
-        if (shown[i] !== stroke) {
-          shown[i] = stroke;
-
-          const name = el.firstElementChild as HTMLElement | null;
-
-          if (name) {
-            name.textContent = STROKE_LABEL[stroke];
-            name.style.color = STROKE_COLORS[stroke].label;
-          }
-        }
-      }
-
-      const fly = flywheelLabelRef.current;
-
-      if (fly) {
-        const [ax, ay, front] = renderer.project(FLYWHEEL_WORLD_X, FLOOR_Y - 12, 0, ANYWHERE);
-        const [x, y] = keep(ax, ay);
-
-        fly.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) translate(-50%, 0)`;
-        fly.style.opacity = on && front && !steep && inMainFrame(CYLS.length) ? "1" : "0";
-      }
-
-      for (let i = 0; i < PART_LABELS.length; i++) {
-        const el = partLabelRefs.current[i];
-
-        if (!el) continue;
-
-        const at = PART_LABELS[i].at;
-        const [ax, ay, front] = renderer.project(at[0], at[1], at[2], ANYWHERE);
-        const [x, y] = keep(ax, ay);
-
-        el.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) translate(-50%, -50%)`;
-        el.style.opacity = on && front && !steep && inMainFrame(CYLS.length + 1 + i) ? "1" : "0";
-      }
-    };
-
     const render = (frame: EngineFrame) => {
       renderer?.draw(frame);
-      placeLabels(frame);
     };
 
     const initialize = () => {
@@ -413,8 +240,6 @@ export function EngineStage() {
 
     const resize = () => {
       renderer?.resize();
-
-      if (renderer) placeLabels(clock.frame);
     };
 
     const contextLost = (event: Event) => {
@@ -588,101 +413,18 @@ export function EngineStage() {
         style={{ position: "absolute", inset: 0, display: "block", width: "100%", height: "100%" }}
       />
 
-      {CYLS.map((cy, i) => (
-        <div
-          key={i}
-          ref={(el) => {
-            labelRefs.current[i] = el;
-          }}
-          style={{
-            position: "absolute",
-            left: 0,
-            top: 0,
-            textAlign: "center",
-            pointerEvents: "none",
-            transform: "translate(-9999px, 0)",
-            willChange: "transform, opacity",
-            transition: "opacity 0.2s ease",
-          }}
-        >
-          <div style={{ fontWeight: 700, fontSize: "clamp(10px, 1.5vw, 16px)", lineHeight: 1.2, color: "#0ea5e9" }}>
-            INTAKE
-          </div>
-          <div style={{ fontSize: "clamp(9px, 1.1vw, 12px)", color: "#cbd5e1", textShadow: "0 0 5px #000, 0 0 2px #000" }}>Cylinder {cy.number}</div>
-        </div>
-      ))}
-
-      {PART_LABELS.map((label, i) => (
-        <div
-          key={label.text}
-          ref={(el) => {
-            partLabelRefs.current[i] = el;
-          }}
-          style={{
-            position: "absolute",
-            left: 0,
-            top: 0,
-            pointerEvents: "none",
-            transform: "translate(-9999px, 0)",
-            willChange: "transform, opacity",
-            transition: "opacity 0.2s ease",
-            fontSize: "clamp(8px, 1vw, 11px)",
-            fontWeight: 700,
-            letterSpacing: "0.12em",
-            color: "#cbd5e1",
-            textShadow: "0 0 6px #000, 0 0 2px #000",
-            whiteSpace: "nowrap",
-            padding: "1px 6px",
-            borderRadius: 4,
-            background: "rgba(2, 6, 23, 0.55)",
-          }}
-        >
-          {label.text}
-        </div>
-      ))}
-
       <DashStartButton />
 
-      {/* The four buttons that move the engine on the stage, in the top left corner, as a compass (no frame round them): up
-          (north), down (south), right (east), left (west) */}
-      <div
-        role="group"
-        aria-label="Move the engine on the stage"
-        style={{
-          position: "absolute",
-          left: 12,
-          top: 10 + DASH_D + 14, // under the start button
-          display: "grid",
-          gridTemplateColumns: "repeat(3, 37px)",
-          gridTemplateRows: "repeat(3, 35px)",
-          gap: 4,
-          pointerEvents: "none",
+      {/* The joystick that moves the engine on the stage, under the start button, centred on it */}
+      <Joystick
+        size={JOY_D}
+        onMove={(dx, dy) => {
+          if (dx) camera.nudge(dx);
+          if (dy) camera.nudgeY(dy);
         }}
-      >
-        <SideButton direction="up" onPress={(k) => camera.nudgeY(k)} place={{ position: "relative", gridColumn: 2, gridRow: 1 }} />
-        <SideButton direction="left" onPress={(k) => camera.nudge(-k)} place={{ position: "relative", gridColumn: 1, gridRow: 2 }} />
-        <SideButton direction="right" onPress={(k) => camera.nudge(k)} place={{ position: "relative", gridColumn: 3, gridRow: 2 }} />
-        <SideButton direction="down" onPress={(k) => camera.nudgeY(-k)} place={{ position: "relative", gridColumn: 2, gridRow: 3 }} />
-      </div>
-
-      <div
-        ref={flywheelLabelRef}
-        style={{
-          position: "absolute",
-          left: 0,
-          top: 0,
-          textAlign: "center",
-          pointerEvents: "none",
-          transform: "translate(-9999px, 0)",
-          willChange: "transform, opacity",
-            transition: "opacity 0.2s ease",
-          fontSize: "clamp(8px, 1vw, 10px)",
-          letterSpacing: "0.1em",
-          color: "#94a3b8",
-        }}
-      >
-        MACHINED FLYWHEEL
-      </div>
+        onCenter={() => camera.recenter()}
+        style={{ left: 12 + (DASH_D - JOY_D) / 2, top: 10 + DASH_D + 14 - (JOY_D - JOY_D0) / 2 }}
+      />
 
 
       <Loader hidden={loaded} />

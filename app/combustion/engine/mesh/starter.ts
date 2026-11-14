@@ -260,8 +260,8 @@ const ST_BARS = 22; // the rotor cage's bars
 // the induction motor: its rotor's stack, its bars' and its rings' radius; the stator's stack, its bore, the bottom of its
 // slots, its back iron's outside (the coils wound round it, under the yoke), its teeth's width
 const MOTOR = {
-  rotor: { a0: 178, a1: 250, rCore: 29.4, rBar: 28.5, rRing: 29.6 },
-  stator: { a0: 180, a1: 248, rBore: 30.6, rSlot: 39.6, rOut: 44.4, tooth: 3.4 },
+  rotor: { a0: 150, a1: 260, rCore: 29.4, rBar: 28.5, rRing: 29.6 }, // (lengthened: the motor fills more of its yoke)
+  stator: { a0: 152, a1: 258, rBore: 30.6, rSlot: 39.6, rOut: 44.4, tooth: 3.4 },
 };
 // A quad whose normal is turned to point away from `from`
 function stQuad(b: MeshBuilder, p0: FwVec3, p1: FwVec3, p2: FwVec3, p3: FwVec3, from: FwVec3, m: FwMaterial) {
@@ -811,15 +811,15 @@ export function buildStarterBody(b: MeshBuilder) {
   }
 
   // The coils, one at each slot: its turns, each a loop round the back iron, rounded at its four corners
-  const TURNS = 6; // side by side, in each layer
-  const strand = 0.66;
-  const rIn = (layer: number) => S.rSlot - 1.1 - layer * 1.75; // the turns' radius in the slot, the inner layer deepest
-  const rOutC = (layer: number) => S.rOut + 1.1 + layer * 1.75; // and over the outside
+  const TURNS = 5; // side by side, in each layer
+  const strand = 0.92; // a thick wire, each turn clear to see
+  const rIn = (layer: number) => S.rSlot - 1.2 - layer * 2.0; // the turns' radius in the slot, the inner layer deepest
+  const rOutC = (layer: number) => S.rOut + 1.2 + layer * 2.0; // and over the outside
   const loop = (tIn: number, tOut: number, layer: number): FwVec3[] => {
-    const e = 3.4 + layer * 1.75; // how far it stands out past the stack's ends
+    const e = 3.6 + layer * 2.0; // how far it stands out past the stack's ends
     const ri = rIn(layer);
     const ro = rOutC(layer);
-    const rc = 2.2 + layer * 1.2; // its corners' rounding
+    const rc = 2.4 + layer * 1.3; // its corners' rounding
     const pts: FwVec3[] = [];
     const corner = (ca: number, cr: number, from: number, t: number) => {
       for (let k = 0; k <= 5; k++) {
@@ -849,18 +849,19 @@ export function buildStarterBody(b: MeshBuilder) {
     for (let layer = 0; layer < 2; layer++) {
       for (let i = 0; i < TURNS; i++) {
         const f = i - (TURNS - 1) / 2;
-        const tIn = tc + (f * 2 * strand * 1.06 + (layer ? strand * 0.5 : 0)) / rIn(layer);
-        const tOut = tc + (f * 1.85) / rOutC(layer);
+        const tIn = tc + (f * 2 * strand * 1.08 + (layer ? strand * 0.5 : 0)) / rIn(layer);
+        const tOut = tc + (f * 2.2) / rOutC(layer);
         // each turn its own shade of copper, as enamelled wire catches the light, a fine dark gap between neighbours
         const tone = [MAT_ST_COPPER, MAT_ST_ENAMEL, MAT_ST_COPPER_DEEP][(i + layer * 2 + k) % 3];
 
-        sweepTube(b, curveFromPoints(loop(tIn, tOut, layer), 2.4), () => strand, tone, { segments: 5 });
+        // (the straight runs need no points between their ends; the corners carry their own)
+        sweepTube(b, curveFromPoints(loop(tIn, tOut, layer), 9), () => strand, tone, { segments: 8 });
       }
     }
 
     // the coil's tape, in its phase's colour, round its turns on the outside, near each end
     const tape = [MAT_ST_LEAD_U, MAT_ST_LEAD_V, MAT_ST_LEAD_W][phase];
-    const w = (TURNS * 1.85) / 2 + 1.2;
+    const w = (TURNS * 2.2) / 2 + 1.2;
 
     for (const a of [S.a0 + 5, S.a1 - 9]) {
       arcBand(b, a, a + 4, r2(rOutC(1) + strand - 0.1), r2(rOutC(1) + strand + 0.5), tc - w / rOutC(1), tc + w / rOutC(1), 0, 0, tape, tape, tape, 6);

@@ -393,7 +393,7 @@ export function buildTurboCasing(b: MeshBuilder) {
   );
   // (on the cold side all the way round the tube, and on along its outlet to the flange)
   scrollRidges(b, compressorCurve, 2, compressorCurve.total - 5, (s) => (s < spiralLen ? compressorSection(s / spiralLen) : compressorSection(1)), RIDGE_ANGLES_ROUND);
-  rev(112, 26, 96, 26, [0, 1], MAT_ALU_TURNED);
+  rev(112, 26, 96, 26, [0, 1], MAT_MUFFLER_WIRE); // (under the woven wire, as on from it: buildTurboFilter)
   rev(96, 26, 72, 44, [0.6, 0.8], MAT_TURBO_GRAIN);
   rev(72, 44, 44, 44, [0, 1], MAT_TURBO_GRAIN);
   // (and its cone and its back band ringed with the same ribs, so that the whole of the cold side is covered)
@@ -453,10 +453,13 @@ export function buildTurboFilter(b: MeshBuilder) {
 
   // The compressor's inlet goes on along the shaft, to a flange, as the turbine's outlet does on
   // the other side: the two are mirror images about the middle of the turbocharger
-  rev(112, 26, 130, 26, [0, 1], MAT_ALU_TURNED);
-  rev(130, 26, 130, 32, [1, 0], MAT_CT_EDGE);
-  rev(130, 32, 135, 32, [0, 1], MAT_ALU_TURNED);
-  rev(135, 26, 135, 32, [1, 0], MAT_CT_EDGE);
+  // (the short neck and its flange wrapped in the same woven wire as the centre housing between the two wheels)
+  rev(112, 26, 130, 26, [0, 1], MAT_MUFFLER_WIRE);
+  wovenSleeve(b, 96.5, 129.6, 26); // (all of the neck, from the housing's shoulder to the flange)
+  rev(130, 26, 130, 32, [1, 0], MAT_MUFFLER_WIRE);
+  rev(130, 32, 135, 32, [0, 1], MAT_MUFFLER_WIRE);
+  wovenSleeve(b, 130, 135, 32);
+  rev(135, 26, 135, 32, [1, 0], MAT_MUFFLER_WIRE);
   rev(135, 18, 135, 26, [1, 0], MAT_CT_HOLE);
 }
 

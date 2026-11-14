@@ -3,7 +3,7 @@
 import { BORE_R, CT_X, HEAD_HALF_W, PLUG, ROD_LIFT, TAU } from "../core/constants";
 import { createMeshBuilder } from "./builder";
 import type { FwMaterial, FwVec3 } from "./builder";
-import { MAT_CT_GROOVE, MAT_CT_HOLE, MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE, MAT_DECK, MAT_DECK_EDGE, MAT_DECK_RIM, MAT_HEAD_BOOT, MAT_HEAD_BRASS, MAT_HEAD_CAST, MAT_HEAD_CAST_DEEP, MAT_HEAD_MACHINED, MAT_PERF_PLATE, MAT_PERF_RIVET_HEAD, MAT_PERF_RIVET_SIDE, MAT_PLUG_CAP, PLATE_BARS } from "./materials";
+import { MAT_CT_GROOVE, MAT_CT_HOLE, MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE, MAT_DECK, MAT_DECK_EDGE, MAT_DECK_RIM, MAT_HEAD_BOOT, MAT_HEAD_BRASS, MAT_HEAD_CAST, MAT_HEAD_CAST_DEEP, MAT_HEAD_MACHINED, MAT_PERF_PLATE, MAT_PERF_RIVET_HEAD, MAT_PERF_RIVET_SIDE, MAT_PLUG_CAP, PLATE_BARS , MAT_BOLT_MATTE_HEAD, MAT_BOLT_MATTE_SIDE, MAT_HEAD_JOINT} from "./materials";
 import { collar, curveFromPoints } from "./tubes";
 import { planBand, planCap, planWalls, roundedPlan } from "./shapes";
 import type { MeshBuilder } from "./tubes";
@@ -327,7 +327,7 @@ export function buildHeadSolid(b: MeshBuilder, shift = 0) {
 
   // round the casting's rounded outline, from inside its wall to out past it; across the two ends it is open where the
   // camshafts come through
-  planBand(b, roundedPlan(x0, x1, zh, HEAD_END_R, [-82, -38, 38, 82]), 90 - zh, fl - zh, yJoint - 6, yJoint, MAT_HEAD_MACHINED, (q) =>
+  planBand(b, roundedPlan(x0, x1, zh, HEAD_END_R, [-82, -38, 38, 82]), 90 - zh, fl - zh, yJoint - 6, yJoint, MAT_HEAD_JOINT, (q) =>
     Math.abs(q.nx) > 0.99 && Math.abs(q.z) > 38 && Math.abs(q.z) < 82
   );
 
@@ -337,8 +337,8 @@ export function buildHeadSolid(b: MeshBuilder, shift = 0) {
   }
 
   const bolt = (x: number, z: number) => {
-    b.prismDir([x, yJoint - 6, z], [0, -1, 0], [1, 0, 0], [0, 0, 1], 6.6, 1.4, 24, 0, MAT_HEAD_MACHINED, MAT_CT_NUT_SIDE);
-    b.prismDir([x, yJoint - 7.4, z], [0, -1, 0], [1, 0, 0], [0, 0, 1], 4.9, 5.2, 6, 0.3, MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE);
+    b.prismDir([x, yJoint - 6, z], [0, -1, 0], [1, 0, 0], [0, 0, 1], 6.6, 1.4, 24, 0, MAT_BOLT_MATTE_SIDE, MAT_BOLT_MATTE_SIDE);
+    b.prismDir([x, yJoint - 7.4, z], [0, -1, 0], [1, 0, 0], [0, 0, 1], 4.9, 5.2, 6, 0.3, MAT_BOLT_MATTE_HEAD, MAT_BOLT_MATTE_SIDE); // (dark, matte)
   };
 
   const along = 15;
