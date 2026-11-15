@@ -44,7 +44,7 @@ export function CenterButton({ onCenter }: { onCenter: () => void }) {
           ? "linear-gradient(180deg, #2b3340 0%, #1a2029 100%)"
           : "linear-gradient(180deg, #252c37 0%, #161b23 100%)",
         boxShadow: shadow,
-        transform: `translateY(${down ? 1 : hover ? -1 : 0}px)`,
+        transform: `translate(-10px, ${down ? 1 : hover ? -1 : 0}px)`, // (10 px to the left of where the row puts it, whatever the row does)
         transition: "transform 120ms ease, box-shadow 120ms ease, background 160ms ease",
         cursor: "pointer",
         userSelect: "none",
