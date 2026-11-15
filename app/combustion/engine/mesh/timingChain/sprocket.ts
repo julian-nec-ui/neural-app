@@ -1,8 +1,10 @@
 // The sprockets: tooth profile, web, hub and timing marks.
 
 import { TAU } from "../../core/constants";
+import { FW_STRIDE } from "../builder";
 import type { FwVec3, createMeshBuilder } from "../builder";
-import { MAT_PAINT, MAT_VT_CAM_FACE, MAT_VT_HOLE, MAT_VT_SPROCKET, MAT_VT_TOOTH, MAT_VT_TOOTH_TIP } from "../materials";
+import { CHAIN_K } from "./chainPath";
+import { MAT_PAINT, MAT_SPROCKET_WEB, MAT_VT_CAM_FACE, MAT_VT_HOLE, MAT_VT_SPROCKET, MAT_VT_TOOTH, MAT_VT_TOOTH_TIP } from "../materials";
 
 /* ---------------- sprocket ---------------- */
 
@@ -44,6 +46,7 @@ const sprocketHeight = (a: number) => {
 };
 
 type SprocketSpec = {
+  relief?: "cam" | "crank"; // the front's relief, after the twin-cam drive's sprockets: see buildRelief
   teeth: number;
   rPitch: number;
   windows: number;
@@ -54,11 +57,27 @@ type SprocketSpec = {
   markTooth?: boolean; // tooth 0 is painted, in line with the timing mark on the crankshaft
 };
 
+// Built at the old chain's size and grown by CHAIN_K, so that its teeth fit the larger chain; the sizes asked for (its pitch
+// radius, hub, bore, hub's length) come out as asked
 export function buildSprocket(b: ReturnType<typeof createMeshBuilder>, spec: SprocketSpec) {
+  const from = b.out.length;
+  const k = CHAIN_K;
+
+  buildSprocketUnit(b, { ...spec, rPitch: spec.rPitch / k, hubR: spec.hubR / k, boreR: spec.boreR / k, hubLen: spec.hubLen / k });
+
+  for (let i = from; i < b.out.length; i += FW_STRIDE) {
+    b.out[i] *= k;
+    b.out[i + 1] *= k;
+    b.out[i + 2] *= k;
+  }
+}
+
+function buildSprocketUnit(b: ReturnType<typeof createMeshBuilder>, spec: SprocketSpec) {
   const { teeth, rPitch, windows, hubR, boreR } = spec;
-  const per = 18; // samples per tooth
-  const half = 2.6; // half width of the toothed ring: the teeth run between the inner plates
-  const webHalf = 1.9;
+  const per = 12; // samples per tooth
+  const half = 5.1; // half width of the toothed ring: twice the old, for the chain twice as wide (its rollers 5.4 half-long)
+  const webHalf = 3.4;
+  const GROOVE = 1.5; // half the groove between the two rows of teeth (the duplex chain's middle plates run in it)
   const rRoot = rPitch - 4.4;
   const delta = TAU / teeth;
 
@@ -107,18 +126,22 @@ export function buildSprocket(b: ReturnType<typeof createMeshBuilder>, spec: Spr
     const na: FwVec3 = [0, normals[i][0], normals[i][1]];
     const nb: FwVec3 = [0, normals[j][0], normals[j][1]];
 
-    const a: FwVec3 = [-half, pa.y, pa.z];
-    const bb: FwVec3 = [-half, pb.y, pb.z];
-    const c: FwVec3 = [half, pb.y, pb.z];
-    const d: FwVec3 = [half, pa.y, pa.z];
 
     // the working flank is bright steel; the tip, above it, dark, heavy steel, shaded toward its crown
     const tipZone = pa.h > TIP_FROM;
     const tip = hot(pa.theta) ? MAT_PAINT : tipZone ? MAT_VT_TOOTH_TIP : pa.h > -0.2 ? MAT_VT_TOOTH : MAT_VT_SPROCKET;
     const occ = tipZone ? 1 - 0.35 * Math.min(1, (pa.h - TIP_FROM) / (TIP_TOP - TIP_FROM)) : 0.5 + 0.5 * Math.min(1, Math.max(0, (pa.h + 2.95) / 5.4));
 
-    b.push(a, na, tip, occ); b.push(bb, nb, tip, occ); b.push(c, nb, tip, occ);
-    b.push(a, na, tip, occ); b.push(c, nb, tip, occ); b.push(d, na, tip, occ);
+    // two rows of teeth, for the duplex chain: a groove between them
+    for (const [xa, xb] of [[-half, -GROOVE], [GROOVE, half]]) {
+      const a: FwVec3 = [xa, pa.y, pa.z];
+      const bb: FwVec3 = [xa, pb.y, pb.z];
+      const c: FwVec3 = [xb, pb.y, pb.z];
+      const d: FwVec3 = [xb, pa.y, pa.z];
+
+      b.push(a, na, tip, occ); b.push(bb, nb, tip, occ); b.push(c, nb, tip, occ);
+      b.push(a, na, tip, occ); b.push(c, nb, tip, occ); b.push(d, na, tip, occ);
+    }
   }
 
   // Both faces: from the tooth outline down to the root circle, with a
@@ -154,6 +177,19 @@ export function buildSprocket(b: ReturnType<typeof createMeshBuilder>, spec: Spr
       );
     }
   }
+
+  // the groove's walls, from the teeth down to the root, and its floor
+  for (const sx of [1, -1]) {
+    for (let i = 0; i < n; i++) {
+      const pa = outline[i];
+      const pb = outline[(i + 1) % n];
+      const pt = (r: number, theta: number): FwVec3 => [sx * GROOVE, r * Math.cos(theta), r * Math.sin(theta)];
+
+      b.flatQuad(pt(pa.r, pa.theta), pt(pb.r, pb.theta), pt(rRoot, pb.theta), pt(rRoot, pa.theta), [-sx, 0, 0], MAT_VT_TOOTH_TIP);
+    }
+  }
+
+  b.revolve({ x0: GROOVE, r0: rRoot, x1: -GROOVE, r1: rRoot, n: [0, 1], m: MAT_SPROCKET_WEB, steps: 96 });
 
   // Root wall, then the thinner web with lightening windows
   b.revolve({ x0: half, r0: rRoot, x1: webHalf, r1: rRoot, n: [0, 1], m: MAT_VT_SPROCKET, steps: 96 });
@@ -249,5 +285,106 @@ export function buildSprocket(b: ReturnType<typeof createMeshBuilder>, spec: Spr
     const t = ((k + 0.5) / windows) * TAU;
     b.disc(webHalf + 0.05, hubR + 2.7, t, 1.1, MAT_VT_HOLE, 10);
     b.disc(-webHalf - 0.05, hubR + 2.7, t, 1.1, MAT_VT_HOLE, 10, 0, 0, -1);
+  }
+
+  if (spec.relief) buildRelief(b, spec, rRoot, webHalf, half);
+}
+
+// The front of a sprocket in relief, after the twin-cam drive's picture: on a cam's, a flat face with round lightening
+// holes, a raised hub boss and the cam's hex bolt; on the crank's, a broad stepped collar with a keyway. Toward -x, in the
+// sprocket's own frame.
+function buildRelief(b: ReturnType<typeof createMeshBuilder>, spec: SprocketSpec, rRoot: number, webHalf: number, half: number) {
+  const R = spec.rPitch;
+  const f = -webHalf; // the web's front face
+
+  if (spec.relief === "cam") {
+    // as in the picture's intake sprocket: a flat, silver, machined face; holes of different sizes round it (a medium one at
+    // the top, a large one up on the left, a medium one at the left, a large one low on the left, a medium one at the bottom,
+    // a small dot on the right, up on the right a small hole with a short slot beside it); in the middle a cylinder standing
+    // out of the face, capped, with a broad washer and the camshaft's flanged hex bolt; a small dowel pin by it
+    for (const sx of [-1, 1]) {
+      b.revolve({ x0: sx * (webHalf + 0.03), r0: R * 0.2, x1: sx * (webHalf + 0.03), r1: rRoot - 0.6, n: [sx, 0], m: MAT_VT_SPROCKET, steps: 120 });
+    }
+
+    const holes: Array<[number, number, number]> = [
+      [1.57, 0.6, 0.13], [2.55, 0.56, 0.17], [3.45, 0.6, 0.12], [4.25, 0.57, 0.16], [5.1, 0.6, 0.12], [6.0, 0.66, 0.055], [0.62, 0.6, 0.09],
+    ];
+
+    for (const [a, rr, hr] of holes) {
+      const cy = R * rr * Math.cos(a);
+      const cz = R * rr * Math.sin(a);
+      const h = R * hr;
+
+      for (const sx of [-1, 1]) {
+        b.disc(sx * (webHalf + 0.06), 0, 0, h, MAT_VT_HOLE, 28, cy, cz, sx);
+        b.revolve({ x0: sx * (webHalf + 0.05), r0: h + 0.9, x1: sx * (webHalf + 0.05), r1: h, n: [sx, 0], m: MAT_VT_TOOTH, steps: 28, cy, cz });
+      }
+    }
+
+    {
+      const a = 0.25;
+      const rr = R * 0.6;
+      const ca = Math.cos(a);
+      const sa = Math.sin(a);
+      const w = R * 0.045;
+      const l = R * 0.11;
+      const P = (x: number, u: number, v: number): FwVec3 => [x, (rr + u) * ca - v * sa, (rr + u) * sa + v * ca];
+
+      for (const sx of [-1, 1]) {
+        const x = sx * (webHalf + 0.07);
+
+        b.flatQuad(P(x, -l, -w), P(x, l, -w), P(x, l, w), P(x, -l, w), [sx, 0, 0], MAT_VT_HOLE);
+      }
+    }
+
+    const hO = R * 0.34;
+    const L = 9;
+
+    b.revolve({ x0: f, r0: hO + 1.6, x1: f - 1.2, r1: hO, n: [-0.7, 0.7], m: MAT_VT_TOOTH, steps: 72 });
+    b.revolve({ x0: f - 1.2, r0: hO, x1: f - L + 1, r1: hO, n: [0, 1], m: MAT_VT_SPROCKET, steps: 72 });
+    b.revolve({ x0: f - L + 1, r0: hO, x1: f - L, r1: hO - 1, n: [-0.7, 0.7], m: MAT_VT_TOOTH, steps: 72 });
+    b.revolve({ x0: f - L, r0: 0, x1: f - L, r1: hO - 1, n: [-1, 0], m: MAT_VT_CAM_FACE, steps: 72 });
+    b.revolve({ x0: f - L * 0.5 - 0.5, r0: hO + 0.02, x1: f - L * 0.5 + 0.5, r1: hO + 0.02, n: [0, 1], m: MAT_VT_HOLE, steps: 72 });
+
+    const w = f - L;
+
+    b.prismDir([w, 0, 0], [-1, 0, 0], [0, 1, 0], [0, 0, 1], R * 0.24, 1.3, 36, 0, MAT_VT_TOOTH, MAT_VT_TOOTH);
+    b.prismDir([w - 1.3, 0, 0], [-1, 0, 0], [0, 1, 0], [0, 0, 1], R * 0.19, 1.1, 36, 0, MAT_VT_CAM_FACE, MAT_VT_SPROCKET);
+    b.prismDir([w - 2.4, 0, 0], [-1, 0, 0], [0, 1, 0], [0, 0, 1], R * 0.15, 4.4, 6, 0.3, MAT_VT_CAM_FACE, MAT_VT_SPROCKET);
+    b.revolve({ x0: w - 6.8, r0: R * 0.13, x1: w - 7.4, r1: R * 0.11, n: [-0.7, 0.7], m: MAT_VT_TOOTH, steps: 36 });
+    b.revolve({ x0: w - 7.4, r0: R * 0.05, x1: w - 7.4, r1: R * 0.11, n: [-1, 0], m: MAT_VT_CAM_FACE, steps: 36 });
+    b.prismDir([w - 7.42, 0, 0], [-1, 0, 0], [0, 1, 0], [0, 0, 1], R * 0.05, 0.05, 6, 0, MAT_VT_HOLE, MAT_VT_HOLE);
+    b.prismDir([f, R * 0.44 * Math.cos(0.75), R * 0.44 * Math.sin(0.75)], [-1, 0, 0], [0, 1, 0], [0, 0, 1], 1.6, 2.4, 14, 0, MAT_VT_TOOTH, MAT_VT_SPROCKET);
+
+    return;
+  }
+
+  // the crank's, as in the picture: a brass ring on its face, and a broad stepped steel collar in front, its bore through it
+  // between this sprocket and the one behind it (the other bank's, at the far end of this one's hub), a raised rib round the
+  // body: the two read as one sprocket, its two rows of teeth for the two chains either side of the rib
+  {
+    const xr = (spec.hubLen - 13 / CHAIN_K) / 2 + 0.3; // halfway to the sprocket behind
+    const rr = R + 0.8;
+
+    if (xr > half + 2) {
+      b.revolve({ x0: xr - 1.6, r0: rr, x1: xr + 1.6, r1: rr, n: [0, 1], m: MAT_VT_SPROCKET, steps: 72 });
+      b.revolve({ x0: xr - 2.4, r0: spec.hubR, x1: xr - 1.6, r1: rr, n: [-0.7, 0.7], m: MAT_VT_TOOTH, steps: 72 });
+      b.revolve({ x0: xr + 1.6, r0: rr, x1: xr + 2.4, r1: spec.hubR, n: [0.7, 0.7], m: MAT_VT_TOOTH, steps: 72 });
+      for (const d of [-0.6, 0.6]) b.revolve({ x0: xr + d - 0.15, r0: rr + 0.02, x1: xr + d + 0.15, r1: rr + 0.02, n: [0, 1], m: MAT_VT_HOLE, steps: 72 });
+    }
+  }
+  b.revolve({ x0: -webHalf - 0.03, r0: R * 0.62, x1: -webHalf - 0.03, r1: rRoot - 0.5, n: [-1, 0], m: MAT_VT_SPROCKET, steps: 72 });
+  {
+    const steps: Array<[number, number, number]> = [[R * 0.78, 0, 2.2], [R * 0.62, 2.2, 7.5]];
+
+    for (const [rr, x0, x1] of steps) {
+      b.revolve({ x0: -half - x0, r0: rr, x1: -half - x1 + 0.8, r1: rr, n: [0, 1], m: MAT_VT_SPROCKET, steps: 72 });
+      b.revolve({ x0: -half - x1 + 0.8, r0: rr, x1: -half - x1, r1: rr - 0.8, n: [-0.7, 0.7], m: MAT_VT_TOOTH, steps: 72 });
+      b.revolve({ x0: -half - x1, r0: spec.boreR, x1: -half - x1, r1: rr - 0.8, n: [-1, 0], m: MAT_VT_CAM_FACE, steps: 72 });
+    }
+
+    b.revolve({ x0: -half - 7.5, r0: spec.boreR, x1: -half, r1: spec.boreR, n: [0, -1], m: MAT_VT_HOLE, steps: 48 });
+    b.flatQuad([-half - 7.55, spec.boreR - 0.2, -1.8], [-half - 7.55, spec.boreR + 3, -1.8], [-half - 7.55, spec.boreR + 3, 1.8], [-half - 7.55, spec.boreR - 0.2, 1.8], [-1, 0, 0], MAT_VT_HOLE); // keyway
+
   }
 }

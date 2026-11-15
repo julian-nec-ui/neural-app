@@ -613,7 +613,7 @@ export default function Engine() {
                   does, and so does the legend (all three aligned left) */}
               <div style={{ display: "inline-flex", flexDirection: "column", alignItems: "flex-start", maxWidth: "100%", textAlign: "left" }}>
                 <div className="ak-hint-line">
-                  Drag to rotate · scroll or pinch to zoom · double-tap for the next view
+                  Drag to rotate · Shift-drag or twist to roll · pinch to zoom · double-tap: next view
                 </div>
                 <div style={{ marginTop: 5 }}>Crank : cam = 2 : 1 · One shared animation clock</div>
                 <div className="ak-legend flex flex-wrap items-center justify-start gap-x-1.5 gap-y-1" style={{ marginTop: 7, fontSize: 10.5, whiteSpace: "nowrap", justifyContent: "flex-start", alignSelf: "flex-start" }}>

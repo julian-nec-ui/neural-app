@@ -130,8 +130,8 @@ export const BANKS: Bank[] = [
 export const DRIVE_DX = Math.max(...BANKS.map((k) => k.dx));
 export const driveShift = (bank: Bank) => DRIVE_DX - bank.dx;
 
-// A timing drive's primary chain runs in a plane this far from its secondary's (behind it, or in front of it: primaryDx)
-export const PRIMARY_DX = 14;
+// The two banks' timing chains on the crank's nose run this far apart along it (the one bank's in front: chainDx)
+export const CHAIN_SEP = 27;
 
 type EngineCylinder = { bank: Bank; k: number; x: number; number: number };
 

@@ -9,8 +9,8 @@ import type { FwVec3 } from "../mesh/builder";
    CAMERA
 
    A perspective camera orbiting the engine. It sits on a sphere round
-   CAM_TARGET: `yaw` is its heading about the vertical axis, `pitch` its
-   elevation. Dragging turns the engine, the wheel zooms, and a turntable can
+   CAM_TARGET, turned any way at all (a quaternion); the views are given as a
+   heading about the vertical axis (`yaw`) and an elevation (`pitch`). Dragging turns the engine, the wheel zooms, and a turntable can
    turn it by itself. The engine keeps running all the while.
    ========================================================= */
 
@@ -126,10 +126,108 @@ export function viewProjection(view: CameraView, aspect: number): Float32Array {
 
 type CameraOptions = { auto: boolean; autoSpeed: number };
 
+/* ---- the camera's turn, a quaternion [w, x, y, z]: it carries the camera's own axes (right, down, back) into the
+   world's. Kept this way, not as two angles, so that the engine turns round any way at all, whole turns over the top,
+   underneath, and round its own length like a barrel, with no stop and no pole where it would flip ---- */
+type Quat = [number, number, number, number];
+
+const qMul = (a: Quat, b: Quat): Quat => [
+  a[0] * b[0] - a[1] * b[1] - a[2] * b[2] - a[3] * b[3],
+  a[0] * b[1] + a[1] * b[0] + a[2] * b[3] - a[3] * b[2],
+  a[0] * b[2] - a[1] * b[3] + a[2] * b[0] + a[3] * b[1],
+  a[0] * b[3] + a[1] * b[2] - a[2] * b[1] + a[3] * b[0],
+];
+
+const qNorm = (q: Quat): Quat => {
+  const l = Math.hypot(q[0], q[1], q[2], q[3]) || 1;
+
+  return [q[0] / l, q[1] / l, q[2] / l, q[3] / l];
+};
+
+// a turn of `deg` degrees about a unit axis
+const qAxis = (axis: FwVec3, deg: number): Quat => {
+  const h = (deg * Math.PI) / 360;
+  const s = Math.sin(h);
+
+  return [Math.cos(h), axis[0] * s, axis[1] * s, axis[2] * s];
+};
+
+const qRotate = (q: Quat, v: FwVec3): FwVec3 => {
+  const [w, x, y, z] = q;
+  const tx = 2 * (y * v[2] - z * v[1]);
+  const ty = 2 * (z * v[0] - x * v[2]);
+  const tz = 2 * (x * v[1] - y * v[0]);
+
+  return [v[0] + w * tx + (y * tz - z * ty), v[1] + w * ty + (z * tx - x * tz), v[2] + w * tz + (x * ty - y * tx)];
+};
+
+// the camera's turn for a heading and an elevation (the views are given so)
+function quatFromYawPitch(yawDeg: number, pitchDeg: number): Quat {
+  const { right: r, down: d, back: b } = cameraView(yawDeg, pitchDeg, 1);
+  // the matrix whose columns are right, down and back
+  const m00 = r[0], m01 = d[0], m02 = b[0];
+  const m10 = r[1], m11 = d[1], m12 = b[1];
+  const m20 = r[2], m21 = d[2], m22 = b[2];
+  const tr = m00 + m11 + m22;
+  let q: Quat;
+
+  if (tr > 0) {
+    const s = Math.sqrt(tr + 1) * 2;
+
+    q = [s / 4, (m21 - m12) / s, (m02 - m20) / s, (m10 - m01) / s];
+  } else if (m00 > m11 && m00 > m22) {
+    const s = Math.sqrt(1 + m00 - m11 - m22) * 2;
+
+    q = [(m21 - m12) / s, s / 4, (m01 + m10) / s, (m02 + m20) / s];
+  } else if (m11 > m22) {
+    const s = Math.sqrt(1 + m11 - m00 - m22) * 2;
+
+    q = [(m02 - m20) / s, (m01 + m10) / s, s / 4, (m12 + m21) / s];
+  } else {
+    const s = Math.sqrt(1 + m22 - m00 - m11) * 2;
+
+    q = [(m10 - m01) / s, (m02 + m20) / s, (m12 + m21) / s, s / 4];
+  }
+
+  return qNorm(q);
+}
+
+// part of the way from a to b, the short way round
+function qSlerp(a: Quat, b: Quat, t: number): Quat {
+  let d = a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3];
+  let c = b;
+
+  if (d < 0) {
+    d = -d;
+    c = [-b[0], -b[1], -b[2], -b[3]];
+  }
+
+  if (d > 0.9995) return qNorm([a[0] + (c[0] - a[0]) * t, a[1] + (c[1] - a[1]) * t, a[2] + (c[2] - a[2]) * t, a[3] + (c[3] - a[3]) * t]);
+
+  const th = Math.acos(d);
+  const sa = Math.sin((1 - t) * th) / Math.sin(th);
+  const sb = Math.sin(t * th) / Math.sin(th);
+
+  return qNorm([a[0] * sa + c[0] * sb, a[1] * sa + c[1] * sb, a[2] * sa + c[2] * sb, a[3] * sa + c[3] * sb]);
+}
+
+const X_AXIS: FwVec3 = [1, 0, 0];
+const Y_AXIS: FwVec3 = [0, 1, 0];
+const Z_AXIS: FwVec3 = [0, 0, 1];
+
+function cameraViewQ(q: Quat, zoom: number, target: FwVec3, shift: number, shiftY: number): CameraView {
+  const distance = CAM_BASE_DISTANCE / zoom;
+  const right = qRotate(q, X_AXIS);
+  const down = qRotate(q, Y_AXIS);
+  const back = qRotate(q, Z_AXIS);
+  const eye: FwVec3 = [target[0] + back[0] * distance, target[1] + back[1] * distance, target[2] + back[2] * distance];
+
+  return { eye, right, down, back, distance, shift, shiftY };
+}
+
 export function createCameraController(options: CameraOptions) {
-  const now: { yaw: number; pitch: number; zoom: number; shift: number; shiftY: number; target: FwVec3 } = {
-    yaw: VIEW_PRESETS.default.yaw,
-    pitch: VIEW_PRESETS.default.pitch,
+  const now: { q: Quat; zoom: number; shift: number; shiftY: number; target: FwVec3 } = {
+    q: quatFromYawPitch(VIEW_PRESETS.default.yaw, VIEW_PRESETS.default.pitch),
     zoom: 1,
     shift: 0,
     shiftY: 0,
@@ -152,16 +250,30 @@ export function createCameraController(options: CameraOptions) {
 
   const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
+  // a turn about one of the camera's own axes (the screen's): the engine turns that way on the screen, however it lies
+  const turnLocal = (axis: FwVec3, deg: number) => {
+    goal.q = qNorm(qMul(goal.q, qAxis(axis, deg)));
+  };
+
   return {
     get view(): CameraView {
-      return cameraView(now.yaw, now.pitch, now.zoom, now.target, now.shift * now.zoom, now.shiftY * now.zoom);
+      return cameraViewQ(now.q, now.zoom, now.target, now.shift * now.zoom, now.shiftY * now.zoom);
     },
 
-    // Dragging: the engine follows the pointer
+    // Dragging: the engine follows the pointer, about the screen's upright for a drag across, about its level for a drag
+    // up or down, whole turns either way with no stop
     orbit(dx: number, dy: number) {
       if (dx !== 0 || dy !== 0) show(null);
-      goal.yaw -= dx * 0.35;
-      goal.pitch = clamp(goal.pitch + dy * 0.3, -86, 86);
+      if (dx !== 0) turnLocal(Y_AXIS, -dx * 0.35);
+      if (dy !== 0) turnLocal(X_AXIS, dy * 0.3);
+    },
+
+    // And round the line of sight, like a barrel rolling (Shift and a drag across, or two fingers twisted): + is clockwise
+    // on the screen
+    roll(deg: number) {
+      if (deg === 0) return;
+      show(null);
+      turnLocal(Z_AXIS, -deg);
     },
 
     zoomBy(factor: number) {
@@ -170,12 +282,10 @@ export function createCameraController(options: CameraOptions) {
 
     setView(name: ViewName) {
       const preset: ViewPreset = VIEW_PRESETS[name];
-      // The short way round
-      const turn = ((((preset.yaw - goal.yaw) % 360) + 540) % 360) - 180;
       const focus = preset.focus ?? CAM_TARGET;
 
-      goal.yaw += turn;
-      goal.pitch = preset.pitch;
+      // (the easing goes the short way round)
+      goal.q = quatFromYawPitch(preset.yaw, preset.pitch);
       goal.zoom = preset.zoom ?? 1;
       goal.target = [focus[0], focus[1], focus[2]];
       show(name);
@@ -220,8 +330,7 @@ export function createCameraController(options: CameraOptions) {
 
     // Any view at all: from yaw and pitch (degrees), this close, at this point
     lookAt(focus: FwVec3, yaw: number, pitch: number, zoom: number) {
-      goal.yaw = yaw;
-      goal.pitch = clamp(pitch, -86, 86);
+      goal.q = quatFromYawPitch(yaw, pitch);
       goal.zoom = clamp(zoom, 0.55, 7);
       goal.target = [focus[0], focus[1], focus[2]];
     },
@@ -240,19 +349,20 @@ export function createCameraController(options: CameraOptions) {
     },
 
     // Called every frame: the camera eases toward where it was sent, and the
-    // turntable turns. Reports whether anything moved.
+    // turntable turns (about the engine's own upright). Reports whether anything moved.
     update(dt: number): boolean {
-      if (auto && !dragging) goal.yaw += autoSpeed * dt;
+      if (auto && !dragging) goal.q = qNorm(qMul(qAxis(Y_AXIS, autoSpeed * dt), goal.q));
 
       const k = 1 - Math.exp(-dt / 0.085);
-      const dyaw = (goal.yaw - now.yaw) * k;
-      const dpitch = (goal.pitch - now.pitch) * k;
+      const before = now.q;
+
+      now.q = qSlerp(now.q, goal.q, k);
+
+      const dq = 1 - Math.abs(before[0] * now.q[0] + before[1] * now.q[1] + before[2] * now.q[2] + before[3] * now.q[3]);
       const dzoom = (goal.zoom - now.zoom) * k;
       const dshift = (goal.shift - now.shift) * k;
       const dshiftY = (goal.shiftY - now.shiftY) * k;
 
-      now.yaw += dyaw;
-      now.pitch += dpitch;
       now.zoom += dzoom;
       now.shift += dshift;
       now.shiftY += dshiftY;
@@ -266,15 +376,7 @@ export function createCameraController(options: CameraOptions) {
         moved += Math.abs(d);
       }
 
-      // Keep the angles small
-      if (now.yaw > 720 || now.yaw < -720) {
-        const shift = Math.sign(now.yaw) * 360;
-
-        now.yaw -= shift;
-        goal.yaw -= shift;
-      }
-
-      return Math.abs(dyaw) + Math.abs(dpitch) + Math.abs(dzoom) * 100 + Math.abs(dshift) * 100 + Math.abs(dshiftY) * 100 + moved > 1e-4;
+      return dq * 1e6 + Math.abs(dzoom) * 100 + Math.abs(dshift) * 100 + Math.abs(dshiftY) * 100 + moved > 1e-4;
     },
 
     subscribe(listener: () => void) {

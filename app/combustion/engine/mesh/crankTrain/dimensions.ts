@@ -1,6 +1,6 @@
 // The crank train's dimensions: the crankshaft, the rods and the pistons.
 
-import { BORE_W, CHAIN_X_WORLD, CT_X, DRIVE_DX, FLYWHEEL_WORLD_X, PRIMARY_DX } from "../../core/constants";
+import { BORE_W, CHAIN_SEP, CHAIN_X_WORLD, CT_X, DRIVE_DX, FLYWHEEL_WORLD_X } from "../../core/constants";
 
 /* =========================================================
    CRANK TRAIN: crankshaft, connecting rods, pistons
@@ -41,9 +41,9 @@ export const CT_BETA = [0, 120, 240, 240, 120, 0].map((d) => (d * Math.PI) / 180
 
 // The crankshaft ends right at the crank sprocket (inside its hub), instead
 // of sticking out through the plane of the chain
-// far enough for the two crank sprockets: the front one, of the bank whose primary chain runs in front of its secondary, at
-// the drives' place (DRIVE_DX) less PRIMARY_DX; and no further, so that the crank's bolt stays under the timing covers
-export const CT_SNOUT_X = CHAIN_X_WORLD + DRIVE_DX - PRIMARY_DX - 8;
+// far enough for the two crank sprockets: the front one, of the bank whose chain runs in front of the other's, at the drives'
+// place (DRIVE_DX) less CHAIN_SEP; and no further, so that the crank's bolt stays under the timing covers
+export const CT_SNOUT_X = CHAIN_X_WORLD + DRIVE_DX - CHAIN_SEP - 14; // (the front bank's chain CHAIN_SEP in front, its sprocket's collar on it)
 
 // The crank flange sits against the back of the flywheel's hub (the flywheel is
 // bolted to it), so the last neck is stretched to reach that far

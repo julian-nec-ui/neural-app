@@ -277,6 +277,13 @@ export function EngineStage() {
     const pointers = new Map<number, { x: number; y: number; x0: number; y0: number; live: boolean }>();
     const TAP_SLOP = 10; // how far a finger goes before it drags, in CSS pixels
     let pinch = 0;
+    let twist = 0; // the line between two fingers, its angle on the screen (radians, clockwise)
+
+    const angleOf = () => {
+      const [a, b] = Array.from(pointers.values());
+
+      return Math.atan2(b.y - a.y, b.x - a.x);
+    };
 
     const spread = () => {
       const [a, b] = Array.from(pointers.values());
@@ -293,7 +300,10 @@ export function EngineStage() {
       pointers.set(event.pointerId, { x: event.clientX, y: event.clientY, x0: event.clientX, y0: event.clientY, live: event.pointerType !== "touch" });
       camera.setDragging(true);
 
-      if (pointers.size === 2) pinch = spread();
+      if (pointers.size === 2) {
+        pinch = spread();
+        twist = angleOf();
+      }
 
       if (event.pointerType === "touch" && pointers.size === 1) {
         const now = performance.now();
@@ -328,13 +338,22 @@ export function EngineStage() {
       known.y = event.clientY;
 
       if (pointers.size === 1) {
-        camera.orbit(dx, dy);
+        // Shift and a drag across rolls the engine round the line of sight, like a barrel; a plain drag turns it
+        if (event.shiftKey) camera.roll(dx * 0.35);
+        else camera.orbit(dx, dy);
       } else if (pointers.size === 2) {
         const now = spread();
 
         if (pinch > 0 && now > 0) camera.zoomBy(now / pinch);
 
         pinch = now;
+
+        // two fingers twisted roll it the same way, as far as they turn
+        const angle = angleOf();
+        const turn = Math.atan2(Math.sin(angle - twist), Math.cos(angle - twist));
+
+        twist = angle;
+        camera.roll((turn * 180) / Math.PI);
       }
     };
 

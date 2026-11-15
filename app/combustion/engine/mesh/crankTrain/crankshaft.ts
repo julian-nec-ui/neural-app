@@ -47,7 +47,15 @@ export function buildCrankshaft(b: MeshBuilder) {
 
   const web = (x0: number, x1: number, beta: number, pinSide: boolean) => {
     const n = 120;
-    const pts = webOutline(beta, n);
+    // its edges rounded all round: the faces set in by RE, a quarter round from them to the side wall
+    const RE = 4.2;
+    const outer = webOutline(beta, n);
+    const pts = outer.map((v): [number, number] => {
+      const l = Math.hypot(v[0], v[1]) || 1;
+      const s = (l - RE) / l;
+
+      return [v[0] * s, v[1] * s];
+    });
     const thetaCw = -beta;
 
     // Front face and a bright machined edge band
@@ -74,33 +82,52 @@ export function buildCrankshaft(b: MeshBuilder) {
       );
     }
 
-    // Side wall with smooth normals
-    const normals = pts.map((_, k): [number, number] => {
-      const a = pts[(k - 1 + n) % n];
-      const c = pts[(k + 1) % n];
+    // Side wall with smooth normals, and the rounded edges into both faces
+    const normals = outer.map((_, k): [number, number] => {
+      const a = outer[(k - 1 + n) % n];
+      const c = outer[(k + 1) % n];
       const ty = c[0] - a[0];
       const tz = c[1] - a[1];
       const len = Math.hypot(ty, tz) || 1;
 
       return [tz / len, -ty / len];
     });
+    const FS = 4; // steps round each rounded edge
+    // a ring round the web: set in by s from the outline, at x
+    const ringAt = (k: number, s: number, x: number): FwVec3 => {
+      const v = outer[k];
+      const l = Math.hypot(v[0], v[1]) || 1;
+      const f = (l - s) / l;
 
-    for (let k = 0; k < n; k++) {
-      const k2 = (k + 1) % n;
-      const a: FwVec3 = [x0, pts[k][0], pts[k][1]];
-      const bb: FwVec3 = [x0, pts[k2][0], pts[k2][1]];
-      const c: FwVec3 = [x1, pts[k2][0], pts[k2][1]];
-      const d: FwVec3 = [x1, pts[k][0], pts[k][1]];
-      const nk: FwVec3 = [0, normals[k][0], normals[k][1]];
-      const nk2: FwVec3 = [0, normals[k2][0], normals[k2][1]];
+      return [x, v[0] * f, v[1] * f];
+    };
+    // the strip between two rings, its normals tilted from the side wall's toward ±x by phi
+    const strip = (s0: number, x0r: number, p0: number, s1: number, x1r: number, p1: number, sx: number) => {
+      for (let k = 0; k < n; k++) {
+        const k2 = (k + 1) % n;
+        const nrm = (kk: number, phi: number): FwVec3 => [sx * Math.sin(phi), normals[kk][0] * Math.cos(phi), normals[kk][1] * Math.cos(phi)];
 
-      b.push(a, nk, MAT_CT_FORGED, 1);
-      b.push(bb, nk2, MAT_CT_FORGED, 1);
-      b.push(c, nk2, MAT_CT_FORGED, 1);
+        b.push(ringAt(k, s0, x0r), nrm(k, p0), MAT_CT_FORGED, 1);
+        b.push(ringAt(k2, s0, x0r), nrm(k2, p0), MAT_CT_FORGED, 1);
+        b.push(ringAt(k2, s1, x1r), nrm(k2, p1), MAT_CT_FORGED, 1);
 
-      b.push(a, nk, MAT_CT_FORGED, 1);
-      b.push(c, nk2, MAT_CT_FORGED, 1);
-      b.push(d, nk, MAT_CT_FORGED, 1);
+        b.push(ringAt(k, s0, x0r), nrm(k, p0), MAT_CT_FORGED, 1);
+        b.push(ringAt(k2, s1, x1r), nrm(k2, p1), MAT_CT_FORGED, 1);
+        b.push(ringAt(k, s1, x1r), nrm(k, p1), MAT_CT_FORGED, 1);
+      }
+    };
+
+    strip(0, x0 + RE, 0, 0, x1 - RE, 0, 1);
+
+    for (const sx of [1, -1]) {
+      const xe = sx > 0 ? x1 : x0;
+
+      for (let j = 0; j < FS; j++) {
+        const pa = (j / FS) * (Math.PI / 2);
+        const pb = ((j + 1) / FS) * (Math.PI / 2);
+
+        strip(RE * (1 - Math.cos(pa)), xe - sx * RE * (1 - Math.sin(pa)), pa, RE * (1 - Math.cos(pb)), xe - sx * RE * (1 - Math.sin(pb)), pb, sx);
+      }
     }
 
     // Machined boss round the shaft, and round the pin on its own web
@@ -215,8 +242,23 @@ export function buildCrankshaft(b: MeshBuilder) {
     cylX(xc + CT.pinHalf - 2.2, xc + CT.pinHalf + 0.3, CT.pinR + 0.03, MAT_CT_TEMPER, { cy, cz });
 
     // Fillets where the pin meets each web
-    b.revolve({ x0: xc - CT.pinHalf, r0: CT.pinR + 3, x1: xc - CT.pinHalf + 3, r1: CT.pinR, n: [0.7, 0.7], m: MAT_CT_JOURNAL, cy, cz });
-    b.revolve({ x0: xc + CT.pinHalf, r0: CT.pinR + 3, x1: xc + CT.pinHalf - 3, r1: CT.pinR, n: [-0.7, 0.7], m: MAT_CT_JOURNAL, cy, cz });
+    // (a full quarter round, larger: the pin flows into the webs)
+    for (const sg of [1, -1]) {
+      const xw = xc - sg * CT.pinHalf;
+      const FR = 4.6;
+
+      for (let j = 0; j < 4; j++) {
+        const pa = (j / 4) * (Math.PI / 2);
+        const pb = ((j + 1) / 4) * (Math.PI / 2);
+        const pm = (pa + pb) / 2;
+
+        b.revolve({
+          x0: xw + sg * FR * (1 - Math.cos(pa)), r0: CT.pinR + FR * (1 - Math.sin(pa)),
+          x1: xw + sg * FR * (1 - Math.cos(pb)), r1: CT.pinR + FR * (1 - Math.sin(pb)),
+          n: [sg * Math.sin(pm), Math.cos(pm)], m: MAT_CT_JOURNAL, cy, cz,
+        });
+      }
+    }
 
     // Oil hole on the pin, in line with the crank
     const pinTheta = Math.PI - beta + Math.PI + 0.9;

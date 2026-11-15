@@ -1,19 +1,35 @@
 // A chain link, inner (with rollers) or outer (with riveted pins).
 
+import { FW_STRIDE } from "../builder";
 import type { createMeshBuilder } from "../builder";
 import { MAT_CT_EDGE, MAT_CT_GROOVE, MAT_VT_PIN_HEAD, MAT_VT_PLATE, MAT_VT_PLATE_OUT, MAT_VT_ROLLER } from "../materials";
-import { VT_PITCH } from "./chainPath";
+import { CHAIN_K, VT_PITCH } from "./chainPath";
 
 /* ---------------- chain links ---------------- */
 
-// Local frame: origin at the first joint, the next joint is at +Y = pitch.
+// Local frame: origin at the first joint, the next joint is at +Y = pitch. Built at the old chain's size and grown by
+// CHAIN_K, plates, rollers and pins alike
 export function buildChainLink(b: ReturnType<typeof createMeshBuilder>, outer: boolean) {
-  const p = VT_PITCH;
+  const from = b.out.length;
+
+  buildChainLinkUnit(b, outer);
+
+  for (let i = from; i < b.out.length; i += FW_STRIDE) {
+    b.out[i] *= CHAIN_K;
+    b.out[i + 1] *= CHAIN_K;
+    b.out[i + 2] *= CHAIN_K;
+  }
+}
+
+function buildChainLinkUnit(b: ReturnType<typeof createMeshBuilder>, outer: boolean) {
+  const p = VT_PITCH / CHAIN_K;
   const rEnd = 3.9;
   const waist = 1.9; // a deep waist: the plates are figure-eights, with room to see the teeth through
   const t = 1.05;
   const bevel = 0.4;
-  const plateX = outer ? 4.65 : 3.35;
+  // twice as wide as the old chain: the rollers twice as long, the plates set out to them, as thick as they were
+  const W = 2;
+  const plateX = outer ? 2.7 * W + 1.95 : 2.7 * W + 0.65;
   const mat = outer ? MAT_VT_PLATE_OUT : MAT_VT_PLATE;
 
   // Plate outline in (y, z), counter-clockwise: two rounded ends joined by a waist
@@ -44,6 +60,9 @@ export function buildChainLink(b: ReturnType<typeof createMeshBuilder>, outer: b
 
   edge(1, p, 0);
 
+  // the plates 1.6 times as tall, seen from the front (their length, along the chain, as it was: no overlap)
+  for (const o of outline) o[1] *= 1.6;
+
   const n = outline.length;
 
   // Outward normals round the outline, and the outline pulled in by the bevel
@@ -58,11 +77,12 @@ export function buildChainLink(b: ReturnType<typeof createMeshBuilder>, outer: b
   });
   const inner = outline.map((o, i): [number, number] => [o[0] - out[i][0] * bevel, o[1] - out[i][1] * bevel]);
 
-  for (const side of [-1, 1]) {
+  // a duplex chain: the outer plates either side, and two plates in the middle between its two rows of rollers
+  for (const [side, xc] of [[-1, plateX], [1, plateX], [-1, 0.75], [1, 0.75]] as Array<[number, number]>) {
     // The plate's outer face (away from the chain's centre line), its inner
     // face, and where the bevel starts
-    const xo = side * (plateX + t / 2);
-    const xi = side * (plateX - t / 2);
+    const xo = side * (xc + t / 2);
+    const xi = side * (xc - t / 2);
     const xb = xo - side * bevel;
 
     // Outer face: bright in the middle, shaded toward the pin ends and
@@ -122,8 +142,10 @@ export function buildChainLink(b: ReturnType<typeof createMeshBuilder>, outer: b
       }
     } else {
       // Rollers between the inner plates
-      b.revolve({ x0: -2.7, r0: 2.95, x1: 2.7, r1: 2.95, n: [0, 1], m: MAT_VT_ROLLER, cy: y, steps: 20, occ0: 0.55, occ1: 0.55 });
-      b.revolve({ x0: 2.7, r0: 1.6, x1: 2.7, r1: 2.95, n: [1, 0], m: MAT_VT_ROLLER, cy: y, steps: 20, occ0: 0.45, occ1: 0.6 });
+      // two rows of rollers, one either side of the middle plates
+      for (const sg of [-1, 1]) {
+        b.revolve({ x0: sg * 1.4, r0: 2.95, x1: sg * 2.7 * W, r1: 2.95, n: [0, 1], m: MAT_VT_ROLLER, cy: y, steps: 20, occ0: 0.55, occ1: 0.55 });
+      }
     }
   }
 }

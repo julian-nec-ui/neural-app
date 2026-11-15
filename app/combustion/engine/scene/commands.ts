@@ -10,7 +10,7 @@ import type { TModule } from "../mesh/exhaust";
 import { FAN_PAIR } from "../mesh/fan";
 import { IC_CORE_Z, IC_INNER_Z, IC_OUTER_Z, IC_STAND_Y, icPlace } from "../mesh/intercooler";
 import { ST_AT, ST_PHI_MAX, ST_PIV_A, ST_PIV_Q, ST_SQ, sA, stA } from "../mesh/starter";
-import { CAM_RC, IDLER_Y, PRIMARY, SECONDARY, VT_PITCH, VT_RC, primaryDx } from "../mesh/timingChain/chainPath";
+import { CAM_RC, DRIVE, VT_PITCH, chainDx } from "../mesh/timingChain/chainPath";
 import type { Chain } from "../mesh/timingChain/chainPath";
 import { IC, IC_HALF, TURBO_AT } from "../mesh/turbo";
 import { IN_SIDE, VT, VT_LIFT_PEAK, VT_TILT, camLift, valveX } from "../mesh/valvetrain";
@@ -165,31 +165,24 @@ function computeBankCommands(frame: EngineFrame, bank: Bank) {
     }
   }
 
-  // Timing drive, in two stages (see chainPath.ts): the primary chain from the crank's sprocket to the intermediate
-  // shaft's large sprocket, and the secondary chain from its small sprocket up to the cams' sprockets
-  // the bank's timing drive, at the place both banks' drives share (DRIVE_DX), its primary chain behind or in front of
-  // its secondary (primaryDx), so that the two primaries run clear of each other on the crank's nose
-  const driveX = dx + driveShift(bank);
+  // Timing drive (see chainPath.ts): one chain from the crank's sprocket up round the two cams' sprockets, its fixed guide
+  // and its tensioner arm; at the place both banks' drives share (DRIVE_DX), the one bank's chain in front of the other's
+  // (chainDx), so that the two run clear of each other on the crank's nose
+  const driveX = dx + driveShift(bank) + chainDx(bank);
   const chainX = VT.chainX + driveX;
-  const primaryX = chainX + primaryDx(bank);
   const spin = (turn: number, phase: number): [number, number] => [Math.cos(alpha * turn + phase), Math.sin(alpha * turn + phase)];
-  const P = PRIMARY.phases;
-  const S = SECONDARY.phases;
+  const D = DRIVE.phases;
+  const cam = chainDx(bank) !== 0 ? r.sprocketCamSpaced : r.sprocketCam;
 
-  emitInBank(bank, r.blade, 1, 0, driveX, 0, 0);
-  emitInBank(bank, r.bladeFar, 1, 0, driveX, 0, 0);
-  emitInBank(bank, bankPart(bank, "bladePrimary"), 1, 0, driveX, 0, 0);
-  emitInBank(bank, bankPart(bank, "bladePrimaryFar"), 1, 0, driveX, 0, 0);
+  emitInBank(bank, r.guideArm, 1, 0, driveX, 0, 0);
+  emitInBank(bank, r.guideFixed, 1, 0, driveX, 0, 0);
 
-  emitInBank(bank, r.sprocketCrank, ...spin(1, P[0]), primaryX, 0, 0);
-  emitInBank(bank, r.sprocketIdler, ...spin(0.5, P[1]), primaryX, IDLER_Y, 0);
-  emitInBank(bank, r.sprocketIdlerSmall, ...spin(0.5, S[0]), chainX, IDLER_Y, 0);
-  emitInBank(bank, r.sprocketCam, ...spin(0.5, S[1]), chainX, VT.yCam, VT.zCam);
-  emitInBank(bank, r.sprocketCam, ...spin(0.5, S[2]), chainX, VT.yCam, -VT.zCam);
+  emitInBank(bank, chainDx(bank) !== 0 ? r.sprocketCrankFront : r.sprocketCrank, ...spin(1, D[0]), chainX, 0, 0);
+  emitInBank(bank, cam, ...spin(0.5, D[1]), chainX, VT.yCam, VT.zCam);
+  emitInBank(bank, cam, ...spin(0.5, D[2]), chainX, VT.yCam, -VT.zCam);
 
-  // Each chain moves against its driving sprocket's turning direction in the path's own (counter-clockwise) parameter
-  emitChain(bank, PRIMARY, -VT_RC * alpha, primaryX);
-  emitChain(bank, SECONDARY, -CAM_RC * alpha * 0.5, chainX);
+  // the chain moves against its driving sprocket's turning direction in the path's own (counter-clockwise) parameter
+  emitChain(bank, DRIVE, -CAM_RC * alpha * 0.5, chainX);
 }
 
 // One chain's links, inner and outer plates in turn, from where the chain has moved to

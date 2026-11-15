@@ -12,7 +12,7 @@ import type { FwVec3 } from "../mesh/builder";
 import { OIL_PATHS } from "../mesh/drySump";
 import { curveAt } from "../mesh/tubes";
 import { VT } from "../mesh/valvetrain";
-import { CAM_RC, IDLER_Y, PRIMARY, SECONDARY, VT_RC, primaryDx } from "../mesh/timingChain/chainPath";
+import { CAM_RC, DRIVE, VT_RC, chainDx } from "../mesh/timingChain/chainPath";
 import { cross3, normalize3 } from "../math/vec3";
 import { crankPin } from "../scene/commands";
 import { ENGINE_GAS } from "../sim/clock";
@@ -287,8 +287,8 @@ function computeOil(frame: EngineFrame) {
   computeChainOil(frame, T, turning);
 }
 
-// The oil on the timing drives, seen when the engine is see-through: a jet from the dry sump's feed onto each primary
-// chain as it comes onto the crank's sprocket; a wet film carried round on both chains, thicker in streaks that travel
+// The oil on the timing drives, seen when the engine is see-through: a jet from the dry sump's feed onto each bank's
+// chain as it comes onto the crank's sprocket; a wet film carried round on the chain, thicker in streaks that travel
 // with them; and drops running off the bottom of every sprocket and falling away
 const CHAIN_OIL_GAP = 4.5; // from one blob of the film to the next, along a chain
 const CHAIN_OIL_AT = { y: 0, z: 0, circle: -1 };
@@ -298,14 +298,11 @@ function computeChainOil(frame: EngineFrame, T: number, turning: number) {
 
   for (const bank of BANKS) {
     const alpha = (bank.dir * frame.crankAngle * Math.PI) / 180;
-    const chainX = VT.chainX + DRIVE_DX;
-    const primaryX = chainX + primaryDx(bank);
+    const chainX = VT.chainX + DRIVE_DX + chainDx(bank);
+    const primaryX = chainX;
 
-    // the film on each chain, on both its faces, moving with it
-    for (const [chain, x, s0, seed] of [
-      [PRIMARY, primaryX, -VT_RC * alpha, 0],
-      [SECONDARY, chainX, -CAM_RC * alpha * 0.5, 7],
-    ] as Array<[typeof PRIMARY, number, number, number]>) {
+    // the film on the chain, on both its faces, moving with it
+    for (const [chain, x, s0, seed] of [[DRIVE, chainX, -CAM_RC * alpha * 0.5, 0]] as Array<[typeof DRIVE, number, number, number]>) {
       const n = Math.floor(chain.path.total / CHAIN_OIL_GAP);
 
       for (let k = 0; k < n; k++) {
@@ -315,11 +312,11 @@ function computeChainOil(frame: EngineFrame, T: number, turning: number) {
 
         // streaks of heavier oil, fixed to the chain, so that the film is seen to go round with it
         const streak = 0.5 + 0.5 * Math.sin(k * 0.37 + seed) * Math.sin(k * 0.11 + 1.3 * seed);
-        const a = (0.34 + 0.44 * streak * streak) * (0.8 + 0.2 * turning);
+        const a = (0.1 + 0.14 * streak * streak) * (0.8 + 0.2 * turning); // (thin: the chain's steel shows through)
 
-        // on the outer plates' faces (they stand 5.7 out from the chain's middle), and a thinner wet line down its middle
+        // on the outer plates' faces, and a thinner wet line down its middle
         for (const side of [-1, 1]) {
-          addPoint(OIL, bank, x + side * 6.3, CHAIN_OIL_AT.y, CHAIN_OIL_AT.z, 4.2 + 2.2 * streak, OIL_RGB[0], OIL_RGB[1], OIL_RGB[2], a);
+          addPoint(OIL, bank, x + side * 10.6, CHAIN_OIL_AT.y, CHAIN_OIL_AT.z, 4.2 + 2.2 * streak, OIL_RGB[0], OIL_RGB[1], OIL_RGB[2], a);
         }
       }
     }
@@ -341,8 +338,6 @@ function computeChainOil(frame: EngineFrame, T: number, turning: number) {
     // drops running off the bottom of each sprocket and falling, in the engine's frame, as they would
     const sprockets: Array<[number, number, number, number]> = [
       [primaryX, 0, 0, VT_RC],
-      [primaryX, IDLER_Y, 0, VT_RC * 2],
-      [chainX, IDLER_Y, 0, CAM_RC],
       [chainX, VT.yCam, VT.zCam, CAM_RC],
       [chainX, VT.yCam, -VT.zCam, CAM_RC],
     ];

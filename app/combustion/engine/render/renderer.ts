@@ -476,6 +476,8 @@ export function createEngineRenderer(
         // the fittings on the cover's top (plug caps, oil filler cap, the plates): only on the plain, solid engine; see-through,
         // they are left off, so that the workings show from above
         if (!SCENE_OPTIONS.seeThrough) ghostInBank(bank, bankPart(bank, "headTop"), 1);
+        // the ignition leads and the fuel rail: in both modes
+        ghostInBank(bank, bankPart(bank, "headWiring"), 1);
         // the engraved lettering, last, and not see-through: it is cut through the shell, so that the shell does not veil it
         // (when the head is solid, seen from above, the lettering is cut into its top: drawn over it, not hidden by it)
         const headSolid = headOpacity(bank) >= 0.995;

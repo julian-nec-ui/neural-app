@@ -2,7 +2,7 @@
 
 import { PISTON_H, TAU, VALVE_RH_EX, VALVE_RH_IN } from "../../core/constants";
 import type { FwMaterial, FwVec3 } from "../builder";
-import { MAT_CT_ALU, MAT_CT_ALU_CAST, MAT_CT_ANODIZED, MAT_CT_CLIP, MAT_CT_RELIEF, MAT_CT_EDGE, MAT_CT_EXPANDER, MAT_CT_GROOVE, MAT_CT_HOLE, MAT_CT_PIN, MAT_CT_PIN_END, MAT_CT_PLATE, MAT_CT_RING, MAT_CT_RING_DARK, MAT_CT_RING_MOLY, MAT_CT_SKIRT } from "../materials";
+import { MAT_CT_ALU, MAT_CT_ALU_CAST, MAT_CT_CROWN, MAT_CT_CROWN_EDGE, MAT_CT_ANODIZED, MAT_CT_CLIP, MAT_CT_RELIEF, MAT_CT_EDGE, MAT_CT_EXPANDER, MAT_CT_GROOVE, MAT_CT_HOLE, MAT_CT_PIN, MAT_CT_PIN_END, MAT_CT_PLATE, MAT_CT_RING, MAT_CT_RING_DARK, MAT_CT_RING_MOLY, MAT_CT_SKIRT } from "../materials";
 import { IN_SIDE, VT } from "../valvetrain";
 import { CT, CT_PISTON_BACK_WALL, CT_PISTON_FRONT_WALL, CT_PISTON_STEPS } from "./dimensions";
 import type { MeshBuilder } from "../tubes";
@@ -40,7 +40,16 @@ export function buildPiston(b: MeshBuilder) {
     ) => b.revolveY({ y0, r0, y1, r1, n, m, steps: CT_PISTON_STEPS, ...extra });
 
     // The crown's edge, chamfered; its top, with the valve reliefs cut into it, follows
-    seg(crown, rTop - 1.6, crown + 1.6, rTop, [-0.7, 0.7], MAT_CT_EDGE);
+    // (rounded, not a flat chamfer: four steps of a quarter round)
+    const CRR = 2.6;
+
+    for (let j = 0; j < 4; j++) {
+      const pa = (j / 4) * (Math.PI / 2);
+      const pb = ((j + 1) / 4) * (Math.PI / 2);
+      const pm = (pa + pb) / 2;
+
+      seg(crown + CRR - CRR * Math.cos(pa), rTop - CRR + CRR * Math.sin(pa), crown + CRR - CRR * Math.cos(pb), rTop - CRR + CRR * Math.sin(pb), [-Math.cos(pm), Math.sin(pm)], MAT_CT_CROWN_EDGE);
+    }
 
     // The crown's top: a surface with real relief, built on a grid fine enough to hold the
     // detail. Four valve reliefs are cut into it, one under each valve, to the valve's size
@@ -49,7 +58,7 @@ export function buildPiston(b: MeshBuilder) {
     // a scalloped rim where the cutter ran out. Where one comes near the crown's edge, it
     // dies away into the land.
     {
-      const R = rTop - 1.6; // the top's outer edge, where the chamfer begins
+      const R = rTop - CRR; // the top's outer edge, where the chamfer begins
       const pockets = [1, -1].flatMap((sigma) =>
         [-1, 1].map((sx) => ({
           cx: (sx * VT.xValve + (sigma > 0 && sx < 0 ? VT.leftIntakeShift : 0)) * 0.92,
@@ -98,7 +107,7 @@ export function buildPiston(b: MeshBuilder) {
 
       // Surface material by how deep a point is: bright at the chamfer, machined above it, dark on the floor
       // a matte, blasted finish in the reliefs, chamfer and all, against the crown's machined top
-      const matAt = (h: number) => (h < 0.03 ? MAT_CT_ALU_CAST : MAT_CT_RELIEF);
+      const matAt = (h: number) => (h < 0.03 ? MAT_CT_CROWN : MAT_CT_RELIEF);
 
       const eps = 0.12;
       const vertex = (x: number, z: number) => {
@@ -256,7 +265,7 @@ export function buildPiston(b: MeshBuilder) {
     // ---- Lands, grooves and rings, top to bottom. The ring pack sits high, so
     // that the holes for the wrist pin are clear of it ----
 
-    seg(crown + 1.6, rTop, -35 - bite, rTop, [0, 1], MAT_CT_ANODIZED);
+    seg(crown + CRR, rTop, -35 - bite, rTop, [0, 1], MAT_CT_ANODIZED);
 
     groove(-35, -32, rTop, rL2);
     ring(-34.7, -32.3, ringOut, MAT_CT_RING, 8, MAT_CT_RING_MOLY);
@@ -338,7 +347,14 @@ export function buildPiston(b: MeshBuilder) {
     seg(yTop, rHigh, yMid, rMid, [0, 1], MAT_CT_SKIRT, { mask: upper });
     seg(yMid, rMid, ySide, wallR(ySide), [0, 1], MAT_CT_SKIRT, { mask: upper });
     seg(ySide, wallR(ySide), yLow, rLow, [0, 1], MAT_CT_SKIRT, { mask: lower });
-    seg(yLow, rLow, skirtEnd, rLow - 0.55, [0.7, 0.7], MAT_CT_EDGE, { mask: lower });
+    for (let j = 0; j < 3; j++) { // the skirt's end, rounded
+      const pa = (j / 3) * (Math.PI / 2);
+      const pb = ((j + 1) / 3) * (Math.PI / 2);
+      const pm = (pa + pb) / 2;
+      const e = Math.min(1.6, skirtEnd - yLow);
+
+      seg(skirtEnd - e + e * Math.sin(pa), rLow - 0.55 * (1 - Math.cos(pa)) / (1 - Math.cos(Math.PI / 2)) * 1, skirtEnd - e + e * Math.sin(pb), rLow - 0.55 * (1 - Math.cos(pb)), [Math.sin(pm), Math.cos(pm)], MAT_CT_EDGE, { mask: lower });
+    }
 
     // Inside, and the bottom faces: the end of the thrust faces and feet, and the
     // underside of the side walls where nothing goes on below

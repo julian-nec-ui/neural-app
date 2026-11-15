@@ -1,6 +1,6 @@
-// The timing drive's two chains: their paths round their sprockets, the sprockets' phases, and the timing mark's angle.
+// The timing drive's chain: its path round its sprockets, the sprockets' phases, and the timing mark's angle.
 
-import { PRIMARY_DX, ROD_LIFT, TAU, driveShift } from "../../core/constants";
+import { CHAIN_SEP, TAU, driveShift } from "../../core/constants";
 import type { Bank } from "../../core/constants";
 import { VT } from "../valvetrain";
 
@@ -181,24 +181,25 @@ function buildChainPath(circles: ChainCircle[], tensioned: boolean[], depth: num
 
 /* ---------------- the two chains ---------------- */
 
-// The drive is in two stages, so that the camshafts' sprockets can be small enough to sit inside the head's outline.
-// The primary chain runs from the crankshaft's sprocket to a large sprocket on an intermediate shaft, which it turns at
-// half the crank's speed; on the same shaft a small sprocket drives the secondary chain, up to the two camshafts'
-// sprockets, as small as it is, so that they turn at its speed: half the crank's. The intermediate shaft stands on the
-// bank's centre line, between the crank and the cams. Both chains have the same pitch; each has a whole, even number
-// of links (inner and outer plates alternate), made exact by how far its tensioner pushes it in.
+// The drive is in one stage, as on a twin-cam head: one chain per bank from the crankshaft's sprocket straight up to the two
+// camshafts' sprockets, round the outside of both and across the top between them, back down to the crank. The cams' sprockets
+// have twice the crank's teeth, so that they turn at half its speed. Up the one run a fixed guide holds the chain, down
+// the other a pivoting tensioner arm, pushed in by a hydraulic tensioner, takes up its slack; the top run is free. The
+// chain has a whole, even number of links (inner and outer plates alternate), made exact by how far the arm pushes it in.
+// The chain's links, rollers and the sprockets' teeth are in proportion to its pitch (CHAIN_K, from the old drive's).
 
-export const VT_RC = 27.7; // the crankshaft's sprocket's pitch radius
-const CRANK_TEETH = 19;
-export const VT_PITCH = (TAU * VT_RC) / CRANK_TEETH;
-export const CAM_TEETH = 18; // the camshafts' sprockets, and the small one on the intermediate shaft
+const CRANK_TEETH = 16;
+export const VT_PITCH = (TAU * 46) / 30; // the chain's pitch: the cams' sprockets 46 in radius with 30 coarse teeth, so that,
+// as in the picture, there is a clear gap between them (the old drive's pitch was 9.16)
+export const CHAIN_K = VT_PITCH / ((TAU * 27.7) / 19); // the chain's size against the old one's: its links and teeth scale by it
+export const VT_RC = (CRANK_TEETH * VT_PITCH) / TAU; // the crankshaft's sprocket's pitch radius
+export const CAM_TEETH = 2 * CRANK_TEETH; // the camshafts' sprockets: twice the crank's, half its speed
 export const CAM_RC = (CAM_TEETH * VT_PITCH) / TAU;
-export const IDLER_TEETH = 2 * CRANK_TEETH; // the large sprocket on the intermediate shaft
-// A bank's primary chain plane from its secondary's: behind it, toward the engine, for the bank whose drive stands at its
-// cylinders' own place; in front of it for the other, whose drive is moved back to the same place, so that the two primary
-// chains run side by side on the crank's nose, clear of each other
-export const primaryDx = (bank: Bank) => (driveShift(bank) > 0 ? -PRIMARY_DX : PRIMARY_DX);
-export const CHAIN_TEETH = { crank: CRANK_TEETH, cam: CAM_TEETH, idler: IDLER_TEETH };
+// The two banks' chains on the crank's nose must not meet: the bank whose drive stands at its cylinders' own place runs its
+// chain in the head's chain plane; the other's runs this far in front of it, its cams' sprockets set out on spacers
+export { CHAIN_SEP }; // (core/constants.ts: the chains twice as wide as the old ones)
+export const chainDx = (bank: Bank) => (driveShift(bank) > 0 ? -CHAIN_SEP : 0);
+export const CHAIN_TEETH = { crank: CRANK_TEETH, cam: CAM_TEETH };
 
 export type Chain = { path: ChainPath; links: number; phases: number[]; speed: number[] };
 
@@ -241,43 +242,16 @@ function makeChain(circles: ChainCircle[], tensioned: boolean[], teeth: number[]
   return { path, links, phases, speed };
 }
 
-// The intermediate shaft, on the bank's centre line, in the bank's frame: about 180 above the crank, placed exactly so that
-// the primary chain, with its two tensioners pushing in moderately, is a whole even number of links long
-const primaryCircles = (y: number): ChainCircle[] => [{ y: 0, z: 0, r: VT_RC }, { y, z: 0, r: VT_RC * 2 }];
-const PRIMARY_PUSH = 12;
-const IDLER_NEAR = -180 - ROD_LIFT / 2; // about halfway up, with the head raised for the longer rods
-
-export const IDLER_Y = (() => {
-  const lengthAt = (y: number) => buildChainPath(primaryCircles(y), [true, true], PRIMARY_PUSH).total;
-  const links = 2 * Math.round(lengthAt(IDLER_NEAR) / VT_PITCH / 2);
-  let lo = IDLER_NEAR - 50; // longer
-  let hi = IDLER_NEAR + 50; // shorter
-
-  for (let i = 0; i < 60; i++) {
-    const mid = (lo + hi) / 2;
-
-    if (lengthAt(mid) > links * VT_PITCH) lo = mid;
-    else hi = mid;
-  }
-
-  return (lo + hi) / 2;
-})();
-
-export const PRIMARY = makeChain(
-  primaryCircles(IDLER_Y),
-  [true, true], // a tensioner on each of its two runs, the two sides alike
-  [CRANK_TEETH, IDLER_TEETH],
-  [1, 0.5]
-);
-
-export const SECONDARY = makeChain(
-  [{ y: IDLER_Y, z: 0, r: CAM_RC }, { y: VT.yCam, z: VT.zCam, r: CAM_RC }, { y: VT.yCam, z: -VT.zCam, r: CAM_RC }],
+// The bank's one chain: the crank's sprocket, then the two cams' (the first on +z), round counter-clockwise; both side runs
+// bowed in (the guide's and the arm's), the top run straight
+export const DRIVE = makeChain(
+  [{ y: 0, z: 0, r: VT_RC }, { y: VT.yCam, z: VT.zCam, r: CAM_RC }, { y: VT.yCam, z: -VT.zCam, r: CAM_RC }],
   [true, false, true],
-  [CAM_TEETH, CAM_TEETH, CAM_TEETH],
-  [0.5, 0.5, 0.5]
+  [CRANK_TEETH, CAM_TEETH, CAM_TEETH],
+  [1, 0.5, 0.5]
 );
 
 // The timing mark, as one angle on the crankshaft: the stripe along the front
 // journal, the painted tooth of the crank sprocket (tooth 0, which turns with
 // the phase above) and the painted tooth of the flywheel all lie on it
-export const MARK_ANGLE = 0.5 * (TAU / CRANK_TEETH) - PRIMARY.phases[0];
+export const MARK_ANGLE = 0.5 * (TAU / CRANK_TEETH) - DRIVE.phases[0];

@@ -855,7 +855,7 @@ export function buildStarterBody(b: MeshBuilder) {
         const tone = [MAT_ST_COPPER, MAT_ST_ENAMEL, MAT_ST_COPPER_DEEP][(i + layer * 2 + k) % 3];
 
         // (the straight runs need no points between their ends; the corners carry their own)
-        sweepTube(b, curveFromPoints(loop(tIn, tOut, layer), 9), () => strand, tone, { segments: 8 });
+        sweepTube(b, curveFromPoints(loop(tIn, tOut, layer), 9), () => strand, tone, { segments: 6 });
       }
     }
 

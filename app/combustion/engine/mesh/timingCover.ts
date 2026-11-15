@@ -1,13 +1,15 @@
 // The timing covers: over each bank's timing drive, at the front of the engine, a cover in two pieces, an upper one over
-// the camshafts' sprockets and a lower one over the intermediate shaft and the crank's sprocket, meeting at a joint. Dark
+// the camshafts' sprockets and a lower one over the chain's guides, its tensioner and the crank's sprocket, meeting at a joint. Dark
 // metal with a carbon-fibre weave in its skin (surface pattern 8), bright cooling fins in relief along its face, a
 // machined rim round its face, and bolts round its edge.
 // Built in a bank's own frame, about the timing drive's plane; drawn see-through, as the head is, solid when the engine is.
 
-import { PRIMARY_DX, TAU } from "../core/constants";
+import { TAU } from "../core/constants";
 import type { FwMaterial, FwVec3 } from "./builder";
-import { MAT_COVER, MAT_COVER_FIN, MAT_COVER_RIM } from "./materials";
-import { CAM_RC, IDLER_Y, VT_RC } from "./timingChain/chainPath";
+import { MAT_COVER, MAT_COVER_FIN, MAT_COVER_RIM, MAT_GASKET } from "./materials";
+import { runOffset } from "./timingChain/chainGuides";
+import { CAM_RC, CHAIN_SEP, DRIVE, VT_RC } from "./timingChain/chainPath";
+import { HEAD } from "./head";
 import { flangeBolt } from "./tubes";
 import type { MeshBuilder } from "./tubes";
 import { VT } from "./valvetrain";
@@ -16,11 +18,11 @@ const FIN_PITCH = 9; // the fins' spacing across the cover
 const FIN_H = 6; // how far they stand out of its face
 const FIN_T = 1.3; // half a fin's thickness
 
-// The cover's face stands in front of everything of the drive: the chains, the cams' sprocket bolts and the crank's bolt,
-// all hidden under it; its back edge, against the head's front, behind the rear chain
-const X_FACE = VT.chainX - 34;
-const X_BACK = VT.chainX + PRIMARY_DX + 14;
-const JOINT_Y = (IDLER_Y + VT.yCam) / 2 + 30; // where the two pieces meet
+// The cover's face stands in front of everything of the drive (the chain run in front, CHAIN_SEP, with its sprockets'
+// bolts and the crank's bolt), all hidden under it; its back edge, against the head's front, behind the chain
+const X_FACE = VT.chainX - CHAIN_SEP - 24;
+const X_BACK = HEAD.x0; // right on the head's and the block's front face: sealed to it, no gap
+const JOINT_Y = VT.yCam * 0.45; // where the two pieces meet
 
 type P2 = [number, number]; // y, z
 
@@ -118,6 +120,47 @@ function piece(b: MeshBuilder, poly: P2[]) {
     b.box(X_FACE - 2 - FIN_H, X_FACE - 2, y0, y1, z - FIN_T, z + FIN_T, MAT_COVER_FIN);
   }
 
+  // where it meets the engine: a broad flange round its back, standing out from its wall, bolted to the head and the block
+  // all round, with a gasket under it, so that it is sealed and the oil on the chain stays in
+  const FL = 7; // how far the flange stands out from the wall
+  const FT = 5; // its thickness
+  const GT = 0.9; // the gasket's
+  const out = (q: P2, d: number): P2 => inset(q, -d);
+  const flange = poly.map((q) => out(q, FL));
+  const gasket = poly.map((q) => out(q, FL + 0.7));
+
+  wall(flange, X_BACK - GT - FT, X_BACK - GT, MAT_COVER_RIM); // the flange's edge
+  for (let k = 0; k < n; k++) {
+    const a = poly[k];
+    const c = poly[(k + 1) % n];
+
+    // its front face, from the wall out to its edge
+    b.flatQuad(P(a, X_BACK - GT - FT), P(c, X_BACK - GT - FT), P(flange[(k + 1) % n], X_BACK - GT - FT), P(flange[k], X_BACK - GT - FT), [-1, 0, 0], MAT_COVER);
+  }
+
+  wall(gasket, X_BACK - GT, X_BACK, MAT_GASKET); // the gasket, a dark line just proud of the flange
+
+  // the flange's bolts, into the head and the block, close together
+  {
+    const fp = poly.map((q) => out(q, FL / 2));
+    const lens = fp.map((q, k) => Math.hypot(fp[(k + 1) % n][0] - q[0], fp[(k + 1) % n][1] - q[1]));
+    const tot = lens.reduce((s, l) => s + l, 0);
+    const cnt = Math.max(10, Math.round(tot / 34));
+
+    for (let i = 0; i < cnt; i++) {
+      let s = (i / cnt) * tot;
+      let k = 0;
+
+      while (s > lens[k]) s -= lens[k++];
+
+      const a = fp[k];
+      const c = fp[(k + 1) % n];
+      const u = s / lens[k];
+
+      flangeBolt(b, [X_BACK - GT - FT, a[0] + (c[0] - a[0]) * u, a[1] + (c[1] - a[1]) * u], [-1, 0, 0], 2.6, 0.5 * i);
+    }
+  }
+
   // bolts round its edge, on the rim
   const perim = poly.map((q, k) => Math.hypot(poly[(k + 1) % n][0] - q[0], poly[(k + 1) % n][1] - q[1]));
   const total = perim.reduce((t, l) => t + l, 0);
@@ -138,21 +181,94 @@ function piece(b: MeshBuilder, poly: P2[]) {
   }
 }
 
+function backPlate(b: MeshBuilder, outline: P2[]) {
+  const n = outline.length;
+  const cy = outline.reduce((s, q) => s + q[0], 0) / n;
+  const cz = outline.reduce((s, q) => s + q[1], 0) / n;
+  const grow = (q: P2, d: number): P2 => {
+    const dy = q[0] - cy;
+    const dz = q[1] - cz;
+    const l = Math.hypot(dy, dz) || 1;
+
+    return [q[0] + (dy / l) * d, q[1] + (dz / l) * d];
+  };
+  const PT = 6; // its thickness, back into the engine's front from the covers' seat
+  const ring = outline.map((q) => grow(q, 15));
+  const P = (q: P2, x: number): FwVec3 => [x, q[0], q[1]];
+  const x0 = X_BACK; // its front, where the covers' gaskets sit
+  const x1 = X_BACK + PT;
+
+  // its front face (the covers seat on it) and its back
+  b.flatFan([x0, cy, cz], ring.map((q) => P(q, x0)), [-1, 0, 0], MAT_COVER_RIM);
+  b.flatFan([x1, cy, cz], ring.map((q) => P(q, x1)).reverse(), [1, 0, 0], MAT_COVER_RIM);
+
+  // its edge, with a chamfer on the front
+  const ringC = outline.map((q) => grow(q, 13.6));
+
+  for (let k = 0; k < n; k++) {
+    const a = ring[k];
+    const c = ring[(k + 1) % n];
+    const nrm: FwVec3 = [0, (a[0] + c[0]) / 2 - cy, (a[1] + c[1]) / 2 - cz];
+
+    b.flatQuad(P(a, x0 + 1.2), P(c, x0 + 1.2), P(c, x1), P(a, x1), nrm, MAT_COVER);
+    b.flatQuad(P(ringC[k], x0 - 0.01), P(ringC[(k + 1) % n], x0 - 0.01), P(c, x0 + 1.2), P(a, x0 + 1.2), [-1, nrm[1] * 0.02, nrm[2] * 0.02], MAT_COVER_FIN);
+  }
+
+  // its bolts into the engine, round its edge
+  const fp = outline.map((q) => grow(q, 11));
+  const lens = fp.map((q, k) => Math.hypot(fp[(k + 1) % n][0] - q[0], fp[(k + 1) % n][1] - q[1]));
+  const tot = lens.reduce((s, l) => s + l, 0);
+  const cnt = Math.max(12, Math.round(tot / 40));
+
+  for (let i = 0; i < cnt; i++) {
+    let s = ((i + 0.5) / cnt) * tot;
+    let k = 0;
+
+    while (s > lens[k]) s -= lens[k++];
+
+    const a = fp[k];
+    const c = fp[(k + 1) % n];
+    const u = s / lens[k];
+
+    flangeBolt(b, [x0, a[0] + (c[0] - a[0]) * u, a[1] + (c[1] - a[1]) * u], [-1, 0, 0], 2.8, 0.7 * i);
+  }
+}
+
 export function buildTimingCover(b: MeshBuilder) {
   const circles: Array<[number, number, number]> = [
     [VT.yCam, VT.zCam, CAM_RC + 20],
     [VT.yCam, -VT.zCam, CAM_RC + 20],
-    [IDLER_Y, 0, 2 * VT_RC + 16],
     [0, 0, VT_RC + 18],
   ];
+  // and clear of the guides and the tensioner standing out from the arm, down both side runs
+  const reach: Array<[number, number, number]> = [];
+
+  for (let k = 0; k <= 10; k++) {
+    const u = 0.09 + 0.082 * k;
+
+    reach.push([0, u, 38], [2, u, 38]);
+  }
+
+  reach.push([0, 0.287, 86], [2, 0.713, 86]); // (and round both tensioners)
   const pts: P2[] = [];
 
   for (const [y, z, r] of circles) {
     for (let k = 0; k < 36; k++) pts.push([y + r * Math.cos((k / 36) * TAU), z + r * Math.sin((k / 36) * TAU)]);
   }
 
+  for (const [run, u, off] of reach) {
+    const [y, z] = runOffset(DRIVE, run, u, off);
+
+    for (let k = 0; k < 12; k++) pts.push([y + 12 * Math.cos((k / 12) * TAU), z + 12 * Math.sin((k / 12) * TAU)]);
+  }
+
   const outline = hull(pts);
 
   piece(b, clip(outline, JOINT_Y, -1)); // the upper piece, over the cams
   piece(b, clip(outline, JOINT_Y + 1.5, 1)); // the lower one, a hair below: the joint shows as a line
+
+  // Behind both pieces, the timing case's back plate: a cast plate as large as the covers' flanges and a little more,
+  // bolted to the block and the head's front, closing the drive in from behind where the covers reach out past the head;
+  // the covers' flanges bolt onto it. Its own bolts, into the engine, stand round its edge outside the covers'.
+  backPlate(b, outline);
 }

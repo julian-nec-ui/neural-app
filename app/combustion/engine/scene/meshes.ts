@@ -7,6 +7,7 @@ import type { MeshBuilder } from "../mesh/tubes";
 import { buildTrainMesh } from "../mesh/crankTrain/trainMesh";
 import { buildDownpipes, buildMufflerPart, buildExhaustFlanges, buildExhaustLogs, buildExhaustStubs, buildManifoldWelds, buildTurbineArc, buildTurboFeed } from "../mesh/exhaust";
 import { FW_DIM, FW_VERTICES } from "../mesh/flywheel";
+import { buildHeadWiring } from "../mesh/headWiring";
 import { buildDeck, buildDeckSlab, buildHeadShell, buildHeadSolid, buildHeadTopFittings, buildLinerRim } from "../mesh/head";
 import { buildHeadText, buildLidSignature } from "../mesh/headText";
 import { buildIntakeManifold, buildPlenumGate, buildVPlenum } from "../mesh/plenum";
@@ -19,12 +20,12 @@ import { buildBlowOffValves, buildChargeCouplers, buildChargePipes, buildCoolPip
 import { MAT_VT_HEAD_EX, MAT_VT_HEAD_IN, MAT_VT_VALVE_EX, MAT_VT_VALVE_IN } from "../mesh/materials";
 import { buildCollector, buildCollectorFittings, buildIntakePipes, buildIntakeWelds, buildTurboFittings, buildTurboIntakePipe } from "../mesh/plumbing";
 import { stretchTurn, buildStarterBody, buildStarterDisc, buildStarterDrive, buildStarterDriveShell, buildStarterFork, buildStarterPinion, buildStarterPlunger, buildStarterShaft, buildStarterShell, buildStarterSpring, buildStarterYoke } from "../mesh/starter";
-import { CAM_RC, CHAIN_TEETH, MARK_ANGLE, PRIMARY, SECONDARY, VT_RC, primaryDx } from "../mesh/timingChain/chainPath";
+import { CAM_RC, CHAIN_SEP, CHAIN_TEETH, DRIVE, MARK_ANGLE, VT_RC } from "../mesh/timingChain/chainPath";
 import { buildChainLink } from "../mesh/timingChain/chainLink";
-import { buildChainShoes } from "../mesh/timingChain/chainGuides";
+import { buildChainGuide } from "../mesh/timingChain/chainGuides";
 import { buildSprocket } from "../mesh/timingChain/sprocket";
 import { buildCompressorWheel, buildTurbineWheel, buildTurboCasing, buildTurboFilter, buildTurboHousing } from "../mesh/turbo";
-import { VT, VT_LIFT_PEAK, buildCam, buildSpring, buildTowers, buildValve, buildValveSeat, buildValveStatic } from "../mesh/valvetrain";
+import { VT_LIFT_PEAK, buildCam, buildSpring, buildTowers, buildValve, buildValveSeat, buildValveStatic } from "../mesh/valvetrain";
 
 /* ---------------- assembly ---------------- */
 
@@ -32,12 +33,12 @@ import { VT, VT_LIFT_PEAK, buildCam, buildSpring, buildTowers, buildValve, build
 // under a name that is not here is a compile error, and a name here that is never built stops the engine at load.
 export const PART_NAMES = [
   "valveIn", "valveEx", "valveStatic", "spring", "camIn", "camEx", "camInB", "camExB", "towers", "deck", "deckB", "deckSlab", "deckSlabB",
-  "headShell", "headShellB", "headSolid", "headSolidB", "headTop", "headTopB", "linerRim", "turboHousing", "turboCasing", "intakePipes", "turboIntakePipe", "collector",
+  "headShell", "headShellB", "headSolid", "headSolidB", "headTop", "headTopB", "headWiring", "headWiringB", "linerRim", "turboHousing", "turboCasing", "intakePipes", "turboIntakePipe", "collector",
   "turboFilter", "seatIn", "seatEx", "turboWheelC", "turboWheelT", "collectorFittings", "turboFittings",
   "intercooler", "blowOffValves", "manifoldWelds", "intakeWelds", "turbineArc", "timingCover", "starterShell", "starterYoke", "drySump", "drySumpShell", "drySumpShellB", "block", "icTank", "icTankB", "icTankLow", "icTankLowB", "icTankBare", "icTankBareB", "fanShroud", "fanRotor", "chargePipes", "chargePipesB", "coolPipes", "coolPipesB", "chargeCouplers", "exhaustLogs", "exhaustLogsR", "exhaustLogsB", "exhaustLogsBR", "turboFeed", "turboFeedB", "exhaustStubs",
   "exhaustFlanges", "downpipes", "downpipesB", "mufflers", "starterBody", "starterShaft", "starterDrive", "starterDriveShell", "starterPinion", "starterPlunger",
   "starterDisc", "starterSpring", "starterFork", "headTextA", "headTextB", "lidText", "vPlenum", "plenumGate", "intakeManifold", "sprocketCrank", "sprocketCam",
-  "chainInner", "chainOuter", "blade", "bladeFar", "bladePrimary", "bladePrimaryB", "bladePrimaryFar", "bladePrimaryFarB", "sprocketIdler", "sprocketIdlerSmall", "injector", "sparkPlug",
+  "chainInner", "chainOuter", "guideFixed", "guideArm", "sprocketCamSpaced", "sprocketCrankFront", "injector", "sparkPlug",
 ] as const;
 
 export type PartName = (typeof PART_NAMES)[number];
@@ -64,10 +65,23 @@ function buildHeadMesh(): HeadMesh {
     f();
     b.setTurn(null);
   };
+  // Each part's vertices are moved out of the builder's working array into a typed chunk as soon as it is built, and the
+  // array emptied: a plain array of the whole engine's floats would pass the most a JavaScript array may hold
+  const chunks: Float32Array[] = [];
+  let flushed = 0; // vertices moved out so far
+  const flush = () => {
+    if (b.out.length === 0) return;
+
+    chunks.push(new Float32Array(b.out));
+    flushed += b.out.length / FW_STRIDE;
+    b.out.length = 0;
+  };
   const part = (name: PartName, build: () => void) => {
-    const start = b.out.length / FW_STRIDE;
+    flush();
+    const start = flushed;
     build();
-    parts[name] = [start, b.out.length / FW_STRIDE - start];
+    parts[name] = [start, flushed + b.out.length / FW_STRIDE - start];
+    flush();
   };
 
   part("valveIn", () => buildValve(b, VALVE_RH_IN, MAT_VT_HEAD_IN, MAT_VT_VALVE_IN));
@@ -90,6 +104,9 @@ function buildHeadMesh(): HeadMesh {
   part("headSolidB", () => widened(b, () => buildHeadSolid(b, driveShift(BANKS[1]))));
   part("headTop", () => widened(b, () => buildHeadTopFittings(b, driveShift(BANKS[0]))));
   part("headTopB", () => widened(b, () => buildHeadTopFittings(b, driveShift(BANKS[1]))));
+  // the ignition leads and the fuel rail on each head's top: drawn on the solid engine and on the see-through one alike
+  part("headWiring", () => widened(b, () => buildHeadWiring(b, driveShift(BANKS[0]))));
+  part("headWiringB", () => widened(b, () => buildHeadWiring(b, driveShift(BANKS[1]))));
   part("linerRim", () => buildLinerRim(b));
   part("turboHousing", () => buildTurboHousing(b));
   part("turboCasing", () => buildTurboCasing(b));
@@ -155,66 +172,48 @@ function buildHeadMesh(): HeadMesh {
   part("headTextB", () => widened(b, () => buildHeadText(b, 1)));
   part("lidText", () => buildLidSignature(b));
 
-  part("sprocketCrank", () =>
+  // the crankshaft's sprockets: the rear chain's plain, the front chain's with the oil pump's spur gear in front of it
+  // (the front one's hub reaches back the whole way to the rear one: the two are one wide sprocket on the crank's nose,
+  // driving both banks' chains)
+  const crankSprocket = (relief?: "crank") =>
     buildSprocket(b, {
       teeth: CHAIN_TEETH.crank,
       rPitch: VT_RC,
       windows: 0, // too small for lightening windows: a solid web
-      hubR: 22,
+      hubR: VT_RC - 5.2, // just inside the teeth's root: a broad, solid body
       boreR: 17.15, // a hair larger than the shaft: no coincident surfaces, and no visible gap
-      hubLen: 13,
+      hubLen: relief ? 13 + CHAIN_SEP : 13,
       mark: false, // its mark is the painted tooth
       markTooth: true,
-    })
-  );
+      relief,
+    });
 
-  part("sprocketCam", () =>
-    buildSprocket(b, {
-      teeth: CHAIN_TEETH.cam,
-      rPitch: CAM_RC,
-      windows: 0, // small enough now to sit inside the head's outline: a solid web
-      hubR: 19,
-      boreR: 11,
-      hubLen: 7,
-      mark: true,
-    })
-  );
+  part("sprocketCrank", () => crankSprocket());
+  part("sprocketCrankFront", () => crankSprocket("crank"));
 
-  // The intermediate shaft's two sprockets: the large one, driven by the primary chain, with the shaft's hub running
-  // back from it to the engine's front face; and the small one, which drives the secondary chain
-  part("sprocketIdler", () =>
-    buildSprocket(b, {
-      teeth: CHAIN_TEETH.idler,
-      rPitch: VT_RC * 2,
-      windows: 6,
-      hubR: 16,
-      boreR: 8,
-      hubLen: 16,
-      mark: false,
-    })
-  );
-
-  part("sprocketIdlerSmall", () =>
+  // the camshafts' sprockets: twice the crank's teeth, large, their fronts in relief (rim, dished web, hub ring, the phaser's
+  // spur teeth, the bore's collar)
+  const camSprocket = (hubLen: number) =>
     buildSprocket(b, {
       teeth: CHAIN_TEETH.cam,
       rPitch: CAM_RC,
       windows: 0,
-      hubR: 14,
-      boreR: 8,
-      hubLen: 9,
-      mark: false,
-    })
-  );
+      relief: "cam",
+      hubR: 19,
+      boreR: 11,
+      hubLen,
+      mark: true,
+    });
+
+  part("sprocketCam", () => camSprocket(7));
+  // the same, for the bank whose chain runs in front (CHAIN_SEP): its hub reaches back over the spacer to the camshaft
+  part("sprocketCamSpaced", () => camSprocket(7 + CHAIN_SEP));
 
   part("chainInner", () => buildChainLink(b, false));
   part("chainOuter", () => buildChainLink(b, true));
-  part("blade", () => buildChainShoes(b, SECONDARY, 0, "near"));
-  part("bladeFar", () => buildChainShoes(b, SECONDARY, 2, "far"));
-  part("bladePrimary", () => buildChainShoes(b, PRIMARY, 0, "near", VT.chainX + primaryDx(BANKS[0])));
-  part("bladePrimaryB", () => buildChainShoes(b, PRIMARY, 0, "near", VT.chainX + primaryDx(BANKS[1])));
-  // and a second blade with its tensioner on the primary chain's other run, so that its two sides are alike
-  part("bladePrimaryFar", () => buildChainShoes(b, PRIMARY, 1, "far", VT.chainX + primaryDx(BANKS[0])));
-  part("bladePrimaryFarB", () => buildChainShoes(b, PRIMARY, 1, "far", VT.chainX + primaryDx(BANKS[1])));
+  // up the chain's first run (crank to the first cam) the tensioner arm, down its last (second cam to crank) the fixed guide
+  part("guideArm", () => buildChainGuide(b, DRIVE, 0, "arm", 1));
+  part("guideFixed", () => buildChainGuide(b, DRIVE, 2, "fixed", 0));
   part("injector", () => buildInjector(b));
   part("sparkPlug", () => buildSparkPlug(b));
 
@@ -222,7 +221,17 @@ function buildHeadMesh(): HeadMesh {
 
   if (missing.length > 0) throw new Error(`Parts named but never built: ${missing.join(", ")}`);
 
-  return { vertices: new Float32Array(b.out), parts: parts as Record<PartName, [number, number]> };
+  flush();
+
+  const vertices = new Float32Array(flushed * FW_STRIDE);
+  let at = 0;
+
+  for (const c of chunks) {
+    vertices.set(c, at);
+    at += c.length;
+  }
+
+  return { vertices, parts: parts as Record<PartName, [number, number]> };
 }
 
 const HEAD_MESH = buildHeadMesh();
@@ -296,9 +305,8 @@ export const BANK_PARTS = {
   headShell: ["headShell", "headShellB"],
   headSolid: ["headSolid", "headSolidB"],
   headTop: ["headTop", "headTopB"],
+  headWiring: ["headWiring", "headWiringB"],
   headText: ["headTextA", "headTextB"],
-  bladePrimary: ["bladePrimary", "bladePrimaryB"],
-  bladePrimaryFar: ["bladePrimaryFar", "bladePrimaryFarB"],
 } as const satisfies Record<string, readonly [PartName, PartName]>;
 
 export const bankPart = (bank: Bank, part: keyof typeof BANK_PARTS): [number, number] =>
