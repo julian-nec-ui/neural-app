@@ -80,14 +80,26 @@ const LAYOUT_CSS = `
 @media (max-width: 600px) {
   .ak-hint-line { white-space: normal; font-size: 11px; } /* (on a phone: readable, over two lines) */
 }
-/* On a phone only (narrow, or held sideways and short): the firing order 45% smaller, every part of it in proportion (its
+/* On a phone only (narrow, or held sideways and short): the firing order half its size, every part of it in proportion (its
    sizes are written times --k), and the buttons about 30% smaller */
 @media (max-width: 600px), (max-height: 500px) and (orientation: landscape) {
-  .ak-right { --k: 0.55; } /* (every size in the firing order's lines is so many px times --k) */
+  .ak-right { --k: 0.5; } /* (every size in the firing order's lines is so many px times --k) */
   .ak-left button { font-size: 8.5px !important; padding: 3px 6px !important; min-height: 24px !important; border-radius: 5px; }
   .ak-left [role="group"] > span, .ak-left .ak-options > span { font-size: 7.5px !important; }
   .ak-left [role="group"], .ak-left .ak-options, .ak-left .ak-play > div { gap: 3px !important; padding: 3px !important; }
   .ak-left { gap: 5px !important; }
+  /* the views come down beside the firing order: the buttons' block opened up (its play line across the top), then the
+     views on the left, two lines of five, and the firing order on the right, set to the right, each bank's label over its
+     cylinders in two lines of three */
+  .ak-row2 { display: grid !important; grid-template-columns: minmax(0, 1.12fr) minmax(0, 1fr); grid-template-areas: "play play" "view fire"; column-gap: 6px; row-gap: 5px; align-items: start; }
+  .ak-left { display: contents !important; }
+  .ak-play { grid-area: play; }
+  .ak-view { grid-area: view; align-self: stretch !important; display: grid !important; grid-template-columns: repeat(5, minmax(0, 1fr)); align-content: center; }
+  .ak-view > span { grid-column: 1 / -1; text-align: center; padding: 0 !important; }
+  .ak-view > button { font-size: 6.6px !important; padding: 3px 0 !important; min-height: 26px !important; white-space: normal; line-height: 1.1; word-break: keep-all; overflow-wrap: normal; letter-spacing: -0.01em; }
+  .ak-right { grid-area: fire; width: auto !important; margin: 0 !important; align-items: stretch !important; }
+  .ak-right .ak-firing { justify-content: flex-end !important; }
+  .ak-right .ak-firing > span:first-child { flex: 1 1 100%; justify-content: flex-end; padding-right: 2px !important; }
 }
 `;
 
@@ -812,7 +824,7 @@ export default function Engine() {
             <div
               role="group"
               aria-label="View"
-              className="flex flex-wrap items-center gap-1 self-start rounded-lg bg-slate-900 p-1 ring-1 ring-white/10"
+              className="ak-view flex flex-wrap items-center gap-1 self-start rounded-lg bg-slate-900 p-1 ring-1 ring-white/10"
             >
               <span className="px-1.5 text-[10px] font-semibold uppercase tracking-widest text-slate-500">View</span>
 
