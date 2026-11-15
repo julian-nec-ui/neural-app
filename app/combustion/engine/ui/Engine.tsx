@@ -20,6 +20,9 @@ import { Dials } from "./Gauges";
    MAIN COMPONENT / CONTROLS
    ========================================================= */
 
+// The delivery this page is (raised at each one): shown, faint, in the hints, so that a deployed page can be told from an old one
+const BUILD = 616;
+
 const VIEW_LABELS: Record<ViewName, string> = {
   default: "3/4",
   side: "Side",
@@ -721,7 +724,11 @@ export default function Engine() {
                 <div className="ak-hint-line">
                   Drag to rotate · Shift-drag or twist to roll · pinch to zoom · double-tap: next view
                 </div>
-                <div style={{ marginTop: 5 }}>Crank : cam = 2 : 1 · One shared animation clock</div>
+                <div style={{ marginTop: 5 }}>
+                  Crank : cam = 2 : 1 · One shared animation clock
+                  {/* which delivery this is: to tell at a glance which version a page is running */}
+                  <span style={{ marginLeft: 8, opacity: 0.55 }}>· build {BUILD}</span>
+                </div>
                 <div className="ak-legend flex flex-wrap items-center justify-start gap-x-1.5 gap-y-1" style={{ marginTop: 7, fontSize: 10.5, whiteSpace: "nowrap", justifyContent: "flex-start", alignSelf: "flex-start" }}>
                   <span className="text-[9.5px] font-semibold uppercase tracking-widest text-slate-500">Legend:</span>
                   <Legend color="#4a9fe0" label="Intake" />
