@@ -80,11 +80,14 @@ const LAYOUT_CSS = `
 @media (max-width: 600px) {
   .ak-hint-line { white-space: normal; font-size: 11px; } /* (on a phone: readable, over two lines) */
 }
-/* On a phone only (narrow, or held sideways and short): the firing order 40% smaller, every part of it in proportion, and the
-   buttons a little smaller */
+/* On a phone only (narrow, or held sideways and short): the firing order 45% smaller, every part of it in proportion (its
+   sizes are written times --k), and the buttons about 30% smaller */
 @media (max-width: 600px), (max-height: 500px) and (orientation: landscape) {
-  .ak-right { zoom: 0.6; }
-  .ak-left { zoom: 0.88; }
+  .ak-right { --k: 0.55; } /* (every size in the firing order's lines is so many px times --k) */
+  .ak-left button { font-size: 8.5px !important; padding: 3px 6px !important; min-height: 24px !important; border-radius: 5px; }
+  .ak-left [role="group"] > span, .ak-left .ak-options > span { font-size: 7.5px !important; }
+  .ak-left [role="group"], .ak-left .ak-options, .ak-left .ak-play > div { gap: 3px !important; padding: 3px !important; }
+  .ak-left { gap: 5px !important; }
 }
 `;
 
@@ -832,21 +835,21 @@ export default function Engine() {
             {/* On the right, against the stage's edge: the firing order, one line for each bank, bank A over bank B, each with
                 its cylinders in the order they fire and the crank angle (of 720) each fires at; each chip in the colour of the
                 stroke its cylinder is in now (the legend, with the hints above) */}
-            <div ref={rightRef} className="ak-right ml-auto flex flex-col items-stretch justify-center gap-2" style={{ justifyContent: "center" }}>
+            <div ref={rightRef} className="ak-right ml-auto flex flex-col items-stretch justify-center" style={{ justifyContent: "center", gap: "calc(8px * var(--k, 1))" }}>
               {[0, 1].map((bank) => (
                 <div
                   key={bank}
                   role="group"
                   aria-label={`Firing order, bank ${bank === 0 ? "A" : "B"}`}
                   className="ak-firing flex flex-wrap items-center justify-start rounded-lg bg-slate-900 ring-1 ring-white/10"
-                  style={{ justifyContent: "flex-start", padding: 2, gap: 6 }}
+                  style={{ justifyContent: "flex-start", padding: "calc(2px * var(--k, 1))", gap: "calc(6px * var(--k, 1))" }}
                 >
-                  <span className="font-semibold uppercase text-slate-500" style={{ fontSize: 9.5, minWidth: 0, padding: "0 0 0 3px", marginRight: -0.6, letterSpacing: "0.03em", whiteSpace: "nowrap", display: "inline-flex", alignItems: "center" }}>
+                  <span className="font-semibold uppercase text-slate-500" style={{ fontSize: "calc(9.5px * var(--k, 1))", minWidth: 0, padding: "0 0 0 calc(3px * var(--k, 1))", marginRight: "calc(-0.6px * var(--k, 1))", letterSpacing: "0.03em", whiteSpace: "nowrap", display: "inline-flex", alignItems: "center" }}>
                     {/* (5 px in from the line's dark background: its own 2 px padding and 3 px here; the line is set to the right, so
                         it grows to the left to make room) */}
                     Firing order ·&nbsp;<span style={{ color: bank === 0 ? "#52B6FF" : "#FF8A4C" }}>Bank {bank === 0 ? "A" : "B"}</span>
                     {/* a chevron, in the bank's colour, pointing at its first cylinder: 5 px from the letter, 7 px to the chip */}
-                    <svg width="10" height="12" viewBox="0 0 10 12" aria-hidden="true" style={{ marginLeft: 3.9, flex: "none" }}>
+                    <svg viewBox="0 0 10 12" aria-hidden="true" style={{ width: "calc(10px * var(--k, 1))", height: "calc(12px * var(--k, 1))", marginLeft: "calc(3.9px * var(--k, 1))", flex: "none" }}>
                       <path d="M2 1.5 L7.5 6 L2 10.5" fill="none" stroke={bank === 0 ? "#52B6FF" : "#FF8A4C"} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                   </span>
@@ -865,10 +868,10 @@ export default function Engine() {
                       // the same width; a single-digit number stands in the middle of its slot (where a two-digit one's middle is), the
                       // angles set to the right of theirs, so that a two-digit angle lines up with the three-digit ones on its right;
                       // (all of it 10% bigger than it was: 4.4 px from the slots to the chip's sides, 5.5 px above and below)
-                      style={{ width: "max-content", padding: "8.5px 6.4px 8.5px 4.4px", gap: 6.6, backgroundColor: "rgba(51, 65, 85, 0.45)", transition: "background-color 0.12s linear", justifyContent: "flex-start", whiteSpace: "nowrap" }}
+                      style={{ width: "max-content", padding: "calc(8.5px * var(--k, 1)) calc(6.4px * var(--k, 1)) calc(8.5px * var(--k, 1)) calc(4.4px * var(--k, 1))", gap: "calc(6.6px * var(--k, 1))", backgroundColor: "rgba(51, 65, 85, 0.45)", transition: "background-color 0.12s linear", justifyContent: "flex-start", whiteSpace: "nowrap" }}
                     >
-                      <span className="font-bold tabular-nums text-white" style={{ fontSize: 24.2, lineHeight: "24.2px", width: "2.1ch", textAlign: "center", flex: "none" }}>{f.no}</span>
-                      <span className="tabular-nums" style={{ fontWeight: 650, fontSize: 17.3, lineHeight: "18.5px", width: "calc(3ch + 0.6em)", textAlign: "right", flex: "none" }}>{f.deg}°</span>
+                      <span className="font-bold tabular-nums text-white" style={{ fontSize: "calc(24.2px * var(--k, 1))", lineHeight: "calc(24.2px * var(--k, 1))", width: "2.1ch", textAlign: "center", flex: "none" }}>{f.no}</span>
+                      <span className="tabular-nums" style={{ fontWeight: 650, fontSize: "calc(17.3px * var(--k, 1))", lineHeight: "calc(18.5px * var(--k, 1))", width: "calc(3ch + 0.6em)", textAlign: "right", flex: "none" }}>{f.deg}°</span>
                     </span>
                   ))}
                 </div>
