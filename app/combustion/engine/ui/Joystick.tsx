@@ -14,7 +14,7 @@ type Props = {
   style?: Record<string, string | number>;
 };
 
-const RATE = 7; // steps a second at full push: half what it was, slower and easier to place
+const RATE = 6; // steps a second at full push: slower again (15% under the 7 it was), easier to place
 const DEAD = 0.12; // a share of the throw at the middle that does nothing
 
 export default function Joystick({ size, onMove, onCenter, style }: Props) {
@@ -47,6 +47,7 @@ export default function Joystick({ size, onMove, onCenter, style }: Props) {
 
     let held = false;
     let ox = 0;
+    let shown = 1; // how big it is drawn on the screen against its own size (made smaller on a phone by a CSS scale)
     let oy = 0;
     let px = 0; // the knob's lean, -1..1 each way
     let py = 0;
@@ -117,8 +118,8 @@ export default function Joystick({ size, onMove, onCenter, style }: Props) {
     };
 
     const at = (e: PointerEvent) => {
-      const dx = (e.clientX - ox) / throw_;
-      const dy = (e.clientY - oy) / throw_;
+      const dx = (e.clientX - ox) / (throw_ * shown);
+      const dy = (e.clientY - oy) / (throw_ * shown);
       const r = Math.hypot(dx, dy);
 
       px = r > 1 ? dx / r : dx;
@@ -140,10 +141,11 @@ export default function Joystick({ size, onMove, onCenter, style }: Props) {
 
       const b = root.getBoundingClientRect();
 
+      shown = b.width / S || 1;
       ox = b.left + b.width / 2;
       oy = b.top + b.height / 2;
       tapStart = performance.now();
-      tapCentred = Math.hypot(e.clientX - ox, e.clientY - oy) < knob * 0.6;
+      tapCentred = Math.hypot(e.clientX - ox, e.clientY - oy) < knob * 0.6 * shown;
       tapMax = 0;
       held = true;
       root.setPointerCapture(e.pointerId);
@@ -161,7 +163,7 @@ export default function Joystick({ size, onMove, onCenter, style }: Props) {
     const drag = (e: PointerEvent) => {
       if (held) {
         tapMax = Math.max(tapMax, Math.hypot(e.clientX - ox, e.clientY - oy));
-        if (!engaged && tapMax > knob * 0.4) engaged = true;
+        if (!engaged && tapMax > knob * 0.4 * shown) engaged = true;
         if (engaged) at(e);
       }
     };

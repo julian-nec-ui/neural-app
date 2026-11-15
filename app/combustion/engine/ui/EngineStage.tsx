@@ -23,6 +23,12 @@ import Joystick from "./Joystick";
 const DASH_D = 3 * 37 + 2 * 4; // the start button's width (as the old compass's)
 const JOY_D = 90; // the joystick's, under it: smaller (7% bigger than the 84 it was, its centre kept where it was)
 const JOY_D0 = 84;
+// a phone: narrow, or held sideways and short; there the two are drawn at half size (a scale, so all of them keeps its
+// proportions and stays sharp)
+const DASH_CSS = `
+@media (max-width: 600px), (max-height: 500px) and (orientation: landscape) {
+  .ak-dash { transform: scale(0.5); transform-origin: 0 0; }
+}`;
 
 function DashStartButton() {
   const { toggle, on, starting, caught } = useContext(StartContext);
@@ -432,18 +438,24 @@ export function EngineStage() {
         style={{ position: "absolute", inset: 0, display: "block", width: "100%", height: "100%" }}
       />
 
-      <DashStartButton />
+      {/* The start button and, under it, the joystick: on a phone (not a tablet) both drawn at half their size, every part of
+          them in proportion, the lettering too, from the stage's top left corner (ak-dash, a box of no size of its own, so
+          that only they themselves take the pointer) */}
+      <style>{DASH_CSS}</style>
+      <div className="ak-dash" style={{ position: "absolute", left: 0, top: 0, width: 0, height: 0, overflow: "visible" }}>
+        <DashStartButton />
 
-      {/* The joystick that moves the engine on the stage, under the start button, centred on it */}
-      <Joystick
-        size={JOY_D}
-        onMove={(dx, dy) => {
-          if (dx) camera.nudge(dx);
-          if (dy) camera.nudgeY(dy);
-        }}
-        onCenter={() => camera.recenter()}
-        style={{ left: 12 + (DASH_D - JOY_D) / 2, top: 10 + DASH_D + 14 - (JOY_D - JOY_D0) / 2 }}
-      />
+        {/* The joystick that moves the engine on the stage, under the start button, centred on it */}
+        <Joystick
+          size={JOY_D}
+          onMove={(dx, dy) => {
+            if (dx) camera.nudge(dx);
+            if (dy) camera.nudgeY(dy);
+          }}
+          onCenter={() => camera.recenter()}
+          style={{ left: 12 + (DASH_D - JOY_D) / 2, top: 10 + DASH_D + 14 - (JOY_D - JOY_D0) / 2 }}
+        />
+      </div>
 
 
       <Loader hidden={loaded} />

@@ -153,6 +153,23 @@ export default function Engine() {
   const [see, setSee] = useState(() => SCENE_OPTIONS.seeThrough);
   const [hd, setHd] = useState(() => SCENE_OPTIONS.hd);
 
+  // HD on from the start on a computer, off on a phone or a tablet: decided in the browser, after the page has hydrated
+  // (the server cannot know the screen, and both must first render the same)
+  useEffect(() => {
+    if (SCENE_OPTIONS.hdSet) {
+      setHd(SCENE_OPTIONS.hd);
+      return;
+    }
+
+    SCENE_OPTIONS.hdSet = true;
+
+    if (window.matchMedia("(max-width: 1024px), (pointer: coarse)").matches) return;
+
+    SCENE_OPTIONS.hd = true;
+    setHd(true);
+    window.dispatchEvent(new Event("resize"));
+  }, []);
+
   // The firing order, as a row of cylinder numbers under the stage: the one that fired last is lit, and fades
   const chipRefs = useRef<Array<HTMLSpanElement | null>>([]);
   // the hints end exactly where the firing order's lines do, on the right: their right edge on the last cylinder's chip,
@@ -562,6 +579,7 @@ export default function Engine() {
     const next = !hd;
 
     SCENE_OPTIONS.hd = next;
+    SCENE_OPTIONS.hdSet = true;
     setHd(next);
     window.dispatchEvent(new Event("resize"));
     camera.notify();
