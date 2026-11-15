@@ -80,6 +80,12 @@ const LAYOUT_CSS = `
 @media (max-width: 600px) {
   .ak-hint-line { white-space: normal; font-size: 11px; } /* (on a phone: readable, over two lines) */
 }
+/* On a phone only (narrow, or held sideways and short): the firing order 40% smaller, every part of it in proportion, and the
+   buttons a little smaller */
+@media (max-width: 600px), (max-height: 500px) and (orientation: landscape) {
+  .ak-right { zoom: 0.6; }
+  .ak-left { zoom: 0.88; }
+}
 `;
 
 const RANGE_CSS = `
