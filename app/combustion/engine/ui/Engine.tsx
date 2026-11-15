@@ -157,6 +157,46 @@ export default function Engine() {
   // the hints end exactly where the firing order's lines do, on the right: their right edge on the last cylinder's chip,
   // set flush right, on a computer, where they stand over them
   const hintsRef = useRef<HTMLDivElement | null>(null);
+  // the dials, on a computer, stand midway between the buttons on the left (their right end: Transparent, Starter) and the
+  // firing order on the right (its left end), over the gap between them
+  const dialsRef = useRef<HTMLDivElement | null>(null);
+  const leftRef = useRef<HTMLDivElement | null>(null);
+  const rightRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const place = () => {
+      const dials = dialsRef.current;
+      const left = leftRef.current;
+      const right = rightRef.current;
+
+      if (!dials || !left || !right) return;
+
+      dials.style.transform = "";
+
+      if (window.matchMedia("(max-width: 1024px), (max-height: 640px)").matches) return;
+
+      const buttonsEnd = Math.max(...Array.from(left.children).map((c) => c.getBoundingClientRect().right));
+      const firingStart = right.getBoundingClientRect().left;
+
+      if (firingStart <= buttonsEnd) return; // (the firing order gone under the buttons: the dials stay in the middle)
+
+      const box = dials.getBoundingClientRect();
+      const shift = (buttonsEnd + firingStart) / 2 - (box.left + box.right) / 2;
+
+      dials.style.transform = `translateX(${shift.toFixed(1)}px)`;
+    };
+    const watch = new ResizeObserver(place);
+
+    for (const el of [dialsRef.current, leftRef.current, rightRef.current]) if (el) watch.observe(el);
+    if (dialsRef.current?.parentElement) watch.observe(dialsRef.current.parentElement);
+    window.addEventListener("resize", place);
+    place();
+
+    return () => {
+      watch.disconnect();
+      window.removeEventListener("resize", place);
+    };
+  }, []);
 
   useEffect(() => {
     const align = () => {
@@ -606,7 +646,9 @@ export default function Engine() {
 
             </div>
 
-            <Dials size="clamp(83px, 6.9vw, 112px)" room="clamp(72px, 6vw, 97px)" />
+            <div ref={dialsRef}>
+              <Dials size="clamp(83px, 6.9vw, 112px)" room="clamp(72px, 6vw, 97px)" />
+            </div>
 
             {/* the hints, on the right: as wide as the firing order below, so that they start where it does */}
             <div
@@ -635,7 +677,6 @@ export default function Engine() {
                   <Legend color="#ffe48a" label="Compression" />
                   <Legend color="#ff8c1a" label="Power" />
                   <Legend color="#d6dce4" label="Exhaust" />
-                  <Legend color="#D3CDCD" label="Crank" />
                   {/* These two only while the airflow is on: the legend grows to the right */}
                   {air && <Legend color="#52B6FF" label="Cold intake air" />}
                   {air && <Legend color="#FF4A0A" label="Hot exhaust gas" />}
@@ -648,7 +689,7 @@ export default function Engine() {
           {/* Then: play and reset with the switches right after them on one line, the views under them; the switches stretch
               so that Transparent ends where Starter does. The firing order and the legend are on their right */}
           <div className="ak-row2 mt-3 flex flex-wrap items-stretch gap-x-6 gap-y-2">
-          <div className="ak-left inline-flex flex-col items-stretch justify-between gap-2" style={{ justifyContent: "space-between" }}>
+          <div ref={leftRef} className="ak-left inline-flex flex-col items-stretch justify-between gap-2" style={{ justifyContent: "space-between" }}>
             <div className="ak-play flex items-center gap-2" style={{ display: "flex", gap: 8 }}>
               <div className="flex items-center gap-1 rounded-lg bg-slate-900 p-1 ring-1 ring-white/10">
                 <button
@@ -743,7 +784,7 @@ export default function Engine() {
             {/* On the right, against the stage's edge: the firing order, one line for each bank, bank A over bank B, each with
                 its cylinders in the order they fire and the crank angle (of 720) each fires at; each chip in the colour of the
                 stroke its cylinder is in now (the legend, with the hints above) */}
-            <div className="ak-right ml-auto flex flex-col items-stretch justify-center gap-2" style={{ justifyContent: "center" }}>
+            <div ref={rightRef} className="ak-right ml-auto flex flex-col items-stretch justify-center gap-2" style={{ justifyContent: "center" }}>
               {[0, 1].map((bank) => (
                 <div
                   key={bank}
