@@ -1,78 +1,26 @@
 "use client";
 
-// The Center button: a target, its rings in blue and green round a white dot, CENTER beside it. A click brings the engine
-// back square to the screen, seen from the timing drive's end, in the middle of the stage and well filled.
+// The Center button: a target, nothing else: its rings in blue and green, and in the middle, on a dark disc, a green C. A
+// click brings the engine back square to the screen, seen from the timing drive's end, in the middle of the stage and well filled.
 
 import { useState } from "react";
 import type { ReactNode } from "react";
 
-const RING = 38; // the target's size, in CSS pixels
+const RING = 52; // the target's size, in CSS pixels
 
+// The target: an outer ring of matte blue, a thin pale gap, a ring of matte green, and in the middle a broad dark disc with a
+// C in bright metallic green; each ring domed with a light from above. Raised off the page with a soft shadow; on hover it
+// lifts and glows a little, pressed it sinks in
 export function CenterButton({ onCenter }: { onCenter: () => void }) {
   const [hover, setHover] = useState(false);
   const [down, setDown] = useState(false);
 
-  // matte, raised: a soft drop shadow under it, a light rim above and a dark one below; pressed, it sinks in
   const lift = down ? 0 : hover ? 2 : 1;
   const shadow = down
-    ? "inset 0 2px 5px rgba(0,0,0,0.55), inset 0 -1px 1px rgba(255,255,255,0.08), 0 1px 1px rgba(0,0,0,0.4)"
-    : `0 ${2 + lift * 2}px ${6 + lift * 4}px rgba(0,0,0,0.55), 0 1px 0 rgba(255,255,255,0.06), inset 0 1px 1px rgba(255,255,255,0.18), inset 0 -2px 3px rgba(0,0,0,0.35)`;
+    ? "0 1px 2px rgba(0,0,0,0.6), inset 0 2px 5px rgba(0,0,0,0.5)"
+    : `${hover ? "0 0 12px rgba(80,200,140,0.35), " : ""}0 ${2 + lift * 2}px ${5 + lift * 4}px rgba(0,0,0,0.6), inset 0 0 0 1px rgba(0,0,0,0.35)`;
 
-  return (
-    <button
-      type="button"
-      aria-label="Center the engine"
-      title="Center the engine: square to the screen, from the timing drive's end"
-      onClick={onCenter}
-      onPointerEnter={() => setHover(true)}
-      onPointerLeave={() => {
-        setHover(false);
-        setDown(false);
-      }}
-      onPointerDown={() => setDown(true)}
-      onPointerUp={() => setDown(false)}
-      onPointerCancel={() => setDown(false)}
-      onDoubleClick={(event) => event.stopPropagation()}
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 9,
-        padding: "5px 13px 5px 6px",
-        borderRadius: 999,
-        border: "1px solid rgba(255,255,255,0.09)",
-        background: hover
-          ? "linear-gradient(180deg, #2b3340 0%, #1a2029 100%)"
-          : "linear-gradient(180deg, #252c37 0%, #161b23 100%)",
-        boxShadow: shadow,
-        transform: `translate(-25px, ${down ? 1 : hover ? -1 : 0}px)`, // (25 px to the left of where the row puts it, whatever the row does)
-        transition: "transform 120ms ease, box-shadow 120ms ease, background 160ms ease",
-        cursor: "pointer",
-        userSelect: "none",
-        WebkitTapHighlightColor: "transparent",
-        flex: "0 0 auto",
-      }}
-    >
-      <Target hover={hover} down={down} />
-      <span
-        style={{
-          font: "700 11.5px/1 ui-sans-serif, system-ui, sans-serif",
-          letterSpacing: "0.16em",
-          color: hover ? "#f1f5f9" : "#cbd5e1",
-          textShadow: "0 1px 0 rgba(0,0,0,0.7), 0 -1px 0 rgba(255,255,255,0.05)",
-          transition: "color 160ms ease",
-        }}
-      >
-        CENTER
-      </span>
-    </button>
-  );
-}
-
-// The target itself: an outer ring of matte blue, a thin pale gap, a ring of matte green, another gap and the white dot in
-// the middle; each ring domed with a light from above, the whole a little sunk into the button
-function Target({ hover, down }: { hover: boolean; down: boolean }) {
-  const glow = hover && !down ? "0 0 10px rgba(80,200,140,0.35), " : "";
-  const ring = (size: number, background: string, shadow: string, children?: ReactNode) => (
+  const ring = (size: number, background: string, ringShadow: string, children?: ReactNode) => (
     <span
       style={{
         position: "absolute",
@@ -84,7 +32,10 @@ function Target({ hover, down }: { hover: boolean; down: boolean }) {
         marginTop: -size / 2,
         borderRadius: "50%",
         background,
-        boxShadow: shadow,
+        boxShadow: ringShadow,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
       }}
     >
       {children}
@@ -92,27 +43,67 @@ function Target({ hover, down }: { hover: boolean; down: boolean }) {
   );
 
   return (
-    <span
+    <button
+      type="button"
+      aria-label="Center the engine"
+      title="Center: the engine square to the screen, from the timing drive's end"
+      onClick={onCenter}
+      onPointerEnter={() => setHover(true)}
+      onPointerLeave={() => {
+        setHover(false);
+        setDown(false);
+      }}
+      onPointerDown={() => setDown(true)}
+      onPointerUp={() => setDown(false)}
+      onPointerCancel={() => setDown(false)}
+      onDoubleClick={(event) => event.stopPropagation()}
       style={{
         position: "relative",
         display: "inline-block",
         width: RING,
         height: RING,
+        padding: 0,
+        border: "none",
         borderRadius: "50%",
-        boxShadow: `${glow}0 2px 4px rgba(0,0,0,0.6), inset 0 0 0 1px rgba(0,0,0,0.35)`,
-        transform: down ? "scale(0.96)" : hover ? "scale(1.04)" : "scale(1)",
+        background: "transparent",
+        boxShadow: shadow,
+        // (25 px to the left of where the row puts it, whatever the row does)
+        transform: `translate(-25px, ${down ? 1 : hover ? -1 : 0}px) scale(${down ? 0.96 : hover ? 1.04 : 1})`,
         transition: "transform 120ms ease, box-shadow 160ms ease",
+        cursor: "pointer",
+        userSelect: "none",
+        WebkitTapHighlightColor: "transparent",
+        flex: "0 0 auto",
       }}
     >
       {/* the blue ring */}
       {ring(RING, "radial-gradient(circle at 50% 30%, #4f8fe0 0%, #2563c4 55%, #173f86 100%)", "inset 0 1px 1px rgba(255,255,255,0.25), inset 0 -2px 3px rgba(0,0,0,0.4)")}
       {/* the pale gap */}
-      {ring(RING * 0.7, "radial-gradient(circle at 50% 30%, #e9eef4 0%, #c8d1dc 100%)", "inset 0 1px 2px rgba(0,0,0,0.35)")}
+      {ring(RING * 0.8, "radial-gradient(circle at 50% 30%, #e9eef4 0%, #c8d1dc 100%)", "inset 0 1px 2px rgba(0,0,0,0.35)")}
       {/* the green ring */}
-      {ring(RING * 0.56, "radial-gradient(circle at 50% 30%, #58d48f 0%, #20a35c 55%, #12693a 100%)", "0 1px 1px rgba(0,0,0,0.35), inset 0 1px 1px rgba(255,255,255,0.3), inset 0 -2px 2px rgba(0,0,0,0.35)")}
-      {/* the pale gap, and the white dot */}
-      {ring(RING * 0.3, "radial-gradient(circle at 50% 30%, #e9eef4 0%, #c8d1dc 100%)", "inset 0 1px 2px rgba(0,0,0,0.35)")}
-      {ring(RING * 0.18, "radial-gradient(circle at 45% 35%, #ffffff 0%, #f4f6f8 60%, #d5dbe3 100%)", "0 1px 2px rgba(0,0,0,0.45)")}
-    </span>
+      {ring(RING * 0.67, "radial-gradient(circle at 50% 30%, #58d48f 0%, #20a35c 55%, #12693a 100%)", "0 1px 1px rgba(0,0,0,0.35), inset 0 1px 1px rgba(255,255,255,0.3), inset 0 -2px 2px rgba(0,0,0,0.35)")}
+      {/* the dark disc, sunk a little, and the C on it */}
+      {ring(
+        RING * 0.52,
+        "radial-gradient(circle at 50% 35%, #2a313c 0%, #161b22 70%, #0d1015 100%)",
+        "inset 0 2px 3px rgba(0,0,0,0.6), 0 1px 0 rgba(255,255,255,0.15)",
+        // (an SVG letter, so that it can be filled with the gradient: bright metallic green, a light band across its top, the
+        // deep green under it, a lighter edge at its foot)
+        <svg width={RING * 0.52} height={RING * 0.52} viewBox="0 0 30 30" aria-hidden="true" style={{ display: "block", filter: "drop-shadow(0 1px 1px rgba(0,0,0,0.85))" }}>
+          <defs>
+            <linearGradient id="ak-center-c" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor={hover ? "#d9ffe7" : "#c3ffd9"} />
+              <stop offset="0.38" stopColor={hover ? "#5cff9e" : "#3cf08a"} />
+              <stop offset="0.52" stopColor={hover ? "#10b45a" : "#0c9c4c"} />
+              <stop offset="0.78" stopColor={hover ? "#1fe27a" : "#17cf6d"} />
+              <stop offset="1" stopColor={hover ? "#a6ffcb" : "#8cf5b8"} />
+            </linearGradient>
+          </defs>
+          <text x="15" y="16" textAnchor="middle" dominantBaseline="central" fontFamily="ui-sans-serif, system-ui, sans-serif" fontWeight="900" fontSize="21" fill="url(#ak-center-c)">
+            C
+          </text>
+        </svg>
+      )}
+    </button>
   );
 }
