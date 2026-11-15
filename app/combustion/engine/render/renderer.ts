@@ -533,7 +533,8 @@ export function createEngineRenderer(
       // the dry sump's tanks, pumps and lines: dark metal, the oil seen moving in them
       for (const r of [HEAD_RANGE.drySumpShell, HEAD_RANGE.drySumpShellB]) ghost(r, SUMP_OPACITY, 0, [0, 0, 0], PIPE_RIM, RIM_CHARGE, true);
       // the cooled charge's, more metal than glass
-      for (const r of [HEAD_RANGE.coolPipes, HEAD_RANGE.coolPipesB]) ghost(r, COOL_PIPE_OPACITY, 0, [0, 0, 0], PIPE_RIM, RIM_CHARGE, true);
+      // (on the see-through engine they are taken away, with the Y they come into, to see the heads behind them)
+      if (!SCENE_OPTIONS.seeThrough) for (const r of [HEAD_RANGE.coolPipes, HEAD_RANGE.coolPipesB]) ghost(r, COOL_PIPE_OPACITY, 0, [0, 0, 0], PIPE_RIM, RIM_CHARGE, true);
 
       queue.sort((a, b) => b.d - a.d);
 

@@ -10,8 +10,9 @@ import type { TModule } from "../mesh/exhaust";
 import { FAN_PAIR } from "../mesh/fan";
 import { IC_CORE_Z, IC_INNER_Z, IC_OUTER_Z, IC_STAND_Y, icPlace } from "../mesh/intercooler";
 import { ST_AT, ST_PHI_MAX, ST_PIV_A, ST_PIV_Q, ST_SQ, sA, stA } from "../mesh/starter";
-import { CAM_RC, DRIVE, VT_PITCH, chainDx } from "../mesh/timingChain/chainPath";
+import { CAM_RC, CHAIN_SEP, DRIVE, VT_PITCH, chainDx } from "../mesh/timingChain/chainPath";
 import type { Chain } from "../mesh/timingChain/chainPath";
+import { CAM_SENSE, CHAIN_FWD, IDLER2, gearsFor } from "../mesh/timingGears/gearTrain";
 import { IC, IC_HALF, TURBO_AT } from "../mesh/turbo";
 import { IN_SIDE, VT, VT_LIFT_PEAK, VT_TILT, camLift, valveX } from "../mesh/valvetrain";
 import { FLY_RANGE, FW_MARK_OFFSET_DEG, HEAD_RANGE, TRAIN_MESH, bankPart } from "./meshes";
@@ -74,8 +75,6 @@ function emitInBank(
   emit(range, s0, s1, ox, m[4] * oy + m[7] * oz, m[5] * oy + m[8] * oz, scaleY, bank.orient);
 }
 
-const CHAIN_A = { y: 0, z: 0, circle: -1 };
-const CHAIN_B = { y: 0, z: 0, circle: -1 };
 
 // Where the crank pin of cylinder `i` really is: the crankshaft's own spin
 // applied to the pin's place in the crank. The rod and the piston hang from it,
@@ -103,7 +102,7 @@ export function crankPin(frame: EngineFrame, i: number) {
 function computeBankCommands(frame: EngineFrame, bank: Bank) {
   const r = HEAD_RANGE;
   const alpha = (bank.dir * frame.crankAngle * Math.PI) / 180;
-  const camAlpha = (bank.dir * frame.camAngle * Math.PI) / 180;
+  const camAlpha = (CAM_SENSE * bank.dir * frame.camAngle * Math.PI) / 180; // (the cams turn against the crank: gearTrain.ts)
   const cosT = Math.cos(VT_TILT);
   const sinT = Math.sin(VT_TILT);
   const y0 = VT.ySeat + 0.5;
@@ -165,24 +164,40 @@ function computeBankCommands(frame: EngineFrame, bank: Bank) {
     }
   }
 
-  // Timing drive (see chainPath.ts): one chain from the crank's sprocket up round the two cams' sprockets, its fixed guide
-  // and its tensioner arm; at the place both banks' drives share (DRIVE_DX), the one bank's chain in front of the other's
-  // (chainDx), so that the two run clear of each other on the crank's nose
+  // Timing drive: low down, the gears (timingGears/gearTrain.ts), from the crank's to the second idler, the idlers on their
+  // posts; on the second idler, in front of it, the chain's sprocket, and from it the short chain up round the two cams'
+  // sprockets with its fixed guide and its tensioner arm (timingChain/chainPath.ts). At the place both banks' drives share
+  // (DRIVE_DX), the one bank's drive in front of the other's (chainDx), so that the two crank gears sit side by side on the
+  // crank's nose
   const driveX = dx + driveShift(bank) + chainDx(bank);
-  const chainX = VT.chainX + driveX;
+  const gearX = VT.chainX + driveX;
+  const chainX = gearX - CHAIN_FWD;
+  const front = chainDx(bank) !== 0;
   const spin = (turn: number, phase: number): [number, number] => [Math.cos(alpha * turn + phase), Math.sin(alpha * turn + phase)];
+
+  // the crank's one wide gear, between both banks' planes, drawn once, in bank A's frame; each bank's idler meshing with it
+  for (const g of gearsFor(bank)) {
+    if (g.name === "idler") emitInBank(bank, r.gearIdler1, ...spin(g.speed, g.phase), gearX, g.y, g.z);
+    else if (bank === BANKS[0]) emitInBank(bank, r.gearCrank, ...spin(g.speed, g.phase), gearX - CHAIN_SEP / 2, 0, 0);
+  }
+
+  emitInBank(bank, front ? r.idlerPost2Spaced : r.idlerPost2, 1, 0, gearX, IDLER2.y, IDLER2.z);
+
   const D = DRIVE.phases;
-  const cam = chainDx(bank) !== 0 ? r.sprocketCamSpaced : r.sprocketCam;
+  const cam = front ? r.sprocketCamSpaced : r.sprocketCam;
 
   emitInBank(bank, r.guideArm, 1, 0, driveX, 0, 0);
   emitInBank(bank, r.guideFixed, 1, 0, driveX, 0, 0);
 
-  emitInBank(bank, chainDx(bank) !== 0 ? r.sprocketCrankFront : r.sprocketCrank, ...spin(1, D[0]), chainX, 0, 0);
-  emitInBank(bank, cam, ...spin(0.5, D[1]), chainX, VT.yCam, VT.zCam);
-  emitInBank(bank, cam, ...spin(0.5, D[2]), chainX, VT.yCam, -VT.zCam);
+  // all three sprockets turn with the idler (half the crank's speed, against it)
+  const half = IDLER2.speed;
+
+  emitInBank(bank, r.sprocketIdler, ...spin(half, D[0]), chainX, IDLER2.y, IDLER2.z);
+  emitInBank(bank, cam, ...spin(half, D[1]), chainX, VT.yCam, VT.zCam);
+  emitInBank(bank, cam, ...spin(half, D[2]), chainX, VT.yCam, -VT.zCam);
 
   // the chain moves against its driving sprocket's turning direction in the path's own (counter-clockwise) parameter
-  emitChain(bank, DRIVE, -CAM_RC * alpha * 0.5, chainX);
+  emitChain(bank, DRIVE, -CAM_RC * alpha * half, chainX);
 }
 
 // One chain's links, inner and outer plates in turn, from where the chain has moved to
@@ -205,6 +220,9 @@ function emitChain(bank: Bank, chain: Chain, s0: number, x: number) {
     next = tmp;
   }
 }
+
+const CHAIN_A = { y: 0, z: 0, circle: -1 };
+const CHAIN_B = { y: 0, z: 0, circle: -1 };
 
 // Every part's placement for this frame: the crank train, then each bank
 export function computeSceneCommands(frame: EngineFrame): DrawCmd[] {
@@ -294,8 +312,10 @@ export function computeSceneCommands(frame: EngineFrame): DrawCmd[] {
   // The intake plenum on top of the V: on the solid engine only; on the see-through one it is taken away, to see in
   if (!SCENE_OPTIONS.seeThrough) emit(r.vPlenum, 1, 0, 0, 0, 0);
   if (!SCENE_OPTIONS.seeThrough) emit(r.plenumGate, 1, 0, 0, 0, 0); // its gate and square flange go with it
-  // and the intake manifold under it, on both: its logs, flanges and throttles
-  emit(r.intakeManifold, 1, 0, 0, 0, 0);
+  // and the intake manifold in front of it, the Y collecting the two cooled pipes and the throttle: on the solid engine only,
+  // as the pipes themselves and their welds
+  if (!SCENE_OPTIONS.seeThrough) emit(r.intakeManifold, 1, 0, 0, 0, 0);
+  if (!SCENE_OPTIONS.seeThrough) emit(r.coolWelds, 1, 0, 0, 0, 0);
 
   // The intercoolers, one on each side of the engine (see icPlace): each core, the fan on its outer face, its two tanks
   for (const zs of [-1, 1]) {
@@ -326,6 +346,7 @@ export function computeSceneCommands(frame: EngineFrame): DrawCmd[] {
   if (!SCENE_OPTIONS.seeThrough) emit(r.manifoldWelds, 1, 0, 0, 0, 0); // (the headers' joints and bungs: likewise)
   emit(r.turbineArc, 1, 0, 0, 0, 0);
   emit(r.drySump, 1, 0, 0, 0, 0);
+  if (!SCENE_OPTIONS.seeThrough) emit(r.sumpFrontCover, 1, 0, 0, 0, 0); // (the see-through engine leaves it out: the crank's gear shows)
   SCENE_CMDS.length = sceneCount;
 
   return SCENE_CMDS;

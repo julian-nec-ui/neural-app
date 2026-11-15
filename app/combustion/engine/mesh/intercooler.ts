@@ -601,6 +601,19 @@ export function buildCoolPipes(b: MeshBuilder, bi: number) {
   }
 }
 
+// The cooled pipes' welds, drawn with the pipes (solid engine only): each pipe's U is a mandrel-bent piece welded in, a
+// bead where it starts and where it ends, and one more where the pipe goes into the Y's branch
+export function buildCoolPipeWelds(b: MeshBuilder) {
+  CHARGE_PIPES.cool.forEach((c, bi) => {
+    const { s0, s1 } = COOL_ELBOW[bi];
+
+    weld(b, c, s0, COOL_R);
+    weld(b, c, s1, COOL_R);
+    weld(b, c, c.total - 2.2, COOL_R);
+    coolElbowDetail(b, c, s0, s1);
+  });
+}
+
 // The metal couplers: at the tanks, and at the throttle bodies (those at the compressors' outlets are with the turbochargers)
 export function buildChargeCouplers(b: MeshBuilder) {
   // (the hot pipes are bolted on at both ends by flanges: at the compressor, with the turbocharger; at the tank, on the
@@ -615,14 +628,6 @@ export function buildChargeCouplers(b: MeshBuilder) {
 
   for (const c of CHARGE_PIPES.cool) {
     const bi = CHARGE_PIPES.cool.indexOf(c);
-    const { s0, s1 } = COOL_ELBOW[bi];
-
-    // its U is a mandrel-bent piece welded in: a bead where it starts and where it ends, and one more where the pipe goes
-    // into the throttle's mouth, on the plenum
-    weld(b, c, s0, COOL_R);
-    weld(b, c, s1, COOL_R);
-    weld(b, c, c.total - 2.2, COOL_R);
-    coolElbowDetail(b, c, s0, s1);
 
     // the cooled pipe's root on the tank (drawn solid, as the tank is): a neck cast as one with the tank, blending out of
     // its inner end into a round throat, and the cast flange on it, the same casting; then a gasket and the pipe's

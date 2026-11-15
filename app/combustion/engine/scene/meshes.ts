@@ -1,6 +1,7 @@
 // All the meshes built into one buffer, and where each part lies in it.
 
-import { BANKS, TAU, VALVE_RH_EX, VALVE_RH_IN, driveShift, HEAD_WIDEN } from "../core/constants";
+import { BANKS, CHAIN_X_WORLD, DRIVE_DX, TAU, VALVE_RH_EX, VALVE_RH_IN, driveShift, HEAD_WIDEN } from "../core/constants";
+import { HEAD } from "../mesh/head";
 import type { Bank } from "../core/constants";
 import { FW_STRIDE, createMeshBuilder } from "../mesh/builder";
 import type { MeshBuilder } from "../mesh/tubes";
@@ -13,17 +14,19 @@ import { buildHeadText, buildLidSignature } from "../mesh/headText";
 import { buildIntakeManifold, buildPlenumGate, buildVPlenum } from "../mesh/plenum";
 import { buildInjector, buildSparkPlug } from "../mesh/injectionIgnition";
 import { buildBlock } from "../mesh/block";
-import { buildDrySump } from "../mesh/drySump";
+import { buildDrySump, buildSumpFrontCover } from "../mesh/drySump";
 import { buildTimingCover } from "../mesh/timingCover";
 import { buildSmallFan } from "../mesh/fan";
-import { buildBlowOffValves, buildChargeCouplers, buildChargePipes, buildCoolPipes, buildIntercooler, buildIntercoolerTank } from "../mesh/intercooler";
+import { buildBlowOffValves, buildChargeCouplers, buildChargePipes, buildCoolPipeWelds, buildCoolPipes, buildIntercooler, buildIntercoolerTank } from "../mesh/intercooler";
 import { MAT_VT_HEAD_EX, MAT_VT_HEAD_IN, MAT_VT_VALVE_EX, MAT_VT_VALVE_IN } from "../mesh/materials";
 import { buildCollector, buildCollectorFittings, buildIntakePipes, buildIntakeWelds, buildTurboFittings, buildTurboIntakePipe } from "../mesh/plumbing";
 import { stretchTurn, buildStarterBody, buildStarterDisc, buildStarterDrive, buildStarterDriveShell, buildStarterFork, buildStarterPinion, buildStarterPlunger, buildStarterShaft, buildStarterShell, buildStarterSpring, buildStarterYoke } from "../mesh/starter";
-import { CAM_RC, CHAIN_SEP, CHAIN_TEETH, DRIVE, MARK_ANGLE, VT_RC } from "../mesh/timingChain/chainPath";
+import { CAM_RC, CHAIN_K, CHAIN_SEP, CHAIN_TEETH, DRIVE, MARK_ANGLE } from "../mesh/timingChain/chainPath";
 import { buildChainLink } from "../mesh/timingChain/chainLink";
 import { buildChainGuide } from "../mesh/timingChain/chainGuides";
 import { buildSprocket } from "../mesh/timingChain/sprocket";
+import { CHAIN_FWD, CRANK_GEAR_TEETH, GEAR_HALF, IDLER2 } from "../mesh/timingGears/gearTrain";
+import { buildIdlerPost, buildSpurGear } from "../mesh/timingGears/spurGear";
 import { buildCompressorWheel, buildTurbineWheel, buildTurboCasing, buildTurboFilter, buildTurboHousing } from "../mesh/turbo";
 import { VT_LIFT_PEAK, buildCam, buildSpring, buildTowers, buildValve, buildValveSeat, buildValveStatic } from "../mesh/valvetrain";
 
@@ -35,10 +38,11 @@ export const PART_NAMES = [
   "valveIn", "valveEx", "valveStatic", "spring", "camIn", "camEx", "camInB", "camExB", "towers", "deck", "deckB", "deckSlab", "deckSlabB",
   "headShell", "headShellB", "headSolid", "headSolidB", "headTop", "headTopB", "headWiring", "headWiringB", "linerRim", "turboHousing", "turboCasing", "intakePipes", "turboIntakePipe", "collector",
   "turboFilter", "seatIn", "seatEx", "turboWheelC", "turboWheelT", "collectorFittings", "turboFittings",
-  "intercooler", "blowOffValves", "manifoldWelds", "intakeWelds", "turbineArc", "timingCover", "starterShell", "starterYoke", "drySump", "drySumpShell", "drySumpShellB", "block", "icTank", "icTankB", "icTankLow", "icTankLowB", "icTankBare", "icTankBareB", "fanShroud", "fanRotor", "chargePipes", "chargePipesB", "coolPipes", "coolPipesB", "chargeCouplers", "exhaustLogs", "exhaustLogsR", "exhaustLogsB", "exhaustLogsBR", "turboFeed", "turboFeedB", "exhaustStubs",
+  "intercooler", "blowOffValves", "manifoldWelds", "intakeWelds", "turbineArc", "timingCover", "starterShell", "starterYoke", "drySump", "drySumpShell", "drySumpShellB", "block", "icTank", "icTankB", "icTankLow", "icTankLowB", "icTankBare", "icTankBareB", "fanShroud", "fanRotor", "chargePipes", "chargePipesB", "coolPipes", "coolPipesB", "coolWelds", "chargeCouplers", "exhaustLogs", "exhaustLogsR", "exhaustLogsB", "exhaustLogsBR", "turboFeed", "turboFeedB", "exhaustStubs",
   "exhaustFlanges", "downpipes", "downpipesB", "mufflers", "starterBody", "starterShaft", "starterDrive", "starterDriveShell", "starterPinion", "starterPlunger",
-  "starterDisc", "starterSpring", "starterFork", "headTextA", "headTextB", "lidText", "vPlenum", "plenumGate", "intakeManifold", "sprocketCrank", "sprocketCam",
-  "chainInner", "chainOuter", "guideFixed", "guideArm", "sprocketCamSpaced", "sprocketCrankFront", "injector", "sparkPlug",
+  "starterDisc", "starterSpring", "starterFork", "headTextA", "headTextB", "lidText", "vPlenum", "plenumGate", "intakeManifold", "gearCrank", "sumpFrontCover",
+  "gearIdler1", "idlerPost2", "idlerPost2Spaced", "sprocketIdler", "sprocketCam",
+  "sprocketCamSpaced", "chainInner", "chainOuter", "guideFixed", "guideArm", "injector", "sparkPlug",
 ] as const;
 
 export type PartName = (typeof PART_NAMES)[number];
@@ -128,6 +132,7 @@ function buildHeadMesh(): HeadMesh {
   part("starterShell", () => stretched(() => buildStarterShell(b)));
   part("starterYoke", () => stretched(() => buildStarterYoke(b)));
   part("drySump", () => buildDrySump(b, "solid"));
+  part("sumpFrontCover", () => buildSumpFrontCover(b));
   part("drySumpShell", () => buildDrySump(b, "shell", -1));
   part("drySumpShellB", () => buildDrySump(b, "shell", 1));
   part("block", () => buildBlock(b));
@@ -147,6 +152,7 @@ function buildHeadMesh(): HeadMesh {
   part("chargePipesB", () => buildChargePipes(b, 1));
   part("coolPipes", () => buildCoolPipes(b, 0));
   part("coolPipesB", () => buildCoolPipes(b, 1));
+  part("coolWelds", () => buildCoolPipeWelds(b));
   part("chargeCouplers", () => buildChargeCouplers(b));
   part("exhaustLogs", () => buildExhaustLogs(b, 0, 0));
   part("exhaustLogsR", () => buildExhaustLogs(b, 0, 1));
@@ -172,48 +178,39 @@ function buildHeadMesh(): HeadMesh {
   part("headTextB", () => widened(b, () => buildHeadText(b, 1)));
   part("lidText", () => buildLidSignature(b));
 
-  // the crankshaft's sprockets: the rear chain's plain, the front chain's with the oil pump's spur gear in front of it
-  // (the front one's hub reaches back the whole way to the rear one: the two are one wide sprocket on the crank's nose,
-  // driving both banks' chains)
-  const crankSprocket = (relief?: "crank") =>
-    buildSprocket(b, {
-      teeth: CHAIN_TEETH.crank,
-      rPitch: VT_RC,
-      windows: 0, // too small for lightening windows: a solid web
-      hubR: VT_RC - 5.2, // just inside the teeth's root: a broad, solid body
-      boreR: 17.15, // a hair larger than the shaft: no coincident surfaces, and no visible gap
-      hubLen: relief ? 13 + CHAIN_SEP : 13,
-      mark: false, // its mark is the painted tooth
-      markTooth: true,
-      relief,
-    });
+  // The timing drive (timingGears/gearTrain.ts, timingChain/chainPath.ts): gears low down, a short chain above them. The
+  // crank's gear: one wide gear on the crank's nose, its teeth wide enough for both banks' idlers, each in its own plane;
+  // a plain silver face, its hub reaching back to the crank's collar
+  part("gearCrank", () =>
+    buildSpurGear(b, { teeth: CRANK_GEAR_TEETH, hubR: 19.5, boreR: 17.15, hubLen: 13 + CHAIN_SEP / 2, holes: 0, markTooth: true, half: GEAR_HALF + CHAIN_SEP / 2 }));
 
-  part("sprocketCrank", () => crankSprocket());
-  part("sprocketCrankFront", () => crankSprocket("crank"));
+  // the idler, turning on its post: a web with round lightening holes, a plain hub
+  part("gearIdler1", () => buildSpurGear(b, { teeth: IDLER2.teeth, hubR: 15, boreR: 9, hubLen: GEAR_HALF + 1, holes: 5 }));
 
-  // the camshafts' sprockets: twice the crank's teeth, large, their fronts in relief (rim, dished web, hub ring, the phaser's
-  // spur teeth, the bore's collar)
-  const camSprocket = (hubLen: number) =>
-    buildSprocket(b, {
-      teeth: CHAIN_TEETH.cam,
-      rPitch: CAM_RC,
-      windows: 0,
-      relief: "cam",
-      hubR: 19,
-      boreR: 11,
-      hubLen,
-      mark: true,
-    });
+  // the idler's chain sprocket, in front of it on its hub: as the cams', its hub reaching back to the gear
+  const sprocket = (hubLen: number) =>
+    buildSprocket(b, { teeth: CHAIN_TEETH.cam, rPitch: CAM_RC, windows: 0, relief: "cam", hubR: 19, boreR: 11, hubLen, mark: true });
 
-  part("sprocketCam", () => camSprocket(7));
-  // the same, for the bank whose chain runs in front (CHAIN_SEP): its hub reaches back over the spacer to the camshaft
-  part("sprocketCamSpaced", () => camSprocket(7 + CHAIN_SEP));
+  // (the idler's the same as the cams': from the front all three look alike)
+  part("sprocketIdler", () => sprocket(CHAIN_FWD - GEAR_HALF));
+  // the cams' sprockets, their fronts in relief (the face with its holes, the hub, the cam's flanged bolt), out in the
+  // chain's plane: their hubs reach back to the camshafts (the front bank's over the spacer as well)
+  part("sprocketCam", () => sprocket(7 + CHAIN_FWD));
+  part("sprocketCamSpaced", () => sprocket(7 + CHAIN_SEP + CHAIN_FWD));
 
   part("chainInner", () => buildChainLink(b, false));
   part("chainOuter", () => buildChainLink(b, true));
-  // up the chain's first run (crank to the first cam) the tensioner arm, down its last (second cam to crank) the fixed guide
-  part("guideArm", () => buildChainGuide(b, DRIVE, 0, "arm", 1));
-  part("guideFixed", () => buildChainGuide(b, DRIVE, 2, "fixed", 0));
+  // up the chain's first run (the idler's sprocket to the first cam) the tensioner arm, down its last the fixed guide
+  part("guideArm", () => buildChainGuide(b, DRIVE, 0, "arm", 1, CHAIN_X_WORLD - CHAIN_FWD));
+  part("guideFixed", () => buildChainGuide(b, DRIVE, 2, "fixed", 0, CHAIN_X_WORLD - CHAIN_FWD));
+
+  // the idler's post, back to the back plate on the head's front face (the rear bank's gears stand close to it, the front
+  // bank's a chain's width further out), out into its sprocket, whose own hub and bolt close it in front
+  const toPlate = HEAD.x0 - CHAIN_X_WORLD - DRIVE_DX;
+  const sprocketFront = -CHAIN_FWD - 4 * CHAIN_K;
+
+  part("idlerPost2", () => buildIdlerPost(b, 9, toPlate, sprocketFront, false));
+  part("idlerPost2Spaced", () => buildIdlerPost(b, 9, toPlate + CHAIN_SEP, sprocketFront, false));
   part("injector", () => buildInjector(b));
   part("sparkPlug", () => buildSparkPlug(b));
 

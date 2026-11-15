@@ -9,6 +9,7 @@ import type { FwMaterial, FwVec3 } from "./builder";
 import { MAT_COVER, MAT_COVER_FIN, MAT_COVER_RIM, MAT_GASKET } from "./materials";
 import { runOffset } from "./timingChain/chainGuides";
 import { CAM_RC, CHAIN_SEP, DRIVE, VT_RC } from "./timingChain/chainPath";
+import { CHAIN_FWD, GEARS, GEAR_MODULE, pitchR } from "./timingGears/gearTrain";
 import { HEAD } from "./head";
 import { flangeBolt } from "./tubes";
 import type { MeshBuilder } from "./tubes";
@@ -20,7 +21,7 @@ const FIN_T = 1.3; // half a fin's thickness
 
 // The cover's face stands in front of everything of the drive (the chain run in front, CHAIN_SEP, with its sprockets'
 // bolts and the crank's bolt), all hidden under it; its back edge, against the head's front, behind the chain
-const X_FACE = VT.chainX - CHAIN_SEP - 24;
+const X_FACE = VT.chainX - CHAIN_SEP - CHAIN_FWD - 26; // out in front of the chain, which runs in front of the gears
 const X_BACK = HEAD.x0; // right on the head's and the block's front face: sealed to it, no gap
 const JOINT_Y = VT.yCam * 0.45; // where the two pieces meet
 
@@ -239,6 +240,8 @@ export function buildTimingCover(b: MeshBuilder) {
     [VT.yCam, VT.zCam, CAM_RC + 20],
     [VT.yCam, -VT.zCam, CAM_RC + 20],
     [0, 0, VT_RC + 18],
+    // and round the gears, low down
+    ...GEARS.map((g): [number, number, number] => [g.y, g.z, pitchR(g.teeth) + GEAR_MODULE + 12]),
   ];
   // and clear of the guides and the tensioner standing out from the arm, down both side runs
   const reach: Array<[number, number, number]> = [];

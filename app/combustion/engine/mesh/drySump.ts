@@ -229,12 +229,18 @@ function buildCooler(b: MeshBuilder) {
   }
 }
 
+// The pumps' gear cover on the block's front face, behind the timing drive: a part of its own, so that the see-through
+// engine can leave it out and show the crank's gear against the dark
+export function buildSumpFrontCover(b: MeshBuilder) {
+  pass = "solid";
+  buildGearCover(b, BLOCK.x0 - 12, BLOCK.x0);
+}
+
 // (the shell is drawn in two parts, one for each side, so that the see-through skins are drawn far to near side by side:
 // `side` -1 takes bank A's pump and lines and the cooler under the middle, +1 bank B's)
 export function buildDrySump(b: MeshBuilder, which: "shell" | "solid", side = 0) {
   pass = which;
   const mine = (s: number) => side === 0 || s === side;
-  solid(() => buildGearCover(b, BLOCK.x0 - 12, BLOCK.x0)); // on the block's front face
   solid(() => buildGearCover(b, BLOCK.x1, BLOCK.x1 + 14, REAR_MOUNT));
   solid(() => { for (const sz of [-1, 1]) flangeBolt(b, [BLOCK.x1 + 14 + 3, 54, sz * 168], [1, 0, 0], 7, 0.3, true); }); // the mounts' big bolts, on the rear plate
   if (mine(-1)) buildCooler(b);

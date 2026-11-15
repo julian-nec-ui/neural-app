@@ -12,6 +12,7 @@ import type { CameraController, ViewName } from "../render/camera";
 import { ClockContext, StartContext, createEngineClock, RPM_MAX } from "../sim/clock";
 import type { EngineClock } from "../sim/clock";
 import { STARTER, stMesh, starterPin } from "../sim/starter";
+import { CenterButton } from "./CenterButton";
 import { EngineStage } from "./EngineStage";
 import { Dials } from "./Gauges";
 
@@ -530,6 +531,16 @@ export default function Engine() {
     setSpin(value);
   };
 
+  // The Center button: the engine square to the screen, from the timing drive's end, in the middle, well filled; the
+  // turntable stops. The stage's shape decides how close (a narrow one, less)
+  const centerEngine = () => {
+    const canvas = document.querySelector<HTMLCanvasElement>(".ak-root canvas");
+    const aspect = canvas && canvas.clientHeight > 0 ? canvas.clientWidth / canvas.clientHeight : 1.6;
+
+    setAuto(false);
+    camera.center(aspect);
+  };
+
   const showView = (name: ViewName) => {
     // Looking at one side stops the turntable
     camera.setAuto(false);
@@ -590,6 +601,8 @@ export default function Engine() {
 
               <span className="w-14 tabular-nums text-slate-200">{spin}°/s</span>
             </label>
+
+            <CenterButton onCenter={centerEngine} />
 
             </div>
 
@@ -739,8 +752,10 @@ export default function Engine() {
                   className="ak-firing flex flex-wrap items-center justify-start rounded-lg bg-slate-900 ring-1 ring-white/10"
                   style={{ justifyContent: "flex-start", padding: 2, gap: 6 }}
                 >
-                  <span className="font-semibold uppercase text-slate-500" style={{ fontSize: 9.5, minWidth: 0, padding: "0 0 0 2px", marginRight: -0.6, letterSpacing: "0.03em", whiteSpace: "nowrap", display: "inline-flex", alignItems: "center" }}>
-                    Cylinders ·&nbsp;<span style={{ color: bank === 0 ? "#52B6FF" : "#FF8A4C" }}>Bank {bank === 0 ? "A" : "B"}</span>
+                  <span className="font-semibold uppercase text-slate-500" style={{ fontSize: 9.5, minWidth: 0, padding: "0 0 0 3px", marginRight: -0.6, letterSpacing: "0.03em", whiteSpace: "nowrap", display: "inline-flex", alignItems: "center" }}>
+                    {/* (5 px in from the line's dark background: its own 2 px padding and 3 px here; the line is set to the right, so
+                        it grows to the left to make room) */}
+                    Firing order ·&nbsp;<span style={{ color: bank === 0 ? "#52B6FF" : "#FF8A4C" }}>Bank {bank === 0 ? "A" : "B"}</span>
                     {/* a chevron, in the bank's colour, pointing at its first cylinder: 5 px from the letter, 7 px to the chip */}
                     <svg width="10" height="12" viewBox="0 0 10 12" aria-hidden="true" style={{ marginLeft: 3.9, flex: "none" }}>
                       <path d="M2 1.5 L7.5 6 L2 10.5" fill="none" stroke={bank === 0 ? "#52B6FF" : "#FF8A4C"} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />

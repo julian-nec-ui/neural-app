@@ -126,6 +126,11 @@ export function viewProjection(view: CameraView, aspect: number): Float32Array {
 
 type CameraOptions = { auto: boolean; autoSpeed: number };
 
+// The centred view, from the timing drive's end: at `zoom` the engine stands three quarters of the stage's height; it is as
+// wide, seen so, as that height on a stage `wide` times as wide as high, and narrower stages take less zoom to keep it in.
+// `target` is where its middle is seen from that end (the plenum and the turbos stand high over the cylinders)
+const CENTER_FILL = { zoom: 1.16, wide: 1.33, target: [200, -155, 0] as FwVec3 };
+
 /* ---- the camera's turn, a quaternion [w, x, y, z]: it carries the camera's own axes (right, down, back) into the
    world's. Kept this way, not as two angles, so that the engine turns round any way at all, whole turns over the top,
    underneath, and round its own length like a barrel, with no stop and no pole where it would flip ---- */
@@ -326,6 +331,21 @@ export function createCameraController(options: CameraOptions) {
     recenter() {
       goal.shift = 0;
       goal.shiftY = 0;
+    },
+
+    // The Center button: square to the screen from the timing drive's end, level, not rolled, in the middle of the stage, and
+    // as close as leaves the engine filling three quarters of it: of its height, or of its width on a narrow stage (`aspect`
+    // its width over its height). The turntable stops
+    center(aspect: number) {
+      const zoom = Math.min(CENTER_FILL.zoom, (CENTER_FILL.zoom * aspect) / CENTER_FILL.wide);
+
+      auto = false;
+      goal.q = quatFromYawPitch(270, 0);
+      goal.zoom = clamp(zoom, 0.55, 7);
+      goal.shift = 0;
+      goal.shiftY = 0;
+      goal.target = [CENTER_FILL.target[0], CENTER_FILL.target[1], CENTER_FILL.target[2]];
+      show(null);
     },
 
     // Any view at all: from yaw and pitch (degrees), this close, at this point

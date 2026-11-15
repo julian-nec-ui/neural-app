@@ -1,5 +1,6 @@
 // Cam profiles, camshafts, valves, springs, seats and cam towers.
 
+import { CAM_SENSE } from "./timingGears/gearTrain";
 import { BORE_TOP, CAM_Y, CHAIN_X_WORLD, CRANK_Y, CT_X, TAU, driveShift } from "../core/constants";
 import type { Bank } from "../core/constants";
 import { normalizeCycle } from "../core/numbers";
@@ -325,7 +326,7 @@ export function buildCam(
   // Lobes: nose angle chosen so the nose points straight down (at the
   // bucket) exactly when the valve of that cylinder is at full lift
   for (let i = 0; i < CT_X.length; i++) {
-    const nu = bank.dir * TAU * normalizeCycle(peak - bank.phase[i]);
+    const nu = CAM_SENSE * bank.dir * TAU * normalizeCycle(peak - bank.phase[i]); // (set for the cams' own sense of turn)
 
     for (const sx of [-1, 1]) {
       const xc = valveX(i, sigma, sx);

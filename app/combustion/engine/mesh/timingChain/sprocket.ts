@@ -45,7 +45,7 @@ const sprocketHeight = (a: number) => {
   return SPROCKET_PROFILE[SPROCKET_PROFILE.length - 1][1];
 };
 
-type SprocketSpec = {
+export type SprocketSpec = {
   relief?: "cam" | "crank"; // the front's relief, after the twin-cam drive's sprockets: see buildRelief
   teeth: number;
   rPitch: number;
@@ -293,7 +293,7 @@ function buildSprocketUnit(b: ReturnType<typeof createMeshBuilder>, spec: Sprock
 // The front of a sprocket in relief, after the twin-cam drive's picture: on a cam's, a flat face with round lightening
 // holes, a raised hub boss and the cam's hex bolt; on the crank's, a broad stepped collar with a keyway. Toward -x, in the
 // sprocket's own frame.
-function buildRelief(b: ReturnType<typeof createMeshBuilder>, spec: SprocketSpec, rRoot: number, webHalf: number, half: number) {
+export function buildRelief(b: ReturnType<typeof createMeshBuilder>, spec: SprocketSpec, rRoot: number, webHalf: number, half: number) {
   const R = spec.rPitch;
   const f = -webHalf; // the web's front face
 

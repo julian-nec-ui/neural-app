@@ -3,6 +3,7 @@
 import { CHAIN_SEP, TAU, driveShift } from "../../core/constants";
 import type { Bank } from "../../core/constants";
 import { VT } from "../valvetrain";
+import { IDLER2, MARK_ANGLE } from "../timingGears/gearTrain";
 
 /* ---------------- chain path ---------------- */
 
@@ -244,14 +245,13 @@ function makeChain(circles: ChainCircle[], tensioned: boolean[], teeth: number[]
 
 // The bank's one chain: the crank's sprocket, then the two cams' (the first on +z), round counter-clockwise; both side runs
 // bowed in (the guide's and the arm's), the top run straight
+// Now the drive's upper stage (timingGears/gearTrain.ts): the chain starts from the second idler's sprocket, as large as the
+// cams' and turning at their speed, half way up the bank, not from the crank: a short chain
 export const DRIVE = makeChain(
-  [{ y: 0, z: 0, r: VT_RC }, { y: VT.yCam, z: VT.zCam, r: CAM_RC }, { y: VT.yCam, z: -VT.zCam, r: CAM_RC }],
+  [{ y: IDLER2.y, z: IDLER2.z, r: CAM_RC }, { y: VT.yCam, z: VT.zCam, r: CAM_RC }, { y: VT.yCam, z: -VT.zCam, r: CAM_RC }],
   [true, false, true],
-  [CRANK_TEETH, CAM_TEETH, CAM_TEETH],
-  [1, 0.5, 0.5]
+  [CAM_TEETH, CAM_TEETH, CAM_TEETH],
+  [0.5, 0.5, 0.5]
 );
 
-// The timing mark, as one angle on the crankshaft: the stripe along the front
-// journal, the painted tooth of the crank sprocket (tooth 0, which turns with
-// the phase above) and the painted tooth of the flywheel all lie on it
-export const MARK_ANGLE = 0.5 * (TAU / CRANK_TEETH) - DRIVE.phases[0];
+export { MARK_ANGLE };
