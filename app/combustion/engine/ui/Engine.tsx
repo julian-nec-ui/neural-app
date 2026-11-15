@@ -151,6 +151,7 @@ export default function Engine() {
   // remount must not reset the button and leave the scene disagreeing with it
   const [air, setAir] = useState(() => SCENE_OPTIONS.airflow);
   const [see, setSee] = useState(() => SCENE_OPTIONS.seeThrough);
+  const [hd, setHd] = useState(() => SCENE_OPTIONS.hd);
 
   // The firing order, as a row of cylinder numbers under the stage: the one that fired last is lit, and fades
   const chipRefs = useRef<Array<HTMLSpanElement | null>>([]);
@@ -555,6 +556,17 @@ export default function Engine() {
     camera.notify(); // draw again, also when the engine is paused
   };
 
+  // HD: the engine drawn at twice the resolution each way and brought down to the screen (renderer.ts), or at the screen's;
+  // the canvas takes its new size at once
+  const toggleHd = () => {
+    const next = !hd;
+
+    SCENE_OPTIONS.hd = next;
+    setHd(next);
+    window.dispatchEvent(new Event("resize"));
+    camera.notify();
+  };
+
   // The engine see-through, as it is drawn to show its workings, or solid, a plain engine
   const toggleSee = () => {
     const next = !see;
@@ -754,6 +766,18 @@ export default function Engine() {
                   }`}
                 >
                   {see ? "◐ Transparent" : "● Opaque"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={toggleHd}
+                  aria-pressed={hd}
+                  title="HD: drawn at twice the resolution and brought down to the screen (sharper, heavier)"
+                  className={`whitespace-nowrap rounded-md px-2 py-1 text-[11px] font-semibold text-white ${
+                    hd ? "bg-indigo-600 hover:bg-indigo-500" : "bg-slate-700 hover:bg-slate-600"
+                  }`}
+                >
+                  {hd ? "◆ HD on" : "◇ HD off"}
                 </button>
               </div>
             </div>

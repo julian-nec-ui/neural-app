@@ -57,8 +57,8 @@ export const MAT_CT_CAP = fwMat([104, 112, 128], 110, 2, 1.9);
 export const MAT_CT_CAP_FACE = fwMat([142, 150, 166], 160, 0, 1.85);
 export const MAT_CT_EDGE = fwMat([214, 222, 233], 200, 0, 0.85);
 // the pistons' crowns, a little greyer than the cast aluminium they are made of: their top and its rounded edge
-export const MAT_CT_CROWN = fwMat([178, 181, 188], 120, 2, 0.32);
-export const MAT_CT_CROWN_EDGE = fwMat([192, 197, 205], 170, 0, 0.7);
+export const MAT_CT_CROWN = fwMat([178, 181, 188], 95, 2, 0.26); // (a little less glare, seen from above)
+export const MAT_CT_CROWN_EDGE = fwMat([192, 197, 205], 140, 0, 0.58);
 export const MAT_CT_NUT_HEAD = fwMat([212, 219, 229], 225, 0, 0.6);
 export const MAT_CT_NUT_SIDE = fwMat([128, 138, 154], 120, 0, 0.6);
 export const MAT_CT_HOLE = fwMat([8, 11, 18], 20, 0, 0.8);

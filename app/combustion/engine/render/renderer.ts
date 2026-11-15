@@ -126,6 +126,10 @@ export function createEngineRenderer(
   }
 
   const gl = context;
+  // the largest drawing buffer the card takes, each way, and the most pixels HD may ask of it (about 6K by 3.3K)
+  const dims = gl.getParameter(gl.MAX_VIEWPORT_DIMS) as Int32Array | null;
+  const maxDim = Math.max(1024, Math.min(8192, Number(gl.getParameter(gl.MAX_RENDERBUFFER_SIZE)) || 4096, dims ? dims[0] : 8192));
+  const MAX_PIXELS = 20e6;
 
   const programs: WebGLProgram[] = [];
   const buffers: WebGLBuffer[] = [];
@@ -959,13 +963,18 @@ export function createEngineRenderer(
       cssWidth = bounds.width || cssWidth;
       cssHeight = bounds.height || cssHeight;
 
-      // One canvas pixel per screen pixel (while the machine keeps up): no
-      // resampling, so thin moving parts such as the chain cannot shimmer
-      const pixelRatio =
-        Math.min(2, Math.max(1, window.devicePixelRatio || 1)) * renderScale;
+      // One canvas pixel per screen pixel (while the machine keeps up): no resampling, so thin moving parts such as the
+      // chain cannot shimmer. In HD, twice that each way (four canvas pixels to a screen pixel), the browser bringing it down
+      // to the screen: supersampling, on top of the multisampling. Only the sharpness changes, not the light: every pixel
+      // is shaded as before, and four of them averaged. Kept within what the card can hold (MAX_PIXELS, its largest
+      // drawing buffer), and, as ever, lowered while the machine cannot keep up (renderScale)
+      const screenRatio = Math.min(2, Math.max(1, window.devicePixelRatio || 1));
+      const hdRatio = SCENE_OPTIONS.hd ? 2 : 1;
+      const fit = Math.sqrt(MAX_PIXELS / Math.max(1, cssWidth * cssHeight));
+      const pixelRatio = Math.min(screenRatio * hdRatio, Math.max(screenRatio, fit)) * renderScale;
 
-      const width = Math.max(1, Math.round(cssWidth * pixelRatio));
-      const height = Math.max(1, Math.round(cssHeight * pixelRatio));
+      const width = Math.max(1, Math.min(maxDim, Math.round(cssWidth * pixelRatio)));
+      const height = Math.max(1, Math.min(maxDim, Math.round(cssHeight * pixelRatio)));
 
       if (canvas.width !== width || canvas.height !== height) {
         canvas.width = width;
