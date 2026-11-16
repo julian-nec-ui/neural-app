@@ -126,10 +126,10 @@ export function viewProjection(view: CameraView, aspect: number): Float32Array {
 
 type CameraOptions = { auto: boolean; autoSpeed: number };
 
-// The centred view, from the timing drive's end: at `zoom` the engine stands three quarters of the stage's height; it is as
-// wide, seen so, as that height on a stage `wide` times as wide as high, and narrower stages take less zoom to keep it in.
-// `target` is where its middle is seen from that end (the plenum and the turbos stand high over the cylinders)
-const CENTER_FILL = { zoom: 1.16, wide: 1.33, target: [200, -155, 0] as FwVec3 };
+// The centred view (the C button). How much of the stage's height the engine takes along each of the world's axes, for one
+// step of zoom (measured, square on: about 1560 long, 940 high, 1290 across, the intercoolers' fans included; and a little
+// more close up, where the near parts stand larger); the middle it is centred on; and the share of the stage it is to fill
+const CENTER_FILL = { span: [0.795 / 0.8, 0.48 / 0.8, 0.56 / 0.8] as FwVec3, near: 1.06, target: [50, -150, 0] as FwVec3, fill: 0.75 };
 
 /* ---- the camera's turn, a quaternion [w, x, y, z]: it carries the camera's own axes (right, down, back) into the
    world's. Kept this way, not as two angles, so that the engine turns round any way at all, whole turns over the top,
@@ -166,9 +166,8 @@ const qRotate = (q: Quat, v: FwVec3): FwVec3 => {
   return [v[0] + w * tx + (y * tz - z * ty), v[1] + w * ty + (z * tx - x * tz), v[2] + w * tz + (x * ty - y * tx)];
 };
 
-// the camera's turn for a heading and an elevation (the views are given so)
-function quatFromYawPitch(yawDeg: number, pitchDeg: number): Quat {
-  const { right: r, down: d, back: b } = cameraView(yawDeg, pitchDeg, 1);
+// the camera's turn from its own three axes, as seen in the world (right, down, back: a right-handed set)
+function quatFromAxes(r: FwVec3, d: FwVec3, b: FwVec3): Quat {
   // the matrix whose columns are right, down and back
   const m00 = r[0], m01 = d[0], m02 = b[0];
   const m10 = r[1], m11 = d[1], m12 = b[1];
@@ -196,6 +195,24 @@ function quatFromYawPitch(yawDeg: number, pitchDeg: number): Quat {
 
   return qNorm(q);
 }
+
+// the camera's turn for a heading and an elevation (the views are given so)
+function quatFromYawPitch(yawDeg: number, pitchDeg: number): Quat {
+  const { right, down, back } = cameraView(yawDeg, pitchDeg, 1);
+
+  return quatFromAxes(right, down, back);
+}
+
+// the world's axis nearest a direction, among those not taken: its index and its sign
+function nearestAxis(v: FwVec3, skip = -1): [number, number] {
+  let best = -1;
+
+  for (let i = 0; i < 3; i++) if (i !== skip && (best < 0 || Math.abs(v[i]) > Math.abs(v[best]))) best = i;
+
+  return [best, v[best] < 0 ? -1 : 1];
+}
+
+const axisVec = (i: number, sign: number): FwVec3 => [i === 0 ? sign : 0, i === 1 ? sign : 0, i === 2 ? sign : 0];
 
 // part of the way from a to b, the short way round
 function qSlerp(a: Quat, b: Quat, t: number): Quat {
@@ -333,14 +350,26 @@ export function createCameraController(options: CameraOptions) {
       goal.shiftY = 0;
     },
 
-    // The Center button: square to the screen from the timing drive's end, level, not rolled, in the middle of the stage, and
-    // as close as leaves the engine filling three quarters of it: of its height, or of its width on a narrow stage (`aspect`
-    // its width over its height). The turntable stops
+    // The Center button: the engine squared up to the nearest of its six faces, from where it is seen now. The line of
+    // sight goes onto the world's axis nearest it (front, back, either side, above, below), the screen's upright onto the
+    // nearest axis square to that (so the engine stands up, or lies a quarter or a half turn round, whichever it nearly
+    // did): no tilt, no roll left. Then in the middle of the stage, as close as leaves it filling three quarters of it,
+    // its height or, on a narrow stage, its width (`aspect`: the stage's width over its height). The turntable stops
     center(aspect: number) {
-      const zoom = Math.min(CENTER_FILL.zoom, (CENTER_FILL.zoom * aspect) / CENTER_FILL.wide);
+      const back = qRotate(goal.q, Z_AXIS);
+      const down = qRotate(goal.q, Y_AXIS);
+      const [bi, bs] = nearestAxis(back);
+      const [di, ds] = nearestAxis(down, bi);
+      const b = axisVec(bi, bs);
+      const d = axisVec(di, ds);
+      const r: FwVec3 = [d[1] * b[2] - d[2] * b[1], d[2] * b[0] - d[0] * b[2], d[0] * b[1] - d[1] * b[0]];
+      const ri = r[0] !== 0 ? 0 : r[1] !== 0 ? 1 : 2;
+      const tall = CENTER_FILL.span[di] * CENTER_FILL.near;
+      const wide = CENTER_FILL.span[ri] * CENTER_FILL.near;
+      const zoom = Math.min(CENTER_FILL.fill / tall, (CENTER_FILL.fill * aspect) / wide);
 
       auto = false;
-      goal.q = quatFromYawPitch(270, 0);
+      goal.q = quatFromAxes(r, d, b);
       goal.zoom = clamp(zoom, 0.55, 7);
       goal.shift = 0;
       goal.shiftY = 0;

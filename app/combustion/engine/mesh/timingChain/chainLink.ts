@@ -24,9 +24,9 @@ export function buildChainLink(b: ReturnType<typeof createMeshBuilder>, outer: b
 function buildChainLinkUnit(b: ReturnType<typeof createMeshBuilder>, outer: boolean) {
   const p = VT_PITCH / CHAIN_K;
   const rEnd = 3.9;
-  const waist = 1.9; // a deep waist: the plates are figure-eights, with room to see the teeth through
+  const waist = 2.55; // the waist: the plates figure-eights, with room to see the teeth through, the valley soft and not deep
   const t = 1.05;
-  const bevel = 0.4;
+  const bevel = 0.55; // (a broader bevel round the edge: the ends over the pins softened)
   // twice as wide as the old chain: the rollers twice as long, the plates set out to them, as thick as they were
   const W = 2;
   const plateX = outer ? 2.7 * W + 1.95 : 2.7 * W + 0.65;
@@ -46,7 +46,8 @@ function buildChainLinkUnit(b: ReturnType<typeof createMeshBuilder>, outer: bool
 
     for (let k = 1; k < steps; k++) {
       const y = from + ((to - from) * k) / steps;
-      const w = Math.pow(Math.sin((Math.PI * y) / p), 1.1);
+      // (sin², flat where it leaves each end: the end's round runs smoothly into the waist, no peak over the pin)
+      const w = Math.pow(Math.sin((Math.PI * y) / p), 2);
       outline.push([y, sign * (rEnd - (rEnd - waist) * w)]);
     }
   };

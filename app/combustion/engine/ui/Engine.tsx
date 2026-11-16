@@ -21,7 +21,7 @@ import { Dials } from "./Gauges";
    ========================================================= */
 
 // The delivery this page is (raised at each one): shown, faint, in the hints, so that a deployed page can be told from an old one
-const BUILD = 629;
+const BUILD = 631;
 
 const VIEW_LABELS: Record<ViewName, string> = {
   default: "3/4",
@@ -489,7 +489,7 @@ export default function Engine() {
   const startEngine = () => {
     if (startRef.current) return;
 
-    const runRpm = Math.max(rpm, 40);
+    const runRpm = rpm; // (it runs at the slider's speed, from 5 rpm: no jump to a faster idle)
     const crankRpm = 30;
     const pitch = TAU / ST_TEETH;
     const ease = (u: number) => u * u * (3 - 2 * u);
