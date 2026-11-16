@@ -534,7 +534,9 @@ export function createEngineRenderer(
       // (the silencers and their tails are solid now: drawn with the parts)
 
       // the charge pipes, in the engine's own frame
-      for (const r of [HEAD_RANGE.chargePipes, HEAD_RANGE.chargePipesB]) ghost(r, HOT_CHARGE_OPACITY, 0, [0, 0, 0], PIPE_RIM, RIM_CHARGE, true); // as the cooled pipes: polished aluminium, see-through
+      // (on the see-through engine they are taken away, the pipes from the compressors to the intercoolers; the ones from the
+      // filters to the turbos stay)
+      if (!SCENE_OPTIONS.seeThrough) for (const r of [HEAD_RANGE.chargePipes, HEAD_RANGE.chargePipesB]) ghost(r, HOT_CHARGE_OPACITY, 0, [0, 0, 0], PIPE_RIM, RIM_CHARGE, true); // as the cooled pipes: polished aluminium, see-through
       // the dry sump's tanks, pumps and lines: dark metal, the oil seen moving in them
       for (const r of [HEAD_RANGE.drySumpShell, HEAD_RANGE.drySumpShellB]) ghost(r, SUMP_OPACITY, 0, [0, 0, 0], PIPE_RIM, RIM_CHARGE, true);
       // the cooled charge's, more metal than glass
@@ -884,12 +886,14 @@ export function createEngineRenderer(
         // A slow machine gets a lower resolution rather than a stuttering
         // picture; it climbs back when there is time to spare
         scaleCooldown = Math.max(0, scaleCooldown - 1);
-        fastFrames = frameInterval < 18 ? fastFrames + 1 : 0;
+        fastFrames = frameInterval < 17.2 ? fastFrames + 1 : 0;
 
         // (each change of resolution reallocates the buffers, a hitch of its own: it steps down only when the frames are
         // clearly late, and climbs back only after a long run of quick ones, and not at all once it has had to come down
         // three times, so that it never swings to and fro, stuttering every few seconds)
         if (scaleCooldown === 0) {
+          // (the sharpness is kept: only a machine that truly cannot keep up, under some 38 frames a second, gets a lower
+          // resolution; the even pace of the frames is the page loop's business, Engine.tsx)
           if (frameInterval > 26 && renderScale > 0.5) {
             renderScale = Math.max(0.5, renderScale - 0.1);
             scaleCooldown = 120;

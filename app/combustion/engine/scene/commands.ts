@@ -342,7 +342,7 @@ export function computeSceneCommands(frame: EngineFrame): DrawCmd[] {
 
   emit(r.mufflers, 1, 0, 0, 0, 0); // the silencers, solid, in their wire sleeves
   emit(r.chargeCouplers, 1, 0, 0, 0, 0);
-  emit(r.blowOffValves, 1, 0, 0, 0, 0);
+  if (!SCENE_OPTIONS.seeThrough) emit(r.blowOffValves, 1, 0, 0, 0, 0); // (on the hot pipes: gone with them, see-through)
   if (!SCENE_OPTIONS.seeThrough) emit(r.manifoldWelds, 1, 0, 0, 0, 0); // (the headers' joints and bungs: likewise)
   emit(r.turbineArc, 1, 0, 0, 0, 0);
   emit(r.drySump, 1, 0, 0, 0, 0);

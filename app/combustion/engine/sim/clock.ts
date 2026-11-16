@@ -96,9 +96,9 @@ export function createEngineClock() {
 
   let frame = INITIAL_FRAME;
   let phase = 0;
-  let rpm = 5; // the speed asked for
+  let rpm = 10; // the speed asked for (the slider's 5 runs as 10)
   let dialRpm = 0; // the tachometer's reading
-  let currentRpm = 5; // the speed the engine really has: it eases toward `rpm`
+  let currentRpm = 10; // the speed the engine really has: it eases toward `rpm`
   let smoothDt = 0;
   // the screen's refresh period, seconds, as the frames show it (the shortest steady gap between them), and the time each
   // frame stands for on the screen: a whole number of those periods. The motion advances by that, not by the timer's
@@ -181,7 +181,8 @@ export function createEngineClock() {
 
     setRPM(value: number) {
       if (Number.isFinite(value)) {
-        rpm = Math.max(0, value);
+        // the slider's lowest step, 5 rpm, runs the engine exactly as 10 does, every part of it: no slower than that
+        rpm = value > 0 ? Math.max(10, value) : 0;
       }
     },
 
@@ -330,7 +331,11 @@ export function createEngineClock() {
       // (the gas's pattern is drawn moving at a pace the eye can follow: it rises with the speed but levels off, never
       // faster than GAS_VIS_MAX cycles a second; at the engine's own pace it would step, frame to frame, past whole
       // stretches of its pattern and strobe, and flicker as the engine picks up through those speeds)
-      const rate = (currentRpm / 120) * VISUAL_SPEED;
+      // (and never slower than at 10 rpm while the engine turns: below that the fluids through the coolers and the pipes
+      // crept so slowly that their pattern was seen to light up and dim as it went by; from 5 rpm they flow as at 10, the
+      // cylinders' cadence alone following the slider)
+      const visRpm = currentRpm > 0 ? Math.max(currentRpm, 10) : 0;
+      const rate = (visRpm / 120) * VISUAL_SPEED;
       const visStep = shownDt * GAS_VIS_MAX * (1 - Math.exp(-rate / GAS_VIS_MAX));
 
       const gasStep = purging ? Math.max(visStep, shownDt * PURGE_RATE) : visStep;

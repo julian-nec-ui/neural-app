@@ -217,7 +217,9 @@ function computeOil(frame: EngineFrame) {
   tickOilClock();
 
   const T = OIL_CLOCK.t;
-  const turning = Math.min(1, Math.abs(frame.step) * 400); // 0 still, 1 turning
+  // 0 still, 1 turning: from the engine's speed, not from how far it moved since the last frame (that is uneven from
+  // frame to frame at a slow turn, and the oil lit up and dimmed with it); fully on from a few rpm up
+  const turning = Math.min(1, Math.abs(frame.rpm ?? 0) / 4);
 
   // the oil through the dry sump: blobs along each of its ways, moving as fast as the pumps turn (a slow creep when the
   // engine stands), each a little off the way's middle, the wider the way the more

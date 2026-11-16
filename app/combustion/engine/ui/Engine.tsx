@@ -21,7 +21,7 @@ import { Dials } from "./Gauges";
    ========================================================= */
 
 // The delivery this page is (raised at each one): shown, faint, in the hints, so that a deployed page can be told from an old one
-const BUILD = 621;
+const BUILD = 629;
 
 const VIEW_LABELS: Record<ViewName, string> = {
   default: "3/4",
@@ -183,6 +183,23 @@ export default function Engine() {
   // the hints end exactly where the firing order's lines do, on the right: their right edge on the last cylinder's chip,
   // set flush right, on a computer, where they stand over them
   const hintsRef = useRef<HTMLDivElement | null>(null);
+  // how many frames a second the engine is drawn, shown faint by the build: to see at once whether the motion can be smooth
+  const fpsRef = useRef<HTMLSpanElement | null>(null);
+  const drawnRef = useRef(0);
+
+  useEffect(() => {
+    let from = drawnRef.current;
+    let since = performance.now();
+    const timer = window.setInterval(() => {
+      const now = performance.now();
+
+      if (fpsRef.current) fpsRef.current.textContent = String(Math.round(((drawnRef.current - from) * 1000) / (now - since)));
+      from = drawnRef.current;
+      since = now;
+    }, 1000);
+
+    return () => window.clearInterval(timer);
+  }, []);
   // the dials, on a computer, stand midway between the buttons on the left (their right end: Transparent, Starter) and the
   // firing order on the right (its left end), over the gap between them
   const dialsRef = useRef<HTMLDivElement | null>(null);
@@ -278,6 +295,8 @@ export default function Engine() {
     ];
     const shown: number[] = [];
 
+    const glows: string[] = [];
+
     return clock.subscribe((frame) => {
       for (let k = 0; k < FIRING_ORDER.length; k++) {
         const chip = chipRefs.current[k];
@@ -301,9 +320,15 @@ export default function Engine() {
           if (deg) deg.style.color = s.deg;
         }
 
-        chip.style.boxShadow = lit > 0.08
-          ? `0 0 ${(12 * lit).toFixed(1)}px rgba(255, 90, 20, ${(0.9 * lit).toFixed(3)}), inset 0 0 0 1px rgba(0,0,0,0.35)`
+        // (written only when it changes: a chip at rest is not restyled, and repainted, every frame)
+        const glow = lit > 0.08
+          ? `0 0 ${(12 * lit).toFixed(1)}px rgba(255, 90, 20, ${(0.9 * lit).toFixed(2)}), inset 0 0 0 1px rgba(0,0,0,0.35)`
           : "inset 0 0 0 1px rgba(0,0,0,0.35)";
+
+        if (glows[k] !== glow) {
+          glows[k] = glow;
+          chip.style.boxShadow = glow;
+        }
       }
     });
   }, []);
@@ -318,16 +343,66 @@ export default function Engine() {
       last = 0;
     };
 
+    // An even pace. On a screen that refreshes 120 times a second (ProMotion and the like) the engine, all of it drawn every
+    // frame, may take a little longer than one refresh: its frames would then come one refresh apart, then two, unevenly,
+    // and a slow turn shows that as a hitch. So the refresh period is measured, and while the frames cannot keep to it,
+    // the engine is drawn on every other refresh: 60 even frames a second, at the full resolution. Should they keep to
+    // the full rate for a while (a lighter view), it goes back to every refresh
+    let period = 1000 / 60; // the screen's refresh period, ms (the shortest steady gap between refreshes)
+    let lastTick = 0; // the last refresh seen
+    let lateness = 0; // smoothed: how far the drawn frames' gaps run over one period, in periods
+    let half = false; // drawing on every other refresh
+    let halfSince = 0;
+    let skip = false;
+
     const loop = (now: number) => {
       if (disposed) return;
+
+      const gap = lastTick > 0 ? now - lastTick : 0;
+
+      lastTick = now;
+
+      if (gap > 0 && gap < period * 1.35) period += (Math.max(1000 / 360, gap) - period) * (gap < period ? 0.3 : 0.02);
+
+      const fast = period < 12; // a 90 Hz screen or quicker
+
+      if (!fast) half = false;
+
+      if (half) {
+        skip = !skip;
+
+        if (skip) {
+          raf = requestAnimationFrame(loop);
+          return;
+        }
+      }
 
       if (document.hidden) {
         clock.resetTimestamp();
         last = 0;
       } else {
-        const dt = last > 0 ? Math.min(0.1, (now - last) / 1000) : 0;
+        const sinceDrawn = last > 0 ? now - last : 0;
+        const dt = last > 0 ? Math.min(0.1, sinceDrawn / 1000) : 0;
 
         last = now;
+        drawnRef.current++;
+
+        if (fast && sinceDrawn > 0 && sinceDrawn < 100) {
+          const want = half ? 2 : 1;
+
+          lateness += (sinceDrawn / period - want - lateness) * 0.05;
+
+          if (!half && lateness > 0.15) {
+            half = true; // the frames run late: every other refresh
+            halfSince = now;
+            lateness = 0;
+            skip = false;
+          } else if (half && lateness < -0.05 && now - halfSince > 10000) {
+            // (kept to the half rate for at least 10 s; it tries the full rate again only if the frames have time to spare)
+            half = false;
+            lateness = 0;
+          }
+        }
 
         // The camera first, so that the frame the clock publishes is drawn
         // from where the camera is now
@@ -710,7 +785,9 @@ export default function Engine() {
                 <div style={{ marginTop: 5 }}>
                   Crank : cam = 2 : 1 · One shared animation clock
                   {/* which delivery this is: to tell at a glance which version a page is running */}
-                  <span style={{ marginLeft: 8, opacity: 0.55 }}>· build {BUILD}</span>
+                  <span style={{ marginLeft: 8, opacity: 0.55 }}>
+                    · build {BUILD} · <span ref={fpsRef}>–</span> fps
+                  </span>
                 </div>
                 {/* The legend: its label and, close after it, the four strokes' colours, on one line (on a narrow screen it
                     wraps, under the first colour). It takes the block's width, never sets it (width 0, at least all of it) */}
