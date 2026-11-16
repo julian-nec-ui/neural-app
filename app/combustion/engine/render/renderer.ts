@@ -345,6 +345,7 @@ export function createEngineRenderer(
     let blurCap = 12; // sub-frames allowed; adapts to how fast frames arrive
     let blurHeld = 1; // the sub-frames in use, held a while before they come down
     let blurDrop = 0;
+    let scaleDowns = 0; // how many times the resolution has had to come down
     let renderScale = 1; // share of the screen's resolution; adapts as well
     let scaleCooldown = 0;
     let fastFrames = 0;
@@ -632,6 +633,7 @@ export function createEngineRenderer(
         gl.uniform1f(uniform(volumeProgram, "uBottom"), fx.bottom);
         gl.uniform3f(uniform(volumeProgram, "uGasColor"), fx.gas[0], fx.gas[1], fx.gas[2]);
         gl.uniform1f(uniform(volumeProgram, "uGasSigma"), 0.0048 * fx.density);
+        gl.uniform1f(uniform(volumeProgram, "uGasVivid"), fx.vivid);
         gl.uniform3f(uniform(volumeProgram, "uFlameC"), fx.flameC[0], fx.flameC[1], fx.flameC[2]);
         gl.uniform1f(uniform(volumeProgram, "uFlameR"), fx.flameR);
         gl.uniform1f(uniform(volumeProgram, "uFlameK"), fx.flameK);
@@ -884,14 +886,18 @@ export function createEngineRenderer(
         scaleCooldown = Math.max(0, scaleCooldown - 1);
         fastFrames = frameInterval < 18 ? fastFrames + 1 : 0;
 
+        // (each change of resolution reallocates the buffers, a hitch of its own: it steps down only when the frames are
+        // clearly late, and climbs back only after a long run of quick ones, and not at all once it has had to come down
+        // three times, so that it never swings to and fro, stuttering every few seconds)
         if (scaleCooldown === 0) {
-          if (frameInterval > 24 && renderScale > 0.5) {
+          if (frameInterval > 26 && renderScale > 0.5) {
             renderScale = Math.max(0.5, renderScale - 0.1);
-            scaleCooldown = 90;
+            scaleCooldown = 120;
+            scaleDowns++;
             resize();
-          } else if (fastFrames > 240 && renderScale < 1) {
+          } else if (fastFrames > 600 && renderScale < 1 && scaleDowns < 3) {
             renderScale = Math.min(1, renderScale + 0.05);
-            scaleCooldown = 90;
+            scaleCooldown = 120;
             fastFrames = 0;
             resize();
           }

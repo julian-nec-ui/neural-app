@@ -5,6 +5,6 @@
 // `seeThrough`: the engine's see-through parts (the head, the block, the pipes, the housings) as they are, or all solid,
 // a plain engine; it begins see-through
 // `hd`: the engine drawn at twice the screen's resolution each way and brought down to it (supersampling): smooth edges,
-// the fine textures and the small parts sharp and still. It begins off, as the server renders the page; once the page is
-// in the browser, a computer turns it on (`hdSet`: that first choice made, so that a remount keeps whatever was chosen since)
-export const SCENE_OPTIONS = { airflow: false, seeThrough: true, hd: false, hdSet: false };
+// the fine textures and the small parts sharp and still. On when the page loads, on every screen (the same on the server and
+// in the browser, so the page hydrates cleanly); the HD button turns it off
+export const SCENE_OPTIONS = { airflow: false, seeThrough: true, hd: true };

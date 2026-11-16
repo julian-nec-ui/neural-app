@@ -21,7 +21,7 @@ import { Dials } from "./Gauges";
    ========================================================= */
 
 // The delivery this page is (raised at each one): shown, faint, in the hints, so that a deployed page can be told from an old one
-const BUILD = 616;
+const BUILD = 621;
 
 const VIEW_LABELS: Record<ViewName, string> = {
   default: "3/4",
@@ -82,6 +82,7 @@ const LAYOUT_CSS = `
 }
 @media (max-width: 600px) {
   .ak-hint-line { white-space: normal; font-size: 11px; } /* (on a phone: readable, over two lines) */
+}
 }
 /* On a phone only (narrow, or held sideways and short): the firing order half its size, every part of it in proportion (its
    sizes are written times --k), and the buttons about 30% smaller */
@@ -176,23 +177,6 @@ export default function Engine() {
   const [air, setAir] = useState(() => SCENE_OPTIONS.airflow);
   const [see, setSee] = useState(() => SCENE_OPTIONS.seeThrough);
   const [hd, setHd] = useState(() => SCENE_OPTIONS.hd);
-
-  // HD on from the start on a computer, off on a phone or a tablet: decided in the browser, after the page has hydrated
-  // (the server cannot know the screen, and both must first render the same)
-  useEffect(() => {
-    if (SCENE_OPTIONS.hdSet) {
-      setHd(SCENE_OPTIONS.hd);
-      return;
-    }
-
-    SCENE_OPTIONS.hdSet = true;
-
-    if (window.matchMedia("(max-width: 1024px), (pointer: coarse)").matches) return;
-
-    SCENE_OPTIONS.hd = true;
-    setHd(true);
-    window.dispatchEvent(new Event("resize"));
-  }, []);
 
   // The firing order, as a row of cylinder numbers under the stage: the one that fired last is lit, and fades
   const chipRefs = useRef<Array<HTMLSpanElement | null>>([]);
@@ -289,8 +273,8 @@ export default function Engine() {
     const STROKE_BG = [
       { bg: "#4a9fe0", num: "#ffffff", deg: "rgba(255, 255, 255, 0.9)" }, // intake: a softer blue
       { bg: "#ffe48a", num: "#1a1206", deg: "rgba(26, 18, 6, 0.78)" }, // compression: a lighter yellow
-      { bg: "#ff8c1a", num: "#1f0f02", deg: "rgba(31, 15, 2, 0.8)" }, // power: orange, not red
-      { bg: "#d6dce4", num: "#0f172a", deg: "rgba(15, 23, 42, 0.75)" }, // exhaust: a pale grey
+      { bg: "#ff6a00", num: "#1a0800", deg: "rgba(26, 8, 0, 0.82)" }, // power: a vivid, deep, glowing orange
+      { bg: "#eef1f5", num: "#0f172a", deg: "rgba(15, 23, 42, 0.75)" }, // exhaust: almost white
     ];
     const shown: number[] = [];
 
@@ -603,7 +587,6 @@ export default function Engine() {
     const next = !hd;
 
     SCENE_OPTIONS.hd = next;
-    SCENE_OPTIONS.hdSet = true;
     setHd(next);
     window.dispatchEvent(new Event("resize"));
     camera.notify();
@@ -729,15 +712,33 @@ export default function Engine() {
                   {/* which delivery this is: to tell at a glance which version a page is running */}
                   <span style={{ marginLeft: 8, opacity: 0.55 }}>· build {BUILD}</span>
                 </div>
-                <div className="ak-legend flex flex-wrap items-center justify-start gap-x-1.5 gap-y-1" style={{ marginTop: 7, fontSize: 10.5, whiteSpace: "nowrap", justifyContent: "flex-start", alignSelf: "flex-start" }}>
-                  <span className="text-[9.5px] font-semibold uppercase tracking-widest text-slate-500">Legend:</span>
-                  <Legend color="#4a9fe0" label="Intake" />
-                  <Legend color="#ffe48a" label="Compression" />
-                  <Legend color="#ff8c1a" label="Power" />
-                  <Legend color="#d6dce4" label="Exhaust" />
-                  {/* These two only while the airflow is on: the legend grows to the right */}
-                  {air && <Legend color="#52B6FF" label="Cold intake air" />}
-                  {air && <Legend color="#FF4A0A" label="Hot exhaust gas" />}
+                {/* The legend: its label and, close after it, the four strokes' colours, on one line (on a narrow screen it
+                    wraps, under the first colour). It takes the block's width, never sets it (width 0, at least all of it) */}
+                <div
+                  className="ak-legend"
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "max-content minmax(0, max-content)", // (no track stretched: the colours close to the label)
+                    justifyContent: "start",
+                    columnGap: 5,
+                    alignItems: "center",
+                    marginTop: 7,
+                    fontSize: 10.5,
+                    whiteSpace: "nowrap",
+                    alignSelf: "stretch",
+                    width: 0,
+                    minWidth: "100%",
+                  }}
+                >
+                  <span className="text-[9.5px] font-semibold uppercase text-slate-500" style={{ letterSpacing: "0.12em", lineHeight: "16px" }}>
+                    Legend:
+                  </span>
+                  <div className="flex flex-wrap items-center" style={{ columnGap: 7, rowGap: 4, minWidth: 0 }}>
+                    <Legend color="#4a9fe0" label="Intake" />
+                    <Legend color="#ffe48a" label="Compression" />
+                    <Legend color="#ff6a00" label="Power" />
+                    <Legend color="#eef1f5" label="Exhaust" />
+                  </div>
                 </div>
               </div>
             </div>

@@ -863,6 +863,7 @@ export const VOLUME_FRAGMENT_SHADER = `
   uniform float uBottom;
   uniform vec3 uGasColor;
   uniform float uGasSigma;
+  uniform float uGasVivid; // 1 in the power stroke: its orange vivid, deep and glowing
   uniform vec3 uFlameC;
   uniform float uFlameR;
   uniform float uFlameK;
@@ -908,7 +909,7 @@ export const VOLUME_FRAGMENT_SHADER = `
     if (distance(ro, vLocal) > 0.5 * (t0 + t1)) discard;
 
     float thick = t1 - t0;
-    float gasA = 1.0 - exp(-uGasSigma * thick);
+    float gasA = 1.0 - exp(-uGasSigma * (1.0 + 0.45 * uGasVivid) * thick);
 
     // The flame: a sphere about the spark, clipped to the chamber
     float flameA = 0.0;
@@ -943,7 +944,9 @@ export const VOLUME_FRAGMENT_SHADER = `
     // (the alpha) stays as it was, so that the charge is as clear as ever and only its colour is stronger
     float grey = dot(uGasColor, vec3(0.299, 0.587, 0.114));
     vec3 gas = max(vec3(grey) + (uGasColor - vec3(grey)) * 1.45, vec3(0.0));
-    vec3 col = gas * (gasA * 1.95) * (1.0 - flameA) + flameCol * flameA; // the colour stands out more than the alpha does
+    // (in the power stroke, a deeper, glowing orange: its green held down a little so it does not wash to peach, and brighter)
+    gas = mix(gas, vec3(gas.r, gas.g * 0.82, 0.0), uGasVivid);
+    vec3 col = gas * (gasA * (1.95 + 0.9 * uGasVivid)) * (1.0 - flameA) + flameCol * flameA; // the colour stands out more than the alpha does
 
     // looked at down the bore (square over a bank, or near it), the ray runs the chamber's whole depth and the charge glares:
     // there it is toned down, its glow and how much it hides, easing in as the view comes round onto the bore's axis

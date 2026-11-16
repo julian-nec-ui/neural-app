@@ -61,6 +61,7 @@ type CylinderFx = {
   flameK: number;
   glow: number;
   density: number; // how full of gas the bore is, 0..1: empty when the engine has stopped and been purged
+  vivid: number; // 0..1, how far the charge is in its power stroke's orange: drawn brighter and fuller then
 };
 
 export const CYLINDER_FX: CylinderFx[] = CYLS.map(() => ({
@@ -72,6 +73,7 @@ export const CYLINDER_FX: CylinderFx[] = CYLS.map(() => ({
   flameK: 0,
   glow: 0,
   density: 1,
+  vivid: 0,
 }));
 
 /* ---- fuel spray ---- */
@@ -356,6 +358,8 @@ export function computeEffects(frame: EngineFrame) {
     fx.gas[1] = rgb[1] / 255;
     fx.gas[2] = rgb[2] / 255;
     fx.density = ENGINE_GAS.intake;
+    // the power stroke's orange (red well above green, no blue), eased in and out with the colour itself
+    fx.vivid = Math.min(1, Math.max(0, (rgb[0] - rgb[1] - 70) / 70)) * (rgb[2] < 60 ? 1 : 0);
 
     const x = cy.x + PLUG.x;
     const z = PLUG.z;

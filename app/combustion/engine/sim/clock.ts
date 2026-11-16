@@ -100,6 +100,12 @@ export function createEngineClock() {
   let dialRpm = 0; // the tachometer's reading
   let currentRpm = 5; // the speed the engine really has: it eases toward `rpm`
   let smoothDt = 0;
+  // the screen's refresh period, seconds, as the frames show it (the shortest steady gap between them), and the time each
+  // frame stands for on the screen: a whole number of those periods. The motion advances by that, not by the timer's
+  // uneven gaps nor by a smoothed guess: every frame shown moves the engine by the same amount at a steady speed, and a
+  // late frame (one or more refreshes missed) catches up exactly, so slow turns glide rather than hitch
+  let period = 1 / 60;
+  let shownDt = 0;
   let running = true; // the crank is driven: by the starter, or by the engine's own power
   let paused = false; // the animation is frozen where it is
   let previousTime: number | null = null;
@@ -221,6 +227,9 @@ export function createEngineClock() {
       // otherwise show up as judder in the motion
       smoothDt = smoothDt === 0 ? raw : smoothDt + (raw - smoothDt) * 0.2;
 
+      if (raw < period * 1.4) period += (Math.max(1 / 360, raw) - period) * (raw < period ? 0.25 : 0.02);
+      shownDt = Math.max(1, Math.round(raw / period)) * period;
+
       if (paused) return false;
 
       // What drives the crank: the engine fires when it is driven and has its fuel and its spark; driven without them,
@@ -293,7 +302,7 @@ export function createEngineClock() {
 
       if (fanWanted === 0 && fanSpeed < 0.005) fanSpeed = 0;
 
-      const fanTurn = fanSpeed * TAU * smoothDt;
+      const fanTurn = fanSpeed * TAU * shownDt;
 
       fanAngle = (fanAngle + fanTurn) % TAU;
 
@@ -311,7 +320,7 @@ export function createEngineClock() {
       }
 
       // One four-stroke cycle = two crank revolutions, at the real speed (VISUAL_SPEED is 1)
-      const step = smoothDt * (currentRpm / 120) * VISUAL_SPEED;
+      const step = shownDt * (currentRpm / 120) * VISUAL_SPEED;
 
       phase = normalizeCycle(phase + step);
 
@@ -322,9 +331,9 @@ export function createEngineClock() {
       // faster than GAS_VIS_MAX cycles a second; at the engine's own pace it would step, frame to frame, past whole
       // stretches of its pattern and strobe, and flicker as the engine picks up through those speeds)
       const rate = (currentRpm / 120) * VISUAL_SPEED;
-      const visStep = smoothDt * GAS_VIS_MAX * (1 - Math.exp(-rate / GAS_VIS_MAX));
+      const visStep = shownDt * GAS_VIS_MAX * (1 - Math.exp(-rate / GAS_VIS_MAX));
 
-      const gasStep = purging ? Math.max(visStep, smoothDt * PURGE_RATE) : visStep;
+      const gasStep = purging ? Math.max(visStep, shownDt * PURGE_RATE) : visStep;
 
       gasPhase = normalizeCycle(gasPhase + gasStep);
 
@@ -337,7 +346,7 @@ export function createEngineClock() {
       frame.fanAngle = fanAngle;
       frame.fanStep = fanTurn;
 
-      const turn = turboSpeed * TURBO_MAX_OMEGA * smoothDt;
+      const turn = turboSpeed * TURBO_MAX_OMEGA * shownDt;
 
       turboAngle = (turboAngle + turn) % TAU;
       frame.turboSpeed = turboSpeed;

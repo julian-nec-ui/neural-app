@@ -16,12 +16,14 @@ export const STROKE_COLORS = {
     end: [255, 176, 0],
   },
   power: {
-    start: [255, 84, 0],
-    end: [255, 150, 30],
+    // a vivid, deep orange, glowing: no grey in it, a touch of red at the start
+    start: [255, 70, 0],
+    end: [255, 128, 0],
   },
   exhaust: {
-    start: [246, 251, 255],
-    end: [206, 220, 242],
+    // whiter
+    start: [252, 253, 255],
+    end: [226, 234, 246],
   },
 };
 
