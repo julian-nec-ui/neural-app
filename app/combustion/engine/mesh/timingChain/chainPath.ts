@@ -7,7 +7,8 @@ import { IDLER2, MARK_ANGLE } from "../timingGears/gearTrain";
 
 /* ---------------- chain path ---------------- */
 
-type ChainCircle = { y: number; z: number; r: number };
+// `back`: a pulley the belt's back runs on, from outside the loop (a tensioner pressing in), wrapped clockwise
+type ChainCircle = { y: number; z: number; r: number; back?: boolean };
 
 export type ChainSeg =
   | { kind: "line"; length: number; from: [number, number]; dir: [number, number] }
@@ -33,7 +34,7 @@ type ChainPath = {
 
 // A chain round any number of sprockets, traversed counter-clockwise in the (y, z) plane. The runs flagged in
 // `tensioned` (the run after circle i) are pushed in by `depth` by a tensioner, the others are straight
-function buildChainPath(circles: ChainCircle[], tensioned: boolean[], depth: number): ChainPath {
+export function buildChainPath(circles: ChainCircle[], tensioned: boolean[], depth: number): ChainPath {
   const n = circles.length;
   const tangents: Array<{ p0: [number, number]; p1: [number, number] }> = [];
 
@@ -47,14 +48,17 @@ function buildChainPath(circles: ChainCircle[], tensioned: boolean[], depth: num
     const uz = dz / len;
     const ry = uz; // normal on the right of the direction of travel
     const rz = -uy;
-    const s = (a.r - b.r) / len;
+    // (a back pulley's radius counts negative: the tangent crosses to its other side)
+    const ra = a.back ? -a.r : a.r;
+    const rb = b.back ? -b.r : b.r;
+    const s = (ra - rb) / len;
     const c = Math.sqrt(Math.max(0, 1 - s * s));
     const ny = s * uy + c * ry;
     const nz = s * uz + c * rz;
 
     tangents.push({
-      p0: [a.y + a.r * ny, a.z + a.r * nz],
-      p1: [b.y + b.r * ny, b.z + b.r * nz],
+      p0: [a.y + ra * ny, a.z + ra * nz],
+      p1: [b.y + rb * ny, b.z + rb * nz],
     });
   }
 
@@ -70,10 +74,11 @@ function buildChainPath(circles: ChainCircle[], tensioned: boolean[], depth: num
     const a0 = angle(c, inT);
     let sweep = angle(c, outT) - a0;
     sweep = ((sweep % TAU) + TAU) % TAU;
+    if (c.back) sweep -= TAU; // (round it the other way)
 
     segs.push({
       kind: "arc",
-      length: sweep * c.r,
+      length: Math.abs(sweep) * c.r,
       center: [c.y, c.z],
       r: c.r,
       a0,
@@ -158,7 +163,7 @@ function buildChainPath(circles: ChainCircle[], tensioned: boolean[], depth: num
           return out;
         }
 
-        const a = seg.a0 + s / seg.r;
+        const a = seg.a0 + (seg.sweep < 0 ? -s : s) / seg.r;
 
         out.y = seg.center[0] + seg.r * Math.cos(a);
         out.z = seg.center[1] + seg.r * Math.sin(a);

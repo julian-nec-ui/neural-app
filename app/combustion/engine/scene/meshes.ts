@@ -15,7 +15,9 @@ import { buildIntakeManifold, buildPlenumGate, buildVPlenum } from "../mesh/plen
 import { buildInjector, buildSparkPlug } from "../mesh/injectionIgnition";
 import { buildBlock } from "../mesh/block";
 import { buildDrySump, buildSumpFrontCover } from "../mesh/drySump";
+import { buildAccessories, buildAlternatorPulley, buildBeltPiece, buildCrankPulley, buildIdlerPulley, buildSteeringPulley, buildPumpPulley } from "../mesh/beltDrive";
 import { buildTimingCover } from "../mesh/timingCover";
+import { buildEngineMount } from "../mesh/engineMount";
 import { buildSmallFan } from "../mesh/fan";
 import { buildBlowOffValves, buildChargeCouplers, buildChargePipes, buildCoolPipeWelds, buildCoolPipes, buildIntercooler, buildIntercoolerTank } from "../mesh/intercooler";
 import { MAT_VT_HEAD_EX, MAT_VT_HEAD_IN, MAT_VT_VALVE_EX, MAT_VT_VALVE_IN } from "../mesh/materials";
@@ -40,9 +42,9 @@ export const PART_NAMES = [
   "turboFilter", "seatIn", "seatEx", "turboWheelC", "turboWheelT", "collectorFittings", "turboFittings",
   "intercooler", "blowOffValves", "manifoldWelds", "intakeWelds", "turbineArc", "timingCover", "starterShell", "starterYoke", "drySump", "drySumpShell", "drySumpShellB", "block", "icTank", "icTankB", "icTankLow", "icTankLowB", "icTankBare", "icTankBareB", "fanShroud", "fanRotor", "chargePipes", "chargePipesB", "coolPipes", "coolPipesB", "coolWelds", "chargeCouplers", "exhaustLogs", "exhaustLogsR", "exhaustLogsB", "exhaustLogsBR", "turboFeed", "turboFeedB", "exhaustStubs",
   "exhaustFlanges", "downpipes", "downpipesB", "mufflers", "starterBody", "starterShaft", "starterDrive", "starterDriveShell", "starterPinion", "starterPlunger",
-  "starterDisc", "starterSpring", "starterFork", "headTextA", "headTextB", "lidText", "vPlenum", "plenumGate", "intakeManifold", "gearCrank", "sumpFrontCover",
+  "starterDisc", "starterSpring", "starterFork", "headTextA", "headTextB", "lidText", "vPlenum", "plenumGate", "intakeManifold", "gearCrank", "sumpFrontCover", "beltCrank", "beltAlternator", "beltPump", "beltIdler", "beltSteering", "beltAccessories", "beltPiece",
   "gearIdler1", "idlerPost2", "idlerPost2Spaced", "sprocketIdler", "sprocketCam",
-  "sprocketCamSpaced", "chainInner", "chainOuter", "guideFixed", "guideArm", "injector", "sparkPlug",
+  "sprocketCamSpaced", "chainInner", "chainOuter", "guideFixed", "guideArm", "injector", "sparkPlug", "engineMount",
 ] as const;
 
 export type PartName = (typeof PART_NAMES)[number];
@@ -129,10 +131,22 @@ function buildHeadMesh(): HeadMesh {
   part("manifoldWelds", () => buildManifoldWelds(b));
   part("turbineArc", () => buildTurbineArc(b));
   part("timingCover", () => buildTimingCover(b));
+  part("engineMount", () => buildEngineMount(b));
   part("starterShell", () => stretched(() => buildStarterShell(b)));
   part("starterYoke", () => stretched(() => buildStarterYoke(b)));
   part("drySump", () => buildDrySump(b, "solid"));
   part("sumpFrontCover", () => buildSumpFrontCover(b));
+
+  // the accessory drive on the timing cover's front (beltDrive.ts): the serpentine belt's pulleys, each centred on the
+  // x axis to be turned and placed where it stands; the water pump, the alternator and the tensioner, fixed; a piece of
+  // the belt
+  part("beltCrank", () => buildCrankPulley(b));
+  part("beltAlternator", () => buildAlternatorPulley(b));
+  part("beltPump", () => buildPumpPulley(b));
+  part("beltIdler", () => buildIdlerPulley(b));
+  part("beltSteering", () => buildSteeringPulley(b));
+  part("beltAccessories", () => buildAccessories(b));
+  part("beltPiece", () => buildBeltPiece(b));
   part("drySumpShell", () => buildDrySump(b, "shell", -1));
   part("drySumpShellB", () => buildDrySump(b, "shell", 1));
   part("block", () => buildBlock(b));

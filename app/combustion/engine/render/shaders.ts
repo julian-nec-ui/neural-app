@@ -215,6 +215,21 @@ float pyrAt(vec2 sp, float P, out vec2 slope, out float groove) {
   return 1.0 - 2.0 * max(a.x, a.y);
 }
 
+// A hexagonal cell's offset from its middle, and how far toward its edge (0 in the middle, 0.5 on the edge), for hexagons
+// one unit across their flats
+vec2 hexCell(vec2 p, out float d) {
+  const vec2 r = vec2(1.0, 1.7320508);
+  vec2 h = r * 0.5;
+  vec2 a = mod(p, r) - h;
+  vec2 b = mod(p - h, r) - h;
+  vec2 gv = dot(a, a) < dot(b, b) ? a : b;
+  vec2 g = abs(gv);
+
+  d = max(dot(g, vec2(0.5, 0.8660254)), g.x);
+
+  return gv;
+}
+
 // For a pattern that must show at every zoom: its size here (base, or twice, four times... as the pixels grow), and how
 // far toward the next size up (blended, so that it never jumps). pix: a pixel's size in units at this distance
 void zoomLevel(float base, float pix, float minPx, out float s0, out float t) {
@@ -367,7 +382,96 @@ float emboss(vec2 p, out vec2 gr) {
     float isGrid = step(12.5, vPattern) * (1.0 - step(13.5, vPattern));
     float isRidge = step(13.5, vPattern) * (1.0 - step(14.5, vPattern));
     float isPyr = step(14.5, vPattern) * (1.0 - step(15.5, vPattern));
-    float isScale = step(15.5, vPattern);
+    float isScale = step(15.5, vPattern) * (1.0 - step(16.5, vPattern));
+    float isHex = step(16.5, vPattern) * (1.0 - step(17.5, vPattern));
+    float isPerf = step(17.5, vPattern);
+
+    // Hexagonal relief (pattern 17), on the alternator's housings: small hexagons standing a little out of the casting, each
+    // domed low, a fine groove round it; the light catching their tops and the grooves in shade; at every zoom
+    float hexH = 0.5;
+    float hexTop = 0.0;
+
+    if (isHex > 0.5) {
+      vec3 w = abs(n);
+      vec2 sp;
+      vec3 eu;
+      vec3 ev;
+
+      if (w.x >= w.y && w.x >= w.z) { sp = vWorld.zy; eu = vec3(0.0, 0.0, 1.0); ev = vec3(0.0, 1.0, 0.0); }
+      else if (w.y >= w.z) { sp = vWorld.xz; eu = vec3(1.0, 0.0, 0.0); ev = vec3(0.0, 0.0, 1.0); }
+      else { sp = vWorld.xy; eu = vec3(1.0, 0.0, 0.0); ev = vec3(0.0, 1.0, 0.0); }
+
+      float pix = length(uEye - vWorld) / 1100.0;
+      float H0;
+      float tl;
+
+      zoomLevel(3.2, pix, 9.0, H0, tl);
+
+      float fade = smoothstep(0.08, 0.3, abs(dot(n, view)));
+      float d1;
+      float d2;
+      vec2 g1 = hexCell(sp / H0, d1);
+      vec2 g2 = hexCell(sp / (2.0 * H0), d2);
+      float gr1 = smoothstep(0.40, 0.48, d1);
+      float gr2 = smoothstep(0.40, 0.48, d2);
+      vec2 slope = mix(g1 * (1.0 - gr1) - g1 * gr1 * 3.0, g2 * (1.0 - gr2) - g2 * gr2 * 3.0, tl);
+      float groove = mix(gr1, gr2, tl);
+      vec3 g = eu * slope.x + ev * slope.y;
+
+      g -= n * dot(n, g);
+      n = normalize(n + 0.9 * fade * g); // (each top domed, tipped away from its middle; the groove's walls steep)
+      hexH = mix(0.5, 1.0 - 0.9 * groove - 0.6 * mix(d1, d2, tl), fade);
+      hexTop = fade * (1.0 - groove);
+    }
+
+    // Punched sheet (pattern 18), on the engine's stand: the perforated plates' holes, drawn: a big round hole at each point
+    // of a triangular grid, its countersunk lip bright toward the light, dark inside but for its far wall where the light
+    // falls in; a small hole in each three-cornered gap between them. On the face's dominant plane; fading to the plate's
+    // own grey far off, so that it never shimmers
+    float perfV = 1.0;
+    float perfS = 1.0;
+
+    if (isPerf > 0.5) {
+      vec3 w = abs(n);
+      vec2 sp;
+      vec3 eu;
+      vec3 ev;
+
+      if (w.x >= w.y && w.x >= w.z) { sp = vWorld.zy; eu = vec3(0.0, 0.0, 1.0); ev = vec3(0.0, 1.0, 0.0); }
+      else if (w.y >= w.z) { sp = vWorld.xz; eu = vec3(1.0, 0.0, 0.0); ev = vec3(0.0, 0.0, 1.0); }
+      else { sp = vWorld.xy; eu = vec3(1.0, 0.0, 0.0); ev = vec3(0.0, 1.0, 0.0); }
+
+      const float PP = 7.6; // from one hole to the next (as on the heads' plates)
+      const float RR = 2.5; // a big hole's radius
+      const float RS = 0.55; // a small one's
+      vec2 cell = vec2(PP, PP * 1.7320508);
+      vec2 qa = mod(sp, cell) - 0.5 * cell;
+      vec2 qb = mod(sp - 0.5 * cell, cell) - 0.5 * cell;
+      vec2 gv = dot(qa, qa) < dot(qb, qb) ? qa : qb;
+      float d = length(gv);
+      vec2 c1 = sp - vec2(0.5 * PP, 0.2886751 * PP);
+      vec2 c2 = sp - vec2(0.0, 0.5773503 * PP);
+      vec2 qa1 = mod(c1, cell) - 0.5 * cell;
+      vec2 qb1 = mod(c1 - 0.5 * cell, cell) - 0.5 * cell;
+      vec2 qa2 = mod(c2, cell) - 0.5 * cell;
+      vec2 qb2 = mod(c2 - 0.5 * cell, cell) - 0.5 * cell;
+      float ds = min(min(length(qa1), length(qb1)), min(length(qa2), length(qb2)));
+      float pix = length(uEye - vWorld) / 1100.0;
+      float aa = max(pix * 0.8, 0.06);
+      float fade = (1.0 - smoothstep(2.6, 5.0, pix)) * smoothstep(0.08, 0.3, abs(dot(n, view))); // (seen from the usual distance too)
+      vec2 L2 = vec2(dot(keyDir, eu), dot(keyDir, ev));
+      L2 = L2 / max(length(L2), 1e-3);
+      float lit = dot(gv / max(d, 1e-3), L2); // 1 on the side toward the light
+      float inHole = 1.0 - smoothstep(RR - aa, RR + aa, d);
+      float lipBand = smoothstep(RR - aa, RR, d) * (1.0 - smoothstep(RR + 0.45, RR + 0.45 + aa, d));
+      float wall = pow(max(0.0, -lit), 2.2) * smoothstep(0.74 * RR, RR, d);
+      float inSmall = 1.0 - smoothstep(RS - aa, RS + aa, ds);
+      float v = mix(1.0 + 0.32 * lit * lipBand, 0.07 + 0.95 * wall, inHole);
+
+      v = mix(v, 0.18, inSmall);
+      perfV = mix(1.0, v, fade);
+      perfS = mix(1.0, (1.0 - inHole) * (1.0 - inSmall) * (1.0 + 0.6 * lipBand * max(lit, 0.0)), fade);
+    }
 
     // Engine-turned scales (pattern 16), on the tail pipes: big overlapping spots in offset rows, each polished in circles
     // round its middle (its bright and dark fans turning with the eye), each dished a little toward its middle, a step of
@@ -649,7 +753,9 @@ float emboss(vec2 p, out vec2 gr) {
       + isGrid * (-0.42 + 0.78 * gridV + 0.12 * (gridRing - 0.5) - 0.32 * gridEdge)
       + isRidge * (-0.26 + 0.56 * ridgeH) // (the beads lighter than the face between them)
       + isPyr * (-0.3 + 0.5 * pyrH)
-      + isScale * (-0.14 + 0.52 * scaleV); // (lighter: its dark fans a lighter grey)
+      + isScale * (-0.14 + 0.52 * scaleV) // (lighter: its dark fans a lighter grey)
+      + isHex * (-0.32 + 0.6 * hexH) // (the tops lighter, the grooves dark)
+      + isPerf * (perfV - 1.0); // (the holes dark, their lips lit)
 
     // Oil fills in the grain: wet surfaces look smoother
     tone = 1.0 + (tone - 1.0) * (1.0 - (0.45 + 0.3 * soaked) * wetAmt);
@@ -688,7 +794,9 @@ float emboss(vec2 p, out vec2 gr) {
       + isGrid * (-0.8 + 2.4 * gridV * gridV * gridRing + 0.5 * gridEdge)
       + isRidge * (-0.55 + 0.9 * ridgeLine)
       + isPyr * (-0.45 + 0.9 * pyrFace)
-      + isScale * (-0.75 + 1.6 * scaleV * scaleV); // (soft: the fans glint, the rest held down)
+      + isScale * (-0.75 + 1.6 * scaleV * scaleV) // (soft: the fans glint, the rest held down)
+      + isHex * (-0.5 + 1.0 * hexTop) // (the light on the tops only)
+      + isPerf * (perfS - 1.0); // (no shine in the holes)
 
     float fres = pow(1.0 - clamp(dot(n, view), 0.0, 1.0), 3.0);
 

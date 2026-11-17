@@ -9,8 +9,8 @@
 
 import { BANKS, CT_X, TAU, bankPoint } from "../core/constants";
 import { FW_STRIDE } from "./builder";
-import type { FwVec3 } from "./builder";
-import { MAT_ALU_CAST, MAT_ALU_TURNED, MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE, MAT_CLAMP_BLACK, MAT_CLAMP_BLACK_DEEP, MAT_COVER_FIN, MAT_FIN_GREY, MAT_FIN_GREY_CREST, MAT_HEAD_CAST, MAT_FIN_GREY_ROOT, MAT_PIPE_BLACK, MAT_PLENUM_RED, MAT_PLENUM_RED_DEEP, MAT_STEEL_BRIGHT, MAT_THROTTLE_BODY, MAT_THROTTLE_RING } from "./materials";
+import type { FwMaterial, FwVec3 } from "./builder";
+import { MAT_ALU_TURNED, MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE, MAT_CLAMP_BLACK, MAT_CLAMP_BLACK_DEEP, MAT_COVER_FIN, MAT_FIN_GREY, MAT_FIN_GREY_CREST, MAT_HEAD_CAST, MAT_FIN_GREY_ROOT, MAT_PIPE_BLACK, MAT_PLENUM_RED, MAT_PLENUM_RED_DEEP, MAT_STEEL_BRIGHT, MAT_TB_BODY, MAT_TB_BODY_DEEP, MAT_TB_COVER, MAT_TB_COVER_RIB, MAT_TB_HOLE, MAT_TB_LATCH, MAT_TB_PIN, MAT_TB_PLATE, MAT_TB_PLUG, MAT_TB_RIB, MAT_THROTTLE_RING } from "./materials";
 import { curveAt, curveFromPoints, flangeBolt, flangeJoint, roundedCurve, sweepTube } from "./tubes";
 import type { Curve, MeshBuilder } from "./tubes";
 import { PIPES, PLENUM, PLENUM_INLETS, Y_BRANCH, bodySection, headY, lidHeight, plenumW, socketCap } from "./plumbing";
@@ -697,54 +697,224 @@ function crossFins(b: MeshBuilder, branch: Curve, radius: (u: number) => number,
   }
 }
 
+// A prism of any section, from `c` along `dir` for `len`: its outline `outer(t)` (t round 0..1, counter-clockwise in
+// (e1, e2)), its side smooth-shaded, its two ends closed (or, with `inner` > 0, a round bore through it, the ends
+// annular and the bore's wall facing in)
+function extrudeShape(
+  b: MeshBuilder, c: FwVec3, dir: FwVec3, e1: FwVec3, e2: FwVec3, len: number, outer: (t: number) => [number, number],
+  N: number, side: FwMaterial, cap: FwMaterial, inner = 0, bore: FwMaterial = cap, occ = 1
+) {
+  const P = (x: number, u: number, v: number): FwVec3 => [
+    c[0] + dir[0] * x + e1[0] * u + e2[0] * v, c[1] + dir[1] * x + e1[1] * u + e2[1] * v, c[2] + dir[2] * x + e1[2] * u + e2[2] * v,
+  ];
+  const D = (u: number, v: number): FwVec3 => vnorm([e1[0] * u + e2[0] * v, e1[1] * u + e2[1] * v, e1[2] * u + e2[2] * v]);
+  const o = Array.from({ length: N + 1 }, (_, k) => outer(k / N));
+  // the side's normals: across the outline, averaged at each point
+  const nrm = o.map((_, k) => {
+    const a = o[(k - 1 + N) % N];
+    const z = o[(k + 1) % N];
+
+    return D(z[1] - a[1], -(z[0] - a[0]));
+  });
+  const back: FwVec3 = [-dir[0], -dir[1], -dir[2]];
+
+  for (let k = 0; k < N; k++) {
+    const [u0, v0] = o[k];
+    const [u1, v1] = o[k + 1];
+    const n0 = nrm[k];
+    const n1 = nrm[(k + 1) % N];
+
+    for (const [q, n] of [[P(0, u0, v0), n0], [P(len, u0, v0), n0], [P(len, u1, v1), n1], [P(0, u0, v0), n0], [P(len, u1, v1), n1], [P(0, u1, v1), n1]] as Array<[FwVec3, FwVec3]>) {
+      b.push(q, n, side, occ);
+    }
+
+    const t0 = (k / N) * TAU;
+    const t1 = ((k + 1) / N) * TAU;
+
+    if (inner > 0) {
+      const [a0, a1] = [[inner * Math.cos(t0), inner * Math.sin(t0)], [inner * Math.cos(t1), inner * Math.sin(t1)]];
+
+      b.flatQuad(P(0, u0, v0), P(0, u1, v1), P(0, a1[0], a1[1]), P(0, a0[0], a0[1]), back, cap, occ);
+      b.flatQuad(P(len, u0, v0), P(len, u1, v1), P(len, a1[0], a1[1]), P(len, a0[0], a0[1]), dir, cap, occ);
+      b.flatQuad(P(0, a0[0], a0[1]), P(0, a1[0], a1[1]), P(len, a1[0], a1[1]), P(len, a0[0], a0[1]), D(-Math.cos((t0 + t1) / 2), -Math.sin((t0 + t1) / 2)), bore, 0.6);
+    } else {
+      b.flatTri(P(0, 0, 0), P(0, u0, v0), P(0, u1, v1), back, cap, occ);
+      b.flatTri(P(len, 0, 0), P(len, u0, v0), P(len, u1, v1), dir, cap, occ);
+    }
+  }
+}
+
+// a superellipse's outline: half sizes a, b, power n (2 a circle or an ellipse, higher squarer with round corners)
+const squircle = (a: number, bb: number, n: number) => (t: number): [number, number] => {
+  const th = t * TAU;
+  const c = Math.cos(th);
+  const s = Math.sin(th);
+
+  return [a * Math.sign(c) * Math.pow(Math.abs(c), 2 / n), bb * Math.sign(s) * Math.pow(Math.abs(s), 2 / n)];
+};
+
 function buildThrottle(b: MeshBuilder, zs: number, y: number, z: number) {
   const { xn, neckR } = PLENUM;
 
-  // the throttle, on the neck, facing forward: a black rubber coupler with its two clamps, then the chromed body, a
-  // flange ring at each end, held by six bolts, and the bore's rolled mouth
+  // The throttle, on the neck, facing forward: a black rubber coupler with its two clamps; then a modern drive-by-wire
+  // throttle body. Its casting a squared, round-cornered block in bright satin aluminium, a round flange at its back
+  // bolted to the coupler's side by six bolts, two machined grooves round it; through it the bore, machined bright, and in
+  // it the brass butterfly, a little open, on its shaft. On its outer side the actuator: the motor's round can along it,
+  // the gear case over the shaft with its black satin cover, ribbed and held by six screws, the position sensor's round
+  // housing on it, and on top the connector, its latch and its pins. On the other side two coolant nipples, and on top
+  // a small vacuum port. Its front goes into the Y's clamp
   const T = PLENUM.throttle;
   const fwd: FwVec3 = [-1, 0, 0];
   const e1: FwVec3 = [0, 1, 0];
   const e2: FwVec3 = [0, 0, 1];
   const x0 = xn + 2; // the coupler's back
   const xb = xn - 12; // the body's back
+  const boreR = T.r - 6;
+  const H = T.r + 6; // the block's half size
+  const xc = xb - T.len / 2; // the butterfly's shaft
 
   b.prismDir([x0, y, z], fwd, e1, e2, neckR + 2.5, 14, 56, 0, MAT_PIPE_BLACK, MAT_PIPE_BLACK);
 
-  for (const xc of [x0 - 3, x0 - 11]) b.prismDir([xc, y, z], fwd, e1, e2, neckR + 4, 2.4, 56, 0, MAT_ALU_TURNED, MAT_STEEL_BRIGHT);
+  for (const xq of [x0 - 3, x0 - 11]) b.prismDir([xq, y, z], fwd, e1, e2, neckR + 4, 2.4, 56, 0, MAT_ALU_TURNED, MAT_STEEL_BRIGHT);
 
-  b.prismDir([xb, y, z], fwd, e1, e2, T.r, T.len, 64, 0, MAT_THROTTLE_BODY, MAT_THROTTLE_BODY);
-  b.prismDir([xb, y, z], fwd, e1, e2, T.r + 6, 7, 64, 0, MAT_THROTTLE_RING, MAT_THROTTLE_RING);
-  b.prismDir([xb - T.len + 7, y, z], fwd, e1, e2, T.r + 6, 7, 64, 0, MAT_THROTTLE_RING, MAT_THROTTLE_RING);
-  b.prismDir([xb - T.len, y, z], fwd, e1, e2, T.r + 3, 4, 64, 0, MAT_THROTTLE_BODY, MAT_THROTTLE_BODY); // the rolled lip
-
+  // the back flange: round, machined, its six bolts
+  extrudeShape(b, [xb, y, z], fwd, e1, e2, 7, squircle(H + 4, H + 4, 2), 96, MAT_ALU_TURNED, MAT_ALU_TURNED, boreR, MAT_ALU_TURNED);
   for (let k = 0; k < 6; k++) {
     const a = (k / 6) * TAU + 0.3;
 
-    for (const [xq, dir] of [[xb, 1], [xb - T.len, -1]] as Array<[number, number]>) {
-      flangeBolt(b, [xq, y + (T.r + 2.5) * Math.sin(a), z + (T.r + 2.5) * Math.cos(a)], [dir, 0, 0], 3.3, 0.2);
-    }
+    flangeBolt(b, [xb, y + (H - 2) * Math.sin(a), z + (H - 2) * Math.cos(a)], [1, 0, 0], 3.4, 0.2);
   }
 
-  // its actuator, on its outer side: a cast housing with a ribbed cover, the motor's round end, and the connector
+  // the block, in three lengths with the two grooves between them
+  const blockEnd = xb - T.len + 4; // (its front inside the Y's clamp)
+  const lens = [[xb - 7, xb - 20], [xb - 22, xb - 36], [xb - 38, blockEnd]];
+
+  for (const [xa, xe] of lens) extrudeShape(b, [xa, y, z], fwd, e1, e2, xa - xe, squircle(H, H, 5), 128, MAT_TB_BODY, MAT_TB_BODY, boreR, MAT_ALU_TURNED);
+  for (const xg of [xb - 20, xb - 36]) extrudeShape(b, [xg, y, z], fwd, e1, e2, 2, squircle(H - 2.2, H - 2.2, 5), 128, MAT_TB_BODY_DEEP, MAT_TB_BODY_DEEP, boreR, MAT_ALU_TURNED, 0.7);
+
+  // ribs along it, in relief and darker, as on the heads' covers: across the top, and down its inner side, parted round
+  // the vacuum port and the coolant nipples; each a bar standing 3 out of the casting, from the back flange to the clamp
   {
-    const xa = xb - 8;
-    const xe = xb - T.len + 8;
-    const zo = z + zs * (T.r + 2);
+    const surf = (v: number) => H * Math.pow(Math.max(0, 1 - Math.pow(Math.abs(v) / H, 5)), 0.2); // the block's face at v
+    const xa = xb - 7;
+    const xe = blockEnd;
+    const t = 1.4;
+    const h = 3;
 
-    b.box(xe, xa, y - 22, y + 18, Math.min(zo, zo + zs * 30), Math.max(zo, zo + zs * 30), MAT_ALU_CAST);
-    for (let k = 0; k < 4; k++) {
-      const xk = xe + 5 + (k * (xa - xe - 10)) / 3;
+    for (let v = -H * 0.72; v <= H * 0.72 + 1e-6; v += 8) {
+      if (Math.abs(v) < 9) continue; // (the vacuum port)
+      const top = y - surf(v);
 
-      b.box(xk - 1.3, xk + 1.3, y - 25, y - 22, Math.min(zo + zs * 3, zo + zs * 27), Math.max(zo + zs * 3, zo + zs * 27), MAT_ALU_TURNED);
+      b.box(xe, xa, top - h, top + 1, z + v - t, z + v + t, MAT_TB_RIB);
     }
-    b.prismDir([(xa + xe) / 2, y + 18, zo + zs * 15], [0, 1, 0], [1, 0, 0], [0, 0, 1], 12, 16, 32, 0, MAT_PIPE_BLACK, MAT_PIPE_BLACK); // the motor
-    b.box(xe + 4, xe + 18, y - 14, y + 2, Math.min(zo + zs * 30, zo + zs * 40), Math.max(zo + zs * 30, zo + zs * 40), MAT_PIPE_BLACK); // the connector
+    for (let u = -H * 0.72; u <= H * 0.72 + 1e-6; u += 8) {
+      if (Math.abs(u - 30) < 11) continue; // (the coolant nipples)
+      const sd = surf(u);
+      const zz = z - zs * sd;
 
-    for (const [bx, bz] of [[xa - 4, 4], [xe + 4, 4], [xa - 4, 26], [xe + 4, 26]]) {
-      b.prismDir([bx, y - 22, zo + zs * bz], [0, -1, 0], [1, 0, 0], [0, 0, 1], 2.6, 2.4, 6, 0.2, MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE);
+      b.box(xe, xa, y + u - t, y + u + t, Math.min(zz, zz - zs * h), Math.max(zz + zs * 1, zz - zs * h), MAT_TB_RIB);
     }
   }
+
+  // the butterfly: a brass disc on its shaft across the bore (along z), turned 14 degrees open; two screws through it
+  {
+    const th = 0.24;
+    const N = 48;
+    const r = boreR - 0.6;
+    const ax: FwVec3 = [Math.sin(th), Math.cos(th), 0]; // the disc's direction across the shaft
+    const nrm: FwVec3 = [Math.cos(th), -Math.sin(th), 0];
+
+    for (const sgn of [-1, 1]) {
+      const ring: FwVec3[] = [];
+
+      for (let k = 0; k < N; k++) {
+        const a = (k / N) * TAU;
+        const u = r * Math.cos(a);
+        const v = r * Math.sin(a);
+
+        ring.push([xc + ax[0] * u + nrm[0] * sgn * 1.1, y + ax[1] * u + nrm[1] * sgn * 1.1, z + v]);
+      }
+      b.flatFan([xc + nrm[0] * sgn * 1.1, y + nrm[1] * sgn * 1.1, z], ring, [nrm[0] * sgn, nrm[1] * sgn, 0], MAT_TB_PLATE);
+    }
+    b.prismDir([xc, y, z - H - 1], [0, 0, 1], [1, 0, 0], [0, 1, 0], 4.2, 2 * H + 2, 16, 0, MAT_STEEL_BRIGHT, MAT_STEEL_BRIGHT);
+    for (const sv of [-1, 1]) b.prismDir([xc - nrm[0] * 1.1, y - nrm[1] * 1.1, z + sv * 16], [-nrm[0], -nrm[1], 0], ax, [0, 0, 1], 3.2, 1.6, 12, 0, MAT_STEEL_BRIGHT, MAT_CT_NUT_SIDE);
+  }
+
+  // the actuator, on the outer side (zs)
+  const zf = z + zs * H; // the block's side face
+  const out: FwVec3 = [0, 0, zs];
+  const xm = (xb - 7 + blockEnd) / 2;
+
+  // the gear case: a round-cornered box standing out of the side, over the shaft and down over the motor
+  const caseC: FwVec3 = [xm, y + 10, zf - zs * 2];
+
+  extrudeShape(b, caseC, out, [1, 0, 0], [0, 1, 0], 22, squircle(24, 70, 4), 96, MAT_TB_BODY, MAT_TB_BODY);
+  // its black satin cover, a little smaller, on top of it; raised ribs across it; six screws round its edge
+  const lidC: FwVec3 = [xm, y + 10, zf + zs * 20];
+
+  extrudeShape(b, lidC, out, [1, 0, 0], [0, 1, 0], 5, squircle(21.5, 66, 4), 96, MAT_TB_COVER, MAT_TB_COVER);
+  for (let k = 0; k < 7; k++) {
+    const yy = y - 26 + k * 10;
+
+    b.box(xm - 13, xm + 13, yy - 1.4, yy + 1.4, Math.min(zf + zs * 25, zf + zs * 27.2), Math.max(zf + zs * 25, zf + zs * 27.2), MAT_TB_COVER_RIB);
+  }
+  for (const [dx, dy] of [[-17, -48], [17, -48], [-18, 10], [18, 10], [-17, 68], [17, 68]]) {
+    b.prismDir([xm + dx, y + dy, zf + zs * 25], out, [1, 0, 0], [0, 1, 0], 2.6, 1.6, 16, 0, MAT_STEEL_BRIGHT, MAT_CT_NUT_SIDE);
+    b.prismDir([xm + dx, y + dy, zf + zs * 26.62], out, [1, 0, 0], [0, 1, 0], 1.1, 0.1, 6, 0, MAT_TB_HOLE, MAT_TB_HOLE); // (its Torx)
+  }
+  // the position sensor's housing, round, over the shaft's end
+  b.prismDir([xc, y, zf + zs * 25], out, [1, 0, 0], [0, 1, 0], 15, 7, 48, 0, MAT_TB_COVER_RIB, MAT_TB_COVER);
+  b.prismDir([xc, y, zf + zs * 32], out, [1, 0, 0], [0, 1, 0], 9, 1, 40, 0, MAT_TB_COVER, MAT_TB_COVER);
+
+  // the motor's can, along the bottom of the case, its round end standing out in front with a domed cap
+  {
+    const my = y + 56;
+    const mz = zf + zs * 6;
+
+    b.prismDir([xb - 2, my, mz], fwd, e1, e2, 17, T.len + 4, 48, 0, MAT_TB_COVER, MAT_TB_BODY);
+    b.prismDir([xb - T.len - 2, my, mz], fwd, e1, e2, 14, 3, 48, 0, MAT_ALU_TURNED, MAT_ALU_TURNED);
+    b.revolve({ x0: xb - T.len - 5, r0: 0, x1: xb - T.len - 5, r1: 9, n: [-1, 0], m: MAT_TB_COVER_RIB, steps: 32, cy: my, cz: mz });
+    // its two flutes along it
+    for (const a of [0.6, 2.2]) {
+      const fy = my + 17.2 * Math.sin(a);
+      const fz = mz + zs * 17.2 * Math.cos(a);
+
+      b.box(xb - T.len + 2, xb - 6, fy - 1, fy + 1, fz - 1, fz + 1, MAT_TB_BODY_DEEP);
+    }
+  }
+
+  // the connector, on top of the case: a black plastic shell, its mouth open upward, six pins in it, a grey latch
+  {
+    const cy = y - 60; // its foot, on the case's top
+    const cz = zf + zs * 12;
+    const xa = xm - 14;
+    const xe = xm + 14;
+    const z0 = Math.min(cz - 9, cz + 9);
+    const z1 = Math.max(cz - 9, cz + 9);
+
+    b.box(xa, xe, cy - 22, cy, z0, z1, MAT_TB_PLUG);
+    b.box(xa + 2, xe - 2, cy - 22.2, cy - 6, z0 + 2, z1 - 2, MAT_TB_HOLE); // its mouth
+    for (let k = 0; k < 3; k++) {
+      for (const dz of [-3.5, 3.5]) {
+        const px = xa + 7 + k * 7;
+
+        b.box(px - 0.8, px + 0.8, cy - 16, cy - 6.3, cz + dz - 0.8, cz + dz + 0.8, MAT_TB_PIN);
+      }
+    }
+    b.box(xa + 8, xe - 8, cy - 24, cy - 22, z1 - 1, z1 + 2.5, MAT_TB_LATCH);
+    b.box(xa - 3, xa, cy - 20, cy - 4, z0 + 3, z1 - 3, MAT_TB_PLUG); // its keying rib
+  }
+
+  // the two coolant nipples on the inner side, and the vacuum port on top
+  for (const dx of [-12, 12]) {
+    const p: FwVec3 = [xm + dx, y + 30, z - zs * H];
+
+    b.prismDir(p, [0, 0, -zs], [1, 0, 0], [0, 1, 0], 7, 4, 24, 0, MAT_TB_BODY, MAT_TB_BODY);
+    b.prismDir([p[0], p[1], p[2] - zs * 4], [0, 0, -zs], [1, 0, 0], [0, 1, 0], 4.2, 14, 20, 0, MAT_STEEL_BRIGHT, MAT_STEEL_BRIGHT);
+    for (const t of [7, 12]) b.prismDir([p[0], p[1], p[2] - zs * t], [0, 0, -zs], [1, 0, 0], [0, 1, 0], 5.2, 1.6, 20, 0, MAT_STEEL_BRIGHT, MAT_STEEL_BRIGHT);
+  }
+  b.prismDir([xm, y - H, z], [0, -1, 0], [1, 0, 0], [0, 0, 1], 6, 4, 24, 0, MAT_TB_BODY, MAT_TB_BODY);
+  b.prismDir([xm, y - H - 4, z], [0, -1, 0], [1, 0, 0], [0, 0, 1], 3, 10, 18, 0, MAT_STEEL_BRIGHT, MAT_STEEL_BRIGHT);
 }
 
 // The clamp flange where the Y is bolted to the throttle's mouth: two thick black flanges, metallic with a fine sandpaper

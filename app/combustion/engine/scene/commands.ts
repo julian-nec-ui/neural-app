@@ -13,6 +13,8 @@ import { ST_AT, ST_PHI_MAX, ST_PIV_A, ST_PIV_Q, ST_SQ, sA, stA } from "../mesh/s
 import { CAM_RC, CHAIN_SEP, DRIVE, VT_PITCH, chainDx } from "../mesh/timingChain/chainPath";
 import type { Chain } from "../mesh/timingChain/chainPath";
 import { CAM_SENSE, CHAIN_FWD, IDLER2, gearsFor } from "../mesh/timingGears/gearTrain";
+import { BELT_PATH, BELT_PIECE, BELT_PIECES, PULLEYS, pulleySpeed } from "../mesh/beltDrive";
+import type { Pulley } from "../mesh/beltDrive";
 import { IC, IC_HALF, TURBO_AT } from "../mesh/turbo";
 import { IN_SIDE, VT, VT_LIFT_PEAK, VT_TILT, camLift, valveX } from "../mesh/valvetrain";
 import { FLY_RANGE, FW_MARK_OFFSET_DEG, HEAD_RANGE, TRAIN_MESH, bankPart } from "./meshes";
@@ -224,6 +226,46 @@ function emitChain(bank: Bank, chain: Chain, s0: number, x: number) {
 const CHAIN_A = { y: 0, z: 0, circle: -1 };
 const CHAIN_B = { y: 0, z: 0, circle: -1 };
 
+// The accessory drive (beltDrive.ts): the crank's pulley with the crank, the others each at its own speed (the belt's
+// over its radius), the pump, the alternator and the tensioner fixed, and the belt's pieces round the loop, moving with it
+function emitBeltDrive(alpha: number) {
+  const r = HEAD_RANGE;
+  const turn = (range: [number, number], p: Pulley) => {
+    const a = alpha * pulleySpeed(p);
+
+    emit(range, Math.cos(a), Math.sin(a), 0, p.y, p.z);
+  };
+
+  turn(r.beltCrank, PULLEYS.crank);
+  turn(r.beltAlternator, PULLEYS.alternator);
+  turn(r.beltPump, PULLEYS.pump);
+  turn(r.beltIdler, PULLEYS.idler);
+  turn(r.beltSteering, PULLEYS.steering);
+  emit(r.beltAccessories, 1, 0, 0, 0, 0);
+
+  // (the belt moves against the pulleys' turning direction in the path's own counter-clockwise parameter)
+  const s0 = -PULLEYS.crank.r * alpha;
+  let prev = BELT_PATH.at(s0, BELT_A);
+  let next = BELT_B;
+
+  for (let i = 0; i < BELT_PIECES; i++) {
+    BELT_PATH.at(s0 + (i + 1) * BELT_PIECE, next);
+
+    const dy = next.y - prev.y;
+    const dz = next.z - prev.z;
+    const len = Math.hypot(dy, dz) || 1;
+
+    emit(r.beltPiece, dy / len, -dz / len, 0, prev.y, prev.z);
+
+    const tmp = prev;
+    prev = next;
+    next = tmp;
+  }
+}
+
+const BELT_A = { y: 0, z: 0, circle: -1 };
+const BELT_B = { y: 0, z: 0, circle: -1 };
+
 // Every part's placement for this frame: the crank train, then each bank
 export function computeSceneCommands(frame: EngineFrame): DrawCmd[] {
   sceneCount = 0;
@@ -235,6 +277,8 @@ export function computeSceneCommands(frame: EngineFrame): DrawCmd[] {
 
   // The nose of the shaft
   emit(TRAIN_MESH.snout, Math.cos(alpha), Math.sin(alpha), 0, 0, 0);
+
+  emitBeltDrive(alpha);
 
   // The flywheel turns with the crankshaft, on its flange, with its marked tooth
   // on the same line as the mark on the crankshaft
@@ -346,6 +390,7 @@ export function computeSceneCommands(frame: EngineFrame): DrawCmd[] {
   if (!SCENE_OPTIONS.seeThrough) emit(r.manifoldWelds, 1, 0, 0, 0, 0); // (the headers' joints and bungs: likewise)
   emit(r.turbineArc, 1, 0, 0, 0, 0);
   emit(r.drySump, 1, 0, 0, 0, 0);
+  if (!SCENE_OPTIONS.seeThrough) emit(r.engineMount, 1, 0, 0, 0, 0); // the stand under the engine (engineMount.ts): on the solid engine only
   if (!SCENE_OPTIONS.seeThrough) emit(r.sumpFrontCover, 1, 0, 0, 0, 0); // (the see-through engine leaves it out: the crank's gear shows)
   SCENE_CMDS.length = sceneCount;
 

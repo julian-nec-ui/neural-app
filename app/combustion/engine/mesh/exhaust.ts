@@ -4,7 +4,7 @@ import { BANKS, CT_X, FLYWHEEL_WORLD_X, HEAD_PORT_DZ, ORIENT, TAU, bankPoint, co
 import type { Bank } from "../core/constants";
 import { vadd, vcross, vnorm, vscale, vsub } from "../math/vec3";
 import type { FwVec3 } from "./builder";
-import { MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE, MAT_HDR_BLUE, MAT_HDR_BRONZE, MAT_HDR_FLANGE, MAT_HDR_PORT_FLANGE, MAT_HEAT_SHIELD, MAT_INJ_BRASS, MAT_PIPE_BLACK, MAT_MUFFLER_WIRE, MAT_SHIELD_STREAK, MAT_STEEL_BRIGHT, MAT_WELD } from "./materials";
+import { MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE, MAT_HDR_BLUE, MAT_HDR_BRONZE, MAT_HDR_FLANGE, MAT_HDR_PORT_FLANGE, MAT_HEAT_SHIELD, MAT_INJ_BRASS, MAT_PIPE_BLACK, MAT_MUFFLER_WIRE, MAT_SHIELD_STREAK, MAT_STEEL_BRIGHT, MAT_WELD, MAT_WELD_MATTE } from "./materials";
 import { buildTrapezoidTail } from "./exhaustTail";
 import { lobedPlate } from "./shapes";
 import type { P2 } from "./shapes";
@@ -527,6 +527,224 @@ function o2Bung(b: MeshBuilder, pipe: Curve, s: number, r: number, out: FwVec3, 
   }
 }
 
+// The seam where two pipes of radius SEC_R run together, on one side (side): the line where their skins meet, in the plane
+// between them, from where they go into the neck up to where they part; a rippled bead along it
+function crotchSeam(b: MeshBuilder, b0: Curve, b1: Curve, side: number) {
+  const pts: FwVec3[] = [];
+  const p0: FwVec3 = [0, 0, 0];
+  const p1: FwVec3 = [0, 0, 0];
+  const t0: FwVec3 = [0, 0, 0];
+  const t1: FwVec3 = [0, 0, 0];
+  const R = SEC_R + 1.2;
+
+  for (let s = 2; s < Math.min(b0.total, b1.total); s += 1.2) { // (from inside the neck: the seam runs right down to its top)
+    curveAt(b0, b0.total - s, p0, t0);
+    curveAt(b1, b1.total - s, p1, t1);
+
+    const v = vsub(p1, p0);
+    const d = Math.hypot(v[0], v[1], v[2]);
+
+    if (d >= 2 * R - 0.6) break;
+
+    const t = vnorm(vadd(t0, t1));
+    const n = vnorm(vcross(t, v));
+    const h = Math.sqrt(R * R - (d / 2) ** 2);
+
+    pts.push(vadd(vscale(vadd(p0, p1), 0.5), vscale(n, side * h)));
+  }
+
+  if (pts.length < 4) return;
+
+  const bead = curveFromPoints(pts, 1.2);
+
+  sweepTube(b, bead, (u) => 2.9 + 0.6 * Math.sin((u * bead.total) / 3.8 * TAU), MAT_WELD_MATTE, { segments: 10 });
+}
+
+// The weld round the Y's two branches where they go into the top of its neck: in the neck's top plane, the outline of the
+// two pipes together (each cut by the plane, an ellipse; the two run into one), traced all the way round, a rippled bead
+function mouthWeld(b: MeshBuilder, neck: Curve, b0: Curve, b1: Curve) {
+  const O = neck.pts[0];
+  const n = vnorm(vsub(neck.pts[1], neck.pts[0])); // down the neck
+  const side = (p: FwVec3) => (p[0] - O[0]) * n[0] + (p[1] - O[1]) * n[1] + (p[2] - O[2]) * n[2];
+  const u0 = vnorm(vcross(n, Math.abs(n[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0]));
+  const v0 = vcross(n, u0);
+  const R = SEC_R;
+  // where a branch's axis crosses the neck's top plane, and its direction there
+  const axisAt = (c: Curve): { at: FwVec3; t: FwVec3 } => {
+    for (let k = c.pts.length - 1; k > 0; k--) {
+      const a = c.pts[k - 1];
+      const q = c.pts[k];
+
+      if (side(a) <= 0 && side(q) >= 0) {
+        const f = side(a) / (side(a) - side(q) || 1);
+
+        return { at: vadd(a, vscale(vsub(q, a), f)), t: vnorm(vsub(q, a)) };
+      }
+    }
+
+    return { at: c.pts[c.pts.length - 1], t: n };
+  };
+  const axes = [axisAt(b0), axisAt(b1)];
+  const distToAxis = (p: FwVec3, ax: { at: FwVec3; t: FwVec3 }) => {
+    const w = vsub(p, ax.at);
+    const d = w[0] * ax.t[0] + w[1] * ax.t[1] + w[2] * ax.t[2];
+
+    return Math.hypot(w[0] - ax.t[0] * d, w[1] - ax.t[1] * d, w[2] - ax.t[2] * d);
+  };
+  // the branches' own skins cut by the plane, near where they go into the neck: each skin line's crossing; kept where it
+  // is not inside the other branch (judged by the other's own axis there): the true outline of the two, the V where
+  // they meet
+  const hits: FwVec3[] = [];
+  const c0: FwVec3 = [0, 0, 0];
+  const c1: FwVec3 = [0, 0, 0];
+  const d0: FwVec3 = [0, 0, 0];
+  const d1: FwVec3 = [0, 0, 0];
+  const ring = (c: FwVec3, d: FwVec3, ph: number): FwVec3 => {
+    const e1 = vnorm(vcross(d, Math.abs(d[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0]));
+    const e2 = vcross(d, e1);
+
+    return vadd(c, vadd(vscale(e1, R * Math.cos(ph)), vscale(e2, R * Math.sin(ph))));
+  };
+
+  [b0, b1].forEach((br, bi) => {
+    const done = new Array(720).fill(false); // (each skin line: only its first crossing up from the neck, not where the bend brings it back)
+
+    for (let s = br.total - 1; s > br.total - 60 && s > 1; s -= 0.5) {
+      curveAt(br, s, c0, d0);
+      curveAt(br, s - 0.5, c1, d1);
+
+      for (let k = 0; k < 720; k++) {
+        if (done[k]) continue;
+
+        const ph = (k / 720) * TAU;
+        const p = ring(c0, d0, ph);
+        const q = ring(c1, d1, ph);
+        const sp = side(p);
+        const sq = side(q);
+
+        if ((sp >= 0) === (sq >= 0)) continue;
+
+        done[k] = true;
+
+        const h = vadd(p, vscale(vsub(q, p), sp / (sp - sq)));
+
+        if (distToAxis(h, axes[1 - bi]) < R - 0.3) continue;
+        (h as FwVec3 & { bi?: number }).bi = bi;
+        hits.push(h);
+      }
+    }
+
+    // where a skin line never reaches the plane (the pipe leaning, its end standing over the neck's top there): its end's
+    // rim, as it is, is the edge to follow
+    curveAt(br, br.total, c0, d0);
+
+    for (let k = 0; k < 720; k++) {
+      if (done[k]) continue;
+
+      const h = ring(c0, d0, (k / 720) * TAU);
+
+      if (side(h) > 0.5) continue;
+      if (distToAxis(h, axes[1 - bi]) < R - 0.3) continue;
+
+      (h as FwVec3 & { bi?: number; rim?: boolean }).bi = bi;
+      (h as FwVec3 & { bi?: number; rim?: boolean }).rim = true;
+      hits.push(h);
+    }
+  });
+
+  // round the neck's axis, the outermost in each direction
+  const BINS = 720;
+  const best: Array<FwVec3 | null> = new Array(BINS).fill(null);
+  const bestR = new Array(BINS).fill(-1);
+
+  for (const h of hits) {
+    const w0 = vsub(h, O);
+    const w = vsub(w0, vscale(n, w0[0] * n[0] + w0[1] * n[1] + w0[2] * n[2])); // (in the plane)
+    const a = Math.atan2(w[0] * v0[0] + w[1] * v0[1] + w[2] * v0[2], w[0] * u0[0] + w[1] * u0[1] + w[2] * u0[2]);
+    const k = Math.floor((((a / TAU) % 1) + 1) % 1 * BINS) % BINS;
+    const r = Math.hypot(w[0], w[1], w[2]);
+
+    if (r < 70 && r > bestR[k]) {
+      bestR[k] = r;
+      best[k] = h;
+    }
+  }
+
+  const pts: FwVec3[] = [];
+
+  for (let k = 0; k < BINS; k++) {
+    const h = best[k];
+
+    if (!h) continue;
+
+    pts.push(h);
+  }
+
+  if (pts.length < 8) return;
+
+  // the bead's middle: in the plane a little over the neck's top, and out of both pipes by its own thickness, square to
+  // each pipe's skin (not straight out from the neck's middle): round the corner where they meet it stays on top of both,
+  // the same width all the way; then eased round that corner a little, still clear of both
+  const RB = 3.3;
+  const distTo = (p: FwVec3, ax: { at: FwVec3; t: FwVec3 }) => {
+    const w = vsub(p, ax.at);
+    const d = w[0] * ax.t[0] + w[1] * ax.t[1] + w[2] * ax.t[2];
+
+    return { m: vsub(w, vscale(ax.t, d)), dist: 0 };
+  };
+  // off its own pipe by its thickness, square to the skin, in the plane; and where the other pipe comes over it (in the V
+  // between them), up the V instead of out across it: lifted up the neck's axis until clear of the other pipe, so that it
+  // climbs into the crotch and meets the seam there
+  const clear = (q: FwVec3, bi: number): FwVec3 => {
+    let p = q;
+    const own = axes[bi];
+    const oth = axes[1 - bi];
+
+    for (let it = 0; it < 4; it++) {
+      const o = distTo(p, own);
+      const dist = Math.hypot(o.m[0], o.m[1], o.m[2]);
+
+      if (dist < R + RB) {
+        const m = vsub(o.m, vscale(n, o.m[0] * n[0] + o.m[1] * n[1] + o.m[2] * n[2]));
+        const ml = Math.hypot(m[0], m[1], m[2]) || 1;
+
+        p = vadd(p, vscale(m, (R + RB - dist + 0.05) / ml));
+      }
+    }
+
+    for (let it = 0; it < 30; it++) {
+      const o = distTo(p, oth);
+
+      if (Math.hypot(o.m[0], o.m[1], o.m[2]) >= R + RB) break;
+      p = vadd(p, vscale(n, -0.4));
+    }
+
+    return p;
+  };
+
+  const bis = pts.map((q) => (q as FwVec3 & { bi?: number }).bi ?? 0);
+  let ring2 = pts.map((q, k) => clear((q as FwVec3 & { rim?: boolean }).rim ? q : vadd(q, vscale(n, -2.6)), bis[k]));
+
+  for (let pass = 0; pass < 8; pass++) {
+    ring2 = ring2.map((_, k) => {
+      const a = ring2[(k - 2 + ring2.length) % ring2.length];
+      const c = ring2[(k - 1 + ring2.length) % ring2.length];
+      const e = ring2[(k + 1) % ring2.length];
+      const f = ring2[(k + 2) % ring2.length];
+      const q = ring2[k];
+
+      return clear([0, 1, 2].map((i) => (a[i] + 2 * c[i] + 2 * q[i] + 2 * e[i] + f[i]) / 8) as FwVec3, bis[k]);
+    });
+  }
+
+  pts.length = 0;
+  pts.push(...ring2, ring2[0]);
+
+  const bead = curveFromPoints(pts, 0.5);
+
+  sweepTube(b, bead, (u) => 3.1 + 0.63 * Math.sin((u * bead.total) / 4.0 * TAU), MAT_WELD_MATTE, { segments: 10 });
+}
+
 // Solid on every view: the welds where the pipes meet, the oxygen sensors' bungs
 export function buildManifoldWelds(b: MeshBuilder) {
   for (const [bi, bank] of EXHAUST_RUNNERS.entries()) {
@@ -535,13 +753,17 @@ export function buildManifoldWelds(b: MeshBuilder) {
 
     // where each pipe goes into the mouth of the cone it is welded into, and where each cone runs into its pipe
     for (const p of bank.primaries) weld(b, p, p.total - INSET, PR);
-    for (const br of bank.branches) weld(b, br, br.total - INSET, SEC_R);
+    // the Y: up the crotch where its two branches run together, a bead each side, from the neck up to where they part
+    // and at the top of the neck, where the two branches go into it: one bead all round them, following their outline
+    weld(b, bank.collectors[0], bank.collectors[0].total - 14.4, MAIN_R + 1.4, undefined, 2); // round the neck's foot, sitting on the pipe's plate on the flange, outside the pipe
+    mouthWeld(b, bank.collectors[0], bank.branches[0], bank.branches[1]);
+    for (const side of [-1, 1]) crotchSeam(b, bank.branches[0], bank.branches[1], side);
 
     // the bolted flange joints between each collector and the Y: the collectors coupled in the middle, three by three
     for (const j of bank.joints) {
       flangeJoint(b, j.at, j.dir, {
         pipeR: SEC_R, r: SEC_R + 17, castT: 9, mateT: 9, bolts: 6, pitch: SEC_R + 10,
-        cast: MAT_HDR_FLANGE, mate: MAT_HDR_FLANGE, gasket: MAT_PIPE_BLACK, bolt: 4.6,
+        cast: MAT_HDR_FLANGE, mate: MAT_HDR_FLANGE, gasket: MAT_PIPE_BLACK, bolt: 4.6, flip: true, // (heads on the side the pipes come from)
       });
     }
 

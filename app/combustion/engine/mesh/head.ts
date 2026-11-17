@@ -3,7 +3,7 @@
 import { BORE_R, CT_X, HEAD_HALF_W, PLUG, ROD_LIFT, TAU } from "../core/constants";
 import { createMeshBuilder } from "./builder";
 import type { FwMaterial, FwVec3 } from "./builder";
-import { MAT_CT_GROOVE, MAT_CT_HOLE, MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE, MAT_DECK, MAT_DECK_EDGE, MAT_DECK_RIM, MAT_HEAD_BOOT, MAT_HEAD_BRASS, MAT_HEAD_CAST, MAT_HEAD_CAST_DEEP, MAT_HEAD_MACHINED, MAT_PERF_PLATE, MAT_PERF_RIVET_HEAD, MAT_PERF_RIVET_SIDE, MAT_PLUG_CAP, PLATE_BARS , MAT_BOLT_MATTE_HEAD, MAT_BOLT_MATTE_SIDE, MAT_HEAD_JOINT} from "./materials";
+import { MAT_CT_GROOVE, MAT_CT_HOLE, MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE, MAT_DECK, MAT_DECK_EDGE, MAT_DECK_RIM, MAT_HEAD_BOOT, MAT_HEAD_BRASS, MAT_HEAD_CAST, MAT_HEAD_CAST_DEEP, MAT_HEAD_MACHINED, MAT_PERF_PLATE, MAT_PERF_RIVET_HEAD, MAT_PERF_RIVET_SIDE, PLATE_BARS , MAT_BOLT_MATTE_HEAD, MAT_BOLT_MATTE_SIDE, MAT_HEAD_JOINT} from "./materials";
 import { collar, curveFromPoints } from "./tubes";
 import { planBand, planCap, planWalls, roundedPlan } from "./shapes";
 import type { MeshBuilder } from "./tubes";
@@ -461,7 +461,6 @@ export function buildHeadSolid(b: MeshBuilder, shift = 0) {
 // from above (the firing order and the signature stay)
 export function buildHeadTopFittings(b: MeshBuilder, shift = 0) {
   const { yTop } = HEAD;
-  const x1 = HEAD.x1 + shift;
 
   // ---- on each spark plug's tube, a low cap rising out of the cover, with a steel ring round its foot: a dome, nearly a
   // half sphere, flattened a little, matte, smooth-shaded, its foot in shade ----
@@ -470,12 +469,13 @@ export function buildHeadTopFittings(b: MeshBuilder, shift = 0) {
       b.revolveY({ y0: yTop, r0: 13.8, y1: yTop, r1: 17.6, n: [-1, 0], m: MAT_HEAD_MACHINED, steps: 32 });
       b.revolveY({ y0: yTop, r0: 17.6, y1: yTop - 3.4, r1: 17.6, n: [0, 1], m: MAT_HEAD_MACHINED, steps: 32 });
       b.revolveY({ y0: yTop - 3.4, r0: 17.6, y1: yTop - 3.4, r1: 11.2, n: [-1, 0], m: MAT_HEAD_MACHINED, steps: 32 });
-      plugCap(b, yTop - 3.4, 11.2, 7.2);
+      // (the coil stands in the ring: headWiring.ts)
     });
   }
 
-  // ---- the oil filler cap, over the end cylinder, with its ring of grip ----
-  const cap = { x: x1 - 52, z: 0 };
+  // ---- the oil filler cap, over the end cylinder at the chain's end (the plugs, off the bores' axes toward the other
+  // end, leave it room there), with its ring of grip ----
+  const cap = { x: HEAD.x0 + shift + 52, z: 0 };
 
   placed(b, cap.x, 0, cap.z, () => {
     b.revolveY({ y0: yTop, r0: 27, y1: yTop - 3.2, r1: 27, n: [0, 1], m: MAT_HEAD_MACHINED, steps: 48 });
@@ -495,15 +495,17 @@ export function buildHeadTopFittings(b: MeshBuilder, shift = 0) {
     b.box(-14, 14, yTop - 14.9, yTop - 14.2, -2.1, 2.1, MAT_HEAD_BOOT);
   });
 
-  // ---- a perforated plate on top, between the first two plugs and between the last two: the same plate as the
+  // ---- a perforated plate on top, between the first two plugs, the middle two and the last two: the same plate as the
   // coloured ones (its size, its rivets), its face a polished sheet punched in a staggered grid of round holes, small holes
   // between them (perfPlate) ----
-  for (const k of [0, CT_X.length - 2]) perfPlate(b, HEAD_RIBS_X[k], 0, yTop);
+  // (and a third in the middle, between the middle two plugs)
+  // (all of them midway between two plugs, which stand off the bores' axes by PLUG.x)
+  for (const k of [0, (CT_X.length - 2) / 2, CT_X.length - 2]) perfPlate(b, HEAD_RIBS_X[k] + PLUG.x, 0, yTop);
 
   // ---- a plate on top, with three engraved lines and four rivets ----
   // the plate stands twice, one each side of the middle of the head, where the signature stands: in the second gap from either end. It
   // is a little larger than it was, and its three bars are red, yellow and blue, from the valley side outward
-  for (const plateX of [HEAD_RIBS_X[1], HEAD_RIBS_X[HEAD_RIBS_X.length - 2]]) {
+  for (const plateX of [HEAD_RIBS_X[1] + PLUG.x, HEAD_RIBS_X[HEAD_RIBS_X.length - 2] + PLUG.x]) {
     const plate = { x: plateX, z: 0 };
     const plateTop = yTop - 2.2;
 
@@ -519,37 +521,6 @@ export function buildHeadTopFittings(b: MeshBuilder, shift = 0) {
   }
 }
 
-// A spark plug's cap: a dome of radius r standing on yb, h high (a half sphere, flattened when h < r), its normals smooth,
-// darker toward its foot; built about the vertical axis through the origin
-function plugCap(b: MeshBuilder, yb: number, r: number, h: number) {
-  const NA = 36;
-  const NV = 10;
-  const P = (ia: number, iv: number): FwVec3 => {
-    const a = (ia / NA) * TAU;
-    const t = (iv / NV) * (Math.PI / 2);
-    const rr = r * Math.cos(t);
-
-    return [rr * Math.cos(a), yb - h * Math.sin(t), rr * Math.sin(a)];
-  };
-  const N = (ia: number, iv: number): FwVec3 => {
-    const a = (ia / NA) * TAU;
-    const t = (iv / NV) * (Math.PI / 2);
-    const nr = Math.cos(t) / r;
-    const ny = Math.sin(t) / h;
-    const l = Math.hypot(nr, ny) || 1;
-
-    return [(nr / l) * Math.cos(a), -ny / l, (nr / l) * Math.sin(a)];
-  };
-  const occ = (iv: number) => 0.55 + 0.45 * Math.sin((iv / NV) * (Math.PI / 2));
-
-  for (let ia = 0; ia < NA; ia++) {
-    for (let iv = 0; iv < NV; iv++) {
-      const q = [[ia, iv], [ia + 1, iv], [ia + 1, iv + 1], [ia, iv], [ia + 1, iv + 1], [ia, iv + 1]];
-
-      for (const [i, v] of q) b.push(P(i, v), N(i, v), MAT_PLUG_CAP, occ(v));
-    }
-  }
-}
 
 // The perforated plate (on top, between the end plugs): a plate as the coloured ones, 88 by 40, standing 2.2 proud, with
 // a hex bolt in each corner (perfBolt), a little darker than it; its face a mid grey metal punched through in a staggered (hexagonal) grid of round holes,

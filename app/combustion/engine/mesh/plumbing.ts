@@ -432,7 +432,7 @@ export function buildCollector(b: MeshBuilder) {
 // it: straw-gold, then purple, then blue, on both sides. The bead is hollow: only the outside
 // of it is there, so that the pipe's inside can be seen through it.
 // `half`, when given, keeps only the half of the bead on that side of the pipe: the half that shows
-export function weld(b: MeshBuilder, curve: Curve, s: number, pipeR: number, half?: FwVec3) {
+export function weld(b: MeshBuilder, curve: Curve, s: number, pipeR: number, half?: FwVec3, size = 1, mat: FwMaterial = MAT_WELD) {
   const centre: FwVec3 = [0, 0, 0];
   const dir: FwVec3 = [0, 0, 0];
 
@@ -441,16 +441,16 @@ export function weld(b: MeshBuilder, curve: Curve, s: number, pipeR: number, hal
   const e1 = vnorm(vcross(dir, Math.abs(dir[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0]));
   const e2 = vcross(dir, e1);
   const R0 = pipeR + 0.2;
-  const ripples = Math.max(14, Math.round((TAU * R0) / 3.1)); // about 3 units from crest to crest
+  const ripples = Math.max(14, Math.round((TAU * R0) / (3.1 * Math.sqrt(size)))); // about 3 units from crest to crest
   const N = ripples * 4; // samples round the pipe
   const M = 7; // samples across the bead
-  const hw = WELD_HALF; // half the bead's width
+  const hw = WELD_HALF * size; // half the bead's width
 
   const P = (th: number, ph: number): FwVec3 => {
     // ripple crests: the bead is higher, and a little wider, on each crest, and the crest leans
     const crest = Math.sin(ripples * th);
     const lean = Math.sin(ripples * th + 1.2);
-    const height = (1.1 + 0.26 * crest) * Math.sin(ph);
+    const height = (1.1 + 0.26 * crest) * size * Math.sin(ph);
     const along = hw * Math.cos(ph) * (1 + 0.09 * crest + 0.07 * Math.sin(ripples * th * 0.5 + 0.7)) + 0.34 * lean * Math.sin(ph);
     const rr = R0 + height;
     const cs = Math.cos(th) * rr;
@@ -499,7 +499,7 @@ export function weld(b: MeshBuilder, curve: Curve, s: number, pipeR: number, hal
         [P(t0, p1), normal(t0, p1 - 1e-3)],
       ];
 
-      for (const k of [0, 1, 2, 0, 2, 3]) b.push(v[k][0], v[k][1], MAT_WELD, 1);
+      for (const k of [0, 1, 2, 0, 2, 3]) b.push(v[k][0], v[k][1], mat, 1);
     }
   }
 }
@@ -601,10 +601,14 @@ export function buildCollectorFittings(b: MeshBuilder) {
       const px = (half + 1) * Math.cos(a);
       const py = (half + 1) * Math.sin(a);
 
+      // a bolt down through both: its head on top, on a washer, its top chamfered; under the turbine's flange a washer, the
+      // nut, and the bolt's end standing a little out of it
       b.prismDir([px, py, 10], [0, 0, 1], [1, 0, 0], [0, 1, 0], 5.6, 0.8, 18, 0, MAT_STEEL_BRIGHT, MAT_STEEL_BRIGHT);
-      b.prismDir([px, py, 10.8], [0, 0, 1], [1, 0, 0], [0, 1, 0], 5, 5, 6, a, MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE);
-      b.prismDir([px, py, 15.8], [0, 0, 1], [1, 0, 0], [0, 1, 0], 2.6, 7, 14, 0, MAT_STEEL_BRIGHT, MAT_STEEL_BRIGHT);
-      b.prismDir([px, py, -9], [0, 0, -1], [1, 0, 0], [0, 1, 0], 4.2, 4, 6, 0.2, MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE);
+      b.prismDir([px, py, 10.8], [0, 0, 1], [1, 0, 0], [0, 1, 0], 5, 3.8, 6, a, MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE);
+      b.prismDir([px, py, 14.6], [0, 0, 1], [1, 0, 0], [0, 1, 0], 4.3, 0.5, 18, 0, MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE); // its chamfer
+      b.prismDir([px, py, -9], [0, 0, -1], [1, 0, 0], [0, 1, 0], 5.4, 0.8, 18, 0, MAT_STEEL_BRIGHT, MAT_STEEL_BRIGHT);
+      b.prismDir([px, py, -9.8], [0, 0, -1], [1, 0, 0], [0, 1, 0], 4.6, 4, 6, a + 0.2, MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE);
+      b.prismDir([px, py, -13.8], [0, 0, -1], [1, 0, 0], [0, 1, 0], 2.4, 2.4, 14, 0, MAT_STEEL_BRIGHT, MAT_STEEL_BRIGHT);
     }
 
     b.setTurn(null);

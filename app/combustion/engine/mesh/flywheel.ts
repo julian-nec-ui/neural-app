@@ -4,7 +4,7 @@ import { FW_GEAR_HALF, FW_SCALE, TAU } from "../core/constants";
 import { RING, RING_TEETH, ringHalfAngle } from "./gearing";
 import { FW_STRIDE, createMeshBuilder } from "./builder";
 import type { FwVec3 } from "./builder";
-import { MAT_BEARING, MAT_BOLT_HEAD, MAT_BOLT_SIDE, MAT_CAST, MAT_CAST_FACE, MAT_CAVITY, MAT_EDGE, MAT_FRICTION_A, MAT_FRICTION_B, MAT_FRICTION_C, MAT_GEAR_BODY, MAT_GEAR_ROOT, MAT_HOLE, MAT_HUB, MAT_LAND, MAT_PAINT, MAT_PIN, MAT_RACE, MAT_SEAM, MAT_THREAD, MAT_TICK, MAT_TOOTH, MAT_TOOTH_END, MAT_TOOTH_TIP, MAT_TURNED, MAT_WALL, MAT_WASHER } from "./materials";
+import { MAT_BEARING, MAT_BOLT_HEAD, MAT_BOLT_SIDE, MAT_CAST, MAT_CAST_FACE, MAT_CAVITY, MAT_EDGE, MAT_FRICTION_A, MAT_FRICTION_B, MAT_FRICTION_C, MAT_FW_BOLT_HEAD, MAT_FW_BOLT_SIDE, MAT_FW_BOLT_WASHER, MAT_GEAR_BODY, MAT_GEAR_ROOT, MAT_HOLE, MAT_HUB, MAT_LAND, MAT_PAINT, MAT_PIN, MAT_RACE, MAT_SEAM, MAT_TICK, MAT_TOOTH, MAT_TOOTH_END, MAT_TOOTH_TIP, MAT_TURNED, MAT_WALL, MAT_WASHER } from "./materials";
 
 /* =========================================================
    FLYWHEEL MESH (WebGL)
@@ -23,6 +23,7 @@ const FW_SECTOR_STEPS = 24;
 const FW_STEPS = FW_SECTOR_STEPS * 6;
 const FW_WINDOW_FROM = 3; // first window step inside a sector
 const FW_WINDOW_TO = 21; // one past the last window step
+const SPOKE_T = (0.5 / RING_TEETH) * TAU; // the spokes turned by half a tooth, one under the timing mark
 
 export const FW_DIM = {
   rimInner: 51,
@@ -93,16 +94,19 @@ function buildFlywheelVertices(): Float32Array {
   revolve({ x0: lip, r0: D.rimOuter, x1: -lip, r1: D.rimOuter, n: [0, 1], m: MAT_CAST });
   revolve({ x0: -lip, r0: D.rimOuter, x1: -D.rimHalf, r1: D.rimOuter - D.rimChamfer, n: [-0.7, 0.7], m: MAT_EDGE });
 
-  // Clutch-cover bolt holes (countersunk, threaded) and dowel pins
-  for (let k = 0; k < 6; k++) {
-    const t = ((k + 0.5) / 6) * TAU;
-    disc(frontX + 0.03, 60.7, t, 2.1, MAT_EDGE, 16);
-    disc(frontX + 0.06, 60.7, t, 1.45, MAT_HOLE, 16);
-    disc(frontX + 0.08, 60.7, t, 0.85, MAT_THREAD, 12);
-  }
+  // The clutch cover's bolts round the outer land: nine, all alike, evenly spaced, the first square on the timing mark, at
+  // the arrow's point. Each dark and detailed: a washer, a flanged hex head with its flats square to the radius, the
+  // chamfer on its top, and the maker's mark, a small round recess
+  for (let k = 0; k < 9; k++) {
+    const t = SPOKE_T + (k / 9) * TAU;
+    const r = 60.7;
 
-  for (let k = 0; k < 3; k++) {
-    prism(frontX, 60.7, (k / 3) * TAU, 1.35, 1.4, 14, 0, MAT_PIN, MAT_PIN);
+    disc(frontX + 0.02, r, t, 2.05, MAT_SEAM, 24); // (its seat's shadow)
+    prism(frontX, r, t, 1.95, 0.3, 24, 0, MAT_FW_BOLT_WASHER, MAT_FW_BOLT_WASHER);
+    prism(frontX + 0.3, r, t, 1.75, 0.32, 24, 0, MAT_FW_BOLT_SIDE, MAT_FW_BOLT_SIDE); // (the flange darker, so that the hex stands out on it)
+    prism(frontX + 0.62, r, t, 1.38, 1.15, 6, t, MAT_FW_BOLT_HEAD, MAT_FW_BOLT_SIDE);
+    prism(frontX + 1.77, r, t, 1.0, 0.14, 24, 0, MAT_FW_BOLT_WASHER, MAT_FW_BOLT_WASHER);
+    disc(frontX + 1.93, r, t, 0.42, MAT_HOLE, 12);
   }
 
   // Degree ticks on the outer chamfer, longer every 30 degrees
@@ -333,6 +337,9 @@ function buildFlywheelVertices(): Float32Array {
 
   /* ---- Web with six lightening windows ---- */
 
+  // (the spokes turned by half a tooth: one of them square under the timing mark, its bolt on the line of the painted arrow
+  // and the painted tooth)
+
   const inSpoke = (i: number) => {
     const j = i % FW_SECTOR_STEPS;
     return j < FW_WINDOW_FROM || j >= FW_WINDOW_TO;
@@ -351,19 +358,19 @@ function buildFlywheelVertices(): Float32Array {
 
   // Front face: hub ring, spokes, rim ring
   revolve({ x0: xf, r0: D.hubRadius + 2.5, x1: xf, r1: rIn - bevel, n: [1, 0], m: MAT_CAST_FACE, occ0: 0.5, occ1: 1 });
-  revolve({ x0: xf, r0: rIn - bevel, x1: xf, r1: rOut + bevel, n: [1, 0], m: MAT_CAST_FACE, mask: inSpoke });
+  revolve({ x0: xf, r0: rIn - bevel, x1: xf, r1: rOut + bevel, n: [1, 0], m: MAT_CAST_FACE, mask: inSpoke, from: SPOKE_T, to: SPOKE_T + TAU });
   revolve({ x0: xf, r0: rOut + bevel, x1: xf, r1: D.rimInner - 2, n: [1, 0], m: MAT_CAST_FACE, occ0: 1, occ1: 0.55 });
 
   // Beveled window edges and window walls
-  revolve({ x0: xf, r0: rIn - bevel, x1: xf - bevel, r1: rIn, n: [0.7, 0.7], m: MAT_EDGE, mask: inWindow });
-  revolve({ x0: xf - bevel, r0: rOut, x1: xf, r1: rOut + bevel, n: [0.7, -0.7], m: MAT_EDGE, mask: inWindow });
-  revolve({ x0: xf - bevel, r0: rOut, x1: xb + bevel, r1: rOut, n: [0, -1], m: MAT_WALL, occ0: 0.8, occ1: 0.3, mask: inWindow });
-  revolve({ x0: xf - bevel, r0: rIn, x1: xb + bevel, r1: rIn, n: [0, 1], m: MAT_WALL, occ0: 0.8, occ1: 0.3, mask: inWindow });
+  revolve({ x0: xf, r0: rIn - bevel, x1: xf - bevel, r1: rIn, n: [0.7, 0.7], m: MAT_EDGE, mask: inWindow, from: SPOKE_T, to: SPOKE_T + TAU });
+  revolve({ x0: xf - bevel, r0: rOut, x1: xf, r1: rOut + bevel, n: [0.7, -0.7], m: MAT_EDGE, mask: inWindow, from: SPOKE_T, to: SPOKE_T + TAU });
+  revolve({ x0: xf - bevel, r0: rOut, x1: xb + bevel, r1: rOut, n: [0, -1], m: MAT_WALL, occ0: 0.8, occ1: 0.3, mask: inWindow, from: SPOKE_T, to: SPOKE_T + TAU });
+  revolve({ x0: xf - bevel, r0: rIn, x1: xb + bevel, r1: rIn, n: [0, 1], m: MAT_WALL, occ0: 0.8, occ1: 0.3, mask: inWindow, from: SPOKE_T, to: SPOKE_T + TAU });
 
   for (let k = 0; k < 6; k++) {
     const sides: Array<[number, number]> = [
-      [((k * FW_SECTOR_STEPS + FW_WINDOW_FROM) / FW_STEPS) * TAU, 1],
-      [((k * FW_SECTOR_STEPS + FW_WINDOW_TO) / FW_STEPS) * TAU, -1],
+      [SPOKE_T + ((k * FW_SECTOR_STEPS + FW_WINDOW_FROM) / FW_STEPS) * TAU, 1],
+      [SPOKE_T + ((k * FW_SECTOR_STEPS + FW_WINDOW_TO) / FW_STEPS) * TAU, -1],
     ];
 
     for (const [t, sign] of sides) {
@@ -379,7 +386,7 @@ function buildFlywheelVertices(): Float32Array {
     }
 
     // One bolt on the middle of each spoke
-    hexBolt(xf, 38.5, (k / 6) * TAU, 2.5, 1.7);
+    hexBolt(xf, 38.5, SPOKE_T + (k / 6) * TAU, 2.5, 1.7);
   }
 
   /* ---- Hub, crank flange and pilot bearing ---- */
@@ -430,11 +437,11 @@ function buildFlywheelVertices(): Float32Array {
   revolve({ x0: xb, r0: D.rimInner - 2, x1: -5, r1: D.rimInner, n: [-0.7, -0.7], m: MAT_CAST, occ0: 0.5, occ1: 0.7 });
 
   revolve({ x0: xb, r0: D.hubRadius + 2.5, x1: xb, r1: rIn - bevel, n: [-1, 0], m: MAT_CAST_FACE, occ0: 0.5, occ1: 1 });
-  revolve({ x0: xb, r0: rIn - bevel, x1: xb, r1: rOut + bevel, n: [-1, 0], m: MAT_CAST_FACE, mask: inSpoke });
+  revolve({ x0: xb, r0: rIn - bevel, x1: xb, r1: rOut + bevel, n: [-1, 0], m: MAT_CAST_FACE, mask: inSpoke, from: SPOKE_T, to: SPOKE_T + TAU });
   revolve({ x0: xb, r0: rOut + bevel, x1: xb, r1: D.rimInner - 2, n: [-1, 0], m: MAT_CAST_FACE, occ0: 1, occ1: 0.55 });
 
-  revolve({ x0: xb, r0: rIn - bevel, x1: xb + bevel, r1: rIn, n: [-0.7, 0.7], m: MAT_EDGE, mask: inWindow });
-  revolve({ x0: xb + bevel, r0: rOut, x1: xb, r1: rOut + bevel, n: [-0.7, -0.7], m: MAT_EDGE, mask: inWindow });
+  revolve({ x0: xb, r0: rIn - bevel, x1: xb + bevel, r1: rIn, n: [-0.7, 0.7], m: MAT_EDGE, mask: inWindow, from: SPOKE_T, to: SPOKE_T + TAU });
+  revolve({ x0: xb + bevel, r0: rOut, x1: xb, r1: rOut + bevel, n: [-0.7, -0.7], m: MAT_EDGE, mask: inWindow, from: SPOKE_T, to: SPOKE_T + TAU });
 
   // Hub: the boss the crank flange seats against
   revolve({ x0: -5.5, r0: D.hubRadius, x1: -10, r1: D.hubRadius, n: [0, 1], m: MAT_HUB, occ0: 1, occ1: 0.7 });

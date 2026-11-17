@@ -21,7 +21,7 @@ import { Dials } from "./Gauges";
    ========================================================= */
 
 // The delivery this page is (raised at each one): shown, faint, in the hints, so that a deployed page can be told from an old one
-const BUILD = 631;
+const BUILD = 684;
 
 const VIEW_LABELS: Record<ViewName, string> = {
   default: "3/4",

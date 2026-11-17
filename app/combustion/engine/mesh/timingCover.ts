@@ -46,6 +46,49 @@ function hull(pts: P2[]): P2[] {
   return [...lo.slice(0, -1), ...hi.slice(0, -1)];
 }
 
+// A convex outline brought in by d, square to each of its edges (each edge's line moved in, the corners where two meet)
+function offsetIn(poly: P2[], d: number): P2[] {
+  const n = poly.length;
+  let area = 0;
+
+  for (let i = 0; i < n; i++) {
+    const a = poly[i];
+    const c = poly[(i + 1) % n];
+
+    area += a[0] * c[1] - c[0] * a[1];
+  }
+
+  const s = area > 0 ? 1 : -1; // (inward is to the left of each edge when the outline runs counter-clockwise)
+  const lines = poly.map((a, i) => {
+    const c = poly[(i + 1) % n];
+    const dy = c[0] - a[0];
+    const dz = c[1] - a[1];
+    const l = Math.hypot(dy, dz) || 1;
+    const ny = (-dz / l) * s;
+    const nz = (dy / l) * s;
+
+    return { p: [a[0] + ny * d, a[1] + nz * d] as P2, v: [dy / l, dz / l] as P2 };
+  });
+  const out: P2[] = [];
+
+  for (let i = 0; i < n; i++) {
+    const L0 = lines[(i - 1 + n) % n];
+    const L1 = lines[i];
+    const den = L0.v[0] * L1.v[1] - L0.v[1] * L1.v[0];
+
+    if (Math.abs(den) < 1e-9) {
+      out.push(L1.p);
+      continue;
+    }
+
+    const t = ((L1.p[0] - L0.p[0]) * L1.v[1] - (L1.p[1] - L0.p[1]) * L1.v[0]) / den;
+
+    out.push([L0.p[0] + L0.v[0] * t, L0.p[1] + L0.v[1] * t]);
+  }
+
+  return out;
+}
+
 // The part of a convex outline on one side of the line y = c (keep: +1 below it, -1 above)
 function clip(poly: P2[], c: number, keep: number): P2[] {
   const out: P2[] = [];
@@ -98,10 +141,14 @@ function piece(b: MeshBuilder, poly: P2[]) {
 
   // cooling fins along its face, in relief, running the length of the cover (along the bank), close together: each a thin
   // blade standing out of the face, cut to the face's outline
-  const fins = poly.map((q) => inset(q, 14));
+  const fins = offsetIn(poly, 11); // (the same margin from every edge, square to it)
   const zs = fins.map((q) => q[1]);
 
-  for (let z = Math.min(...zs) + 4; z < Math.max(...zs) - 3; z += FIN_PITCH) {
+  // (on one grid across both pieces, symmetric about the middle: each fin of the lower piece runs on from one of the upper
+  // piece's, in line with it across the joint, none starting off on its own)
+  const zFirst = Math.ceil((Math.min(...zs) + 4 - FIN_PITCH / 2) / FIN_PITCH) * FIN_PITCH + FIN_PITCH / 2;
+
+  for (let z = zFirst; z < Math.max(...zs) - 3; z += FIN_PITCH) {
     const ys: number[] = [];
 
     for (let k = 0; k < fins.length; k++) {

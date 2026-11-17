@@ -13,7 +13,11 @@ export const MAT_CAST_FACE = fwMat([156, 163, 177], 110, 2);
 export const MAT_CAVITY = fwMat([70, 80, 96], 50, 2);
 export const MAT_WALL = fwMat([112, 123, 140], 80, 2);
 export const MAT_HUB = fwMat([150, 158, 173], 135, 2);
-export const MAT_GEAR_BODY = fwMat([204, 22, 30], 205, 0, 0.95); // the ring gear's body: painted red
+export const MAT_GEAR_BODY = fwMat([214, 138, 38], 210, 1, 0.5); // the ring gear's body: the amber gold of the oil film on the bores (#d68a26), lighter, polished
+// the clutch cover's bolts on the flywheel: dark steel, the heads turned, the washers a shade lighter
+export const MAT_FW_BOLT_HEAD = fwMat([74, 78, 87], 175, 1, 0.4);
+export const MAT_FW_BOLT_SIDE = fwMat([42, 45, 51], 120, 0, 0.3);
+export const MAT_FW_BOLT_WASHER = fwMat([92, 96, 105], 150, 1, 0.35);
 export const MAT_GEAR_ROOT = fwMat([72, 82, 98], 70);
 export const MAT_TOOTH = fwMat([128, 142, 164], 125);
 export const MAT_TOOTH_TIP = fwMat([208, 215, 226], 190);
@@ -109,7 +113,7 @@ export const MAT_VT_PLATE_OUT = fwMat([112, 118, 128], 200, 0, 1.2); // its oute
 export const MAT_VT_SHOE = fwMat([84, 124, 140], 150, 0, 0.5); // plastic guide: lighter, still glossy
 export const MAT_VT_PAD = fwMat([164, 172, 186], 205, 4, 0.9); // steel pressure pad
 
-export const MAT_DECK = fwMat([0, 41, 102], 150, 7, 0.55); // the head's casting: sand-cast, a deep metallic navy blue (#002966)
+export const MAT_DECK = fwMat([38, 98, 186], 165, 15, 0.45); // the head's deck band: a lighter metallic blue (#2662ba), a very fine diamond knurl
 export const MAT_DECK_EDGE = fwMat([176, 184, 198], 175, 0, 0.5); // machined edge
 export const MAT_DECK_RIM = fwMat([120, 128, 144], 150, 1, 0.8);
 
@@ -123,9 +127,21 @@ export const MAT_IRON_HOT = fwMat([98, 66, 54], 95, 2, 0.2); // the turbine hous
 export const MAT_ALU_CAST = fwMat([158, 166, 180], 120, 2, 0.4); // intake and compressor castings
 export const MAT_ALU_TURNED = fwMat([198, 206, 218], 200, 1, 0.5);
 export const MAT_THROTTLE_BODY = fwMat([64, 67, 74], 120, 12, 0.08); // the throttle's body: dark gunmetal, its dimpled sheet (pattern 12), satin rather than chrome
+// the throttle body, a modern drive-by-wire one: its casting bright satin aluminium, the bore machined, the brass butterfly,
+// the actuator's black satin cover, the connector's plastic and its pins
+export const MAT_TB_BODY = fwMat([190, 197, 207], 120, 2, 0.18); // (satin: it does not glare from above)
+export const MAT_TB_RIB = fwMat([92, 98, 108], 130, 1, 0.25); // the ribs along it: darker, in relief
+export const MAT_TB_BODY_DEEP = fwMat([120, 126, 136], 120, 2, 0.3); // its grooves and recesses
+export const MAT_TB_COVER = fwMat([30, 32, 38], 150, 0, 0.25);
+export const MAT_TB_COVER_RIB = fwMat([62, 66, 74], 170, 0, 0.3);
+export const MAT_TB_PLUG = fwMat([46, 49, 56], 80, 0, 0.08);
+export const MAT_TB_LATCH = fwMat([150, 154, 162], 90, 0, 0.1);
+export const MAT_TB_PIN = fwMat([222, 176, 92], 220, 0, 0.35);
+export const MAT_TB_PLATE = fwMat([188, 154, 96], 200, 1, 0.4);
+export const MAT_TB_HOLE = fwMat([10, 11, 14], 20, 0, 0);
 export const MAT_THROTTLE_RING = fwMat([84, 88, 96], 125, 9, 0.06); // the throttle's end rings: a shade lighter gunmetal, fine sandpaper grit
-export const MAT_COOL_PIPE = fwMat([66, 68, 78], 170, 8, 0.25); // the cooled charge's pipes: the timing covers' own dark metal, its carbon twill (pattern 8)
-export const MAT_AIR_DUCT = MAT_COOL_PIPE; // the air ducts (filter to turbo, turbo to intercooler): exactly as the cooled charge's pipes out of the intercooler
+export const MAT_COOL_PIPE = fwMat([102, 106, 118], 115, 8, 0.1); // the cooled charge's pipes: the covers' carbon twill (pattern 8), a lighter shade so that the twill shows from the front; the same shine, no brighter glints
+export const MAT_AIR_DUCT = fwMat([66, 68, 78], 170, 8, 0.25); // the air ducts (filter to turbo, turbo to intercooler): the timing covers' own dark metal and twill, as before
 export const MAT_PIPE_BLACK = fwMat([30, 34, 44], 175, 0, 0.35); // anodised charge piping
 export const MAT_COUPLER = fwMat([142, 148, 158], 205, 1, 0.6); // the couplers on the charge pipes: grey metal sleeves, polished
 export const MAT_STEEL_BRIGHT = fwMat([198, 204, 214], 205, 1, 0.5); // stainless
@@ -153,6 +169,7 @@ export const MAT_HDR_BRONZE = fwMat([152, 112, 66], 185, 1, 0.5);
 export const MAT_HDR_BLUE = fwMat([98, 110, 152], 195, 1, 0.5); // the blue of the hottest part
 export const MAT_HDR_PURPLE = fwMat([122, 98, 164], 195, 1, 0.5); // the purple between the gold and the blue, beside a weld
 export const MAT_WELD = fwMat([196, 182, 146], 215, 1, 0.55); // weld metal: a silvery straw colour
+export const MAT_WELD_MATTE = fwMat([190, 177, 142], 120, 1, 0.15); // the same, duller: less of the light thrown back
 
 export const MAT_IC_TUBE = fwMat([156, 164, 178], 150, 1, 0.5); // the flat tubes: satin aluminium
 export const MAT_IC_FIN = fwMat([236, 240, 247], 190, 0, 0.65); // a fin's folds: bright
@@ -163,6 +180,12 @@ export const MAT_IC_RUBBER = fwMat([22, 24, 30], 70, 0, 0.2); // the mounts' rub
 
 export const MAT_HEAD_CAST = fwMat([22, 38, 58], 90, 7, 0.05); // sand-cast, a deep navy (#16263a): matte-satin, no wet glints
 // the perforated plates on the cover: a mid grey metal, and their rivets a little darker
+// the engine's stand: its plates' and its wall's faces punched all over as the perforated plates on the heads (pattern 18,
+// the holes drawn in the shader), their edges machined bright
+export const MAT_MOUNT_PERF = fwMat([122, 127, 134], 120, 18, 0); // (the heads' perforated plates' own grey and finish)
+export const MAT_MOUNT_RIB = fwMat([74, 78, 87], 205, 1, 0.45); // the two ribs along each plate's top edge: dark metallic grey
+export const MAT_MOUNT_RIB_SIDE = fwMat([50, 53, 60], 160, 0, 0.35);
+export const MAT_MOUNT_EDGE = fwMat([198, 204, 214], 190, 1, 0.4);
 export const MAT_PERF_PLATE = fwMat([122, 127, 134], 120, 0, 0);
 export const MAT_PERF_RIVET_HEAD = fwMat([88, 92, 99], 110, 0, 0);
 export const MAT_PERF_RIVET_SIDE = fwMat([70, 74, 80], 90, 0, 0);
@@ -286,13 +309,25 @@ export const MAT_FIN_GREY_ROOT = fwMat([68, 71, 76], 150, 9, 0.3);
 
 // The exhaust headers' heat shield: embossed aluminium foil wrapped on in patches, its dimples in rows that turn this
 // way and that (pattern 10), the seams between the patches burnt brown
-export const MAT_HEAT_SHIELD = fwMat([170, 171, 174], 175, 10, 0); // (25% darker, a satin sheen)
+export const MAT_HEAT_SHIELD = fwMat([66, 70, 78], 190, 10, 0); // (its colours swapped with the streaks': the foil now the darker steel grey, its dimples as they were)
 export const MAT_MUFFLER_WIRE = fwMat([150, 155, 163], 215, 1, 0.55); // the silencers' woven sleeve: grey metal wire, polished
-export const MAT_SHIELD_STREAK = fwMat([104, 110, 120], 70, 9, 0); // the dashed streaks along the shielded pipes: a darker steel grey, raised, matte, a fine sandpaper grit
+export const MAT_SHIELD_STREAK = fwMat([176, 178, 184], 200, 1, 0.3); // the dashed streaks along the shielded pipes, raised: now the light metallic grey, polished
 // and their flanges: plate stainless, cut and machined, a dull grey
 export const MAT_TURBO_INLET_PLATE = fwMat([104, 106, 110], 75, 9, 0.05); // the pipe's plate on the turbine's inlet: matte grey, a fine grit, not to glare from above
 export const MAT_GUIDE_SAND = fwMat([238, 214, 156], 50, 0, 0.02); // the chain's fixed guide: pale sand nylon, matte
 export const MAT_GUIDE_ARM = fwMat([38, 92, 196], 205, 0, 0.55); // the tensioner arm: metallic blue
+// the coils on the plugs: their heads a satin mid grey (as cast and painted), their bodies darker, the boots black with a
+// red band, a grey collar at the boot's foot
+export const MAT_COIL_HEAD = fwMat([44, 46, 51], 110, 0, 0.08); // (dark grey, semi-gloss: lighter than the loom)
+export const MAT_COIL_HEAD_SIDE = fwMat([34, 36, 40], 100, 0, 0.06);
+export const MAT_COIL_PANEL = fwMat([66, 69, 76], 110, 0, 0.08); // (the raised panel on the head: a shade lighter, to stand out)
+export const MAT_COIL_PANEL_SIDE = fwMat([22, 23, 26], 90, 0, 0.04); // (its edge, dark, as a shadow line round it)
+export const MAT_COIL_BODY = fwMat([58, 61, 67], 120, 0, 0.15);
+export const MAT_COIL_COLLAR = fwMat([128, 132, 140], 120, 0, 0.1);
+export const MAT_COIL_RED = fwMat([212, 30, 24], 90, 0, 0.05);
+export const MAT_COIL_LATCH = fwMat([214, 212, 204], 100, 0, 0.08); // (white, a little soiled, as the latch is)
+export const MAT_CHEV_RED = fwMat([204, 0, 0], 80, 9, 0.05); // (the latch's chevrons: the intake lid's red, embossed, its fine grit)
+export const MAT_COIL_SOCKET = fwMat([14, 15, 18], 20, 0, 0);
 export const MAT_IGN_LEAD = fwMat([178, 26, 22], 150, 8, 0.3); // the ignition leads: red, woven square as the timing covers
 export const MAT_IGN_BOOT = fwMat([30, 30, 33], 60, 0, 0.05); // their boots and the coil's connector: black rubber
 export const MAT_IGN_LOOM = fwMat([46, 48, 54], 150, 8, 0.4); // the leads' loom: a black braided sleeve
@@ -329,3 +364,51 @@ export const MAT_TAIL_COLLAR = fwMat([84, 88, 96], 150, 1, 0.2);
 export const MAT_TAIL_COLLAR_EDGE = fwMat([150, 155, 164], 200, 0, 0.4);
 export const MAT_TAIL_SCREW = fwMat([52, 55, 61], 120, 0, 0.2);
 export const MAT_TAIL_BORE = fwMat([30, 31, 35], 60, 0, 0);
+
+// ---- the accessory drive at the front: the serpentine belt, its pulleys, the water pump and the alternator ----
+export const MAT_BELT_RIB = fwMat([34, 35, 39], 30, 9, 0.12); // the poly-V ribs: black rubber, a little worn to a sheen
+export const MAT_BELT_BACK = fwMat([24, 25, 29], 22, 8, 0.08); // the back: the fabric's fine weave under the rubber
+export const MAT_BELT_EDGE = fwMat([52, 54, 60], 60, 0, 0.15); // its cut edges, the cords showing a little lighter
+export const MAT_BELT_TOOTH = fwMat([164, 171, 182], 190, 0, 0.55); // the teeth's end faces: a metallic grey, so that they stand out
+export const MAT_PULLEY = fwMat([182, 188, 197], 215, 0, 0.7); // pressed steel, bright zinc
+export const MAT_PULLEY_GROOVE = fwMat([128, 134, 144], 150, 0, 0.55); // worn bright in the grooves, darker at their roots
+export const MAT_PULLEY_WEAVE = fwMat([112, 118, 130], 240, 8, 0.65); // (darker and brighter-lit: the weave in strong contrast) // the crank's and the pump's pulley faces: the timing cover's carbon weave, lighter
+export const MAT_PULLEY_FACE = fwMat([160, 166, 176], 150, 0, 0.5); // the faces: pressed steel, zinc-plated
+export const MAT_DAMPER_RUBBER = fwMat([22, 22, 25], 20, 9, 0.1); // the damper's bonded rubber ring
+export const MAT_DAMPER_RING = fwMat([96, 100, 108], 90, 7, 0.3); // its cast-iron inertia ring
+export const MAT_TIMING_MARK = fwMat([238, 238, 230], 60, 0, 0.2); // white paint
+export const MAT_PUMP_CAST = fwMat([158, 163, 170], 70, 7, 0.25); // the pump's sand-cast aluminium
+export const MAT_PUMP_RIB = fwMat([118, 123, 131], 110, 7, 0.25); // the ribs along its barrel: the same cast, a shade darker
+export const MAT_PUMP_RIB_SIDE = fwMat([92, 96, 104], 90, 7, 0.2);
+export const MAT_PUMP_FACE = fwMat([158, 163, 170], 18, 0, 0); // its front face, behind the pulley's windows: the same grey, flat matte
+// the power steering pump: its body cast aluminium, satin, its ribs a shade darker, its front cover machined; the reservoir
+// black plastic, its level marks raised and light, its cap yellow
+export const MAT_PS_BODY = fwMat([108, 113, 121], 110, 7, 0.2); // (the water pump's sand-cast texture, a darker metallic grey)
+export const MAT_PS_RIB = fwMat([82, 86, 94], 170, 7, 0.3); // its ribs: darker still, their tops catching the light
+export const MAT_PS_RIB_SIDE = fwMat([46, 49, 55], 90, 7, 0.1);
+export const MAT_PS_MACH = fwMat([200, 206, 214], 190, 1, 0.45);
+export const MAT_PS_RES = fwMat([30, 32, 36], 90, 0, 0.05);
+export const MAT_PS_MARK = fwMat([150, 154, 160], 80, 0, 0);
+export const MAT_PS_CAP = fwMat([226, 182, 32], 110, 0, 0.05);
+export const MAT_PUMP_MACH = fwMat([196, 201, 208], 190, 0, 0.6); // its machined faces
+export const MAT_ALT_CAST = fwMat([92, 97, 106], 160, 17, 0.45); // the alternator's die-cast housings: dark metallic grey, a fine hexagonal relief
+export const MAT_ALT_SPOKE = fwMat([150, 156, 167], 180, 17, 0.45); // the front housing's spokes: the same cast, a lighter grey
+export const MAT_ALT_STATOR = fwMat([56, 60, 67], 90, 0, 0.3); // its laminated stator, between them
+// the windings, as the starter's: enamelled copper wire, each turn in its own shade; metallic but matte, vivid, a little
+// darker than the firing order's power orange
+export const MAT_ALT_COPPER = fwMat([214, 92, 30], 120, 0, 0.12);
+export const MAT_ALT_ENAMEL = fwMat([190, 72, 22], 105, 0, 0.1);
+export const MAT_ALT_COPPER_DEEP = fwMat([150, 52, 16], 90, 0, 0.08);
+export const MAT_ALT_COPPER_GAP = fwMat([62, 22, 8], 40, 0, 0); // the dark between two turns
+export const MAT_ALT_ROTOR = fwMat([44, 46, 52], 120, 0, 0.4); // the claw-pole rotor, dark, behind them
+export const MAT_ALT_FAN = fwMat([120, 126, 136], 200, 0, 0.6); // its fan: pressed steel, dark zinc
+export const MAT_ALT_FAN_BACK = fwMat([58, 62, 70], 120, 0, 0.4); // the blades' trailing faces, in shadow: the fan's depth
+export const MAT_ALT_FAN_EDGE = fwMat([226, 232, 240], 240, 0, 0.7); // their tips, caught bright
+export const MAT_ALT_PULLEY = fwMat([84, 89, 98], 170, 1, 0.45); // the alternator's pulley: darker, turned, with concentric rings
+export const MAT_ALT_PULLEY_DEEP = fwMat([52, 56, 63], 120, 1, 0.35); // the grooves between its rings
+export const MAT_ALT_NUT_HEAD = fwMat([128, 134, 145], 210, 1, 0.5); // its nut: a little lighter than the pulley, turned
+export const MAT_ALT_NUT_SIDE = fwMat([94, 99, 109], 150, 0, 0.45);
+export const MAT_TERMINAL_RED = fwMat([196, 28, 30], 70, 0, 0.3); // the B+ terminal's boot
+export const MAT_HOSE_BLACK = fwMat([26, 27, 30], 26, 9, 0.12); // coolant hose
+export const MAT_HOSE_CLAMP = fwMat([196, 200, 206], 200, 0, 0.6); // worm-drive clamps
+export const MAT_TENSIONER = fwMat([44, 46, 52], 110, 7, 0.3); // the tensioner's black cast arm and base

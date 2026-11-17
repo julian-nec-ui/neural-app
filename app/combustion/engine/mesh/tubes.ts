@@ -299,6 +299,7 @@ export type FlangeJoint = {
   gasket: FwMaterial;
   bolt?: number; // the bolt's size: the hex's radius across its corners (4.2 by default)
   rot?: number; // where round the first bolt stands
+  flip?: boolean; // the bolts turned over: their heads on the cast side (against dir), the nuts on the mating side
 };
 
 export function flangeJoint(b: MeshBuilder, centre: FwVec3, dir: FwVec3, o: FlangeJoint) {
@@ -319,20 +320,23 @@ export function flangeJoint(b: MeshBuilder, centre: FwVec3, dir: FwVec3, o: Flan
     const a = (o.rot ?? Math.PI / o.bolts) + (k / o.bolts) * TAU;
     const p = vadd(centre, vadd(vscale(e1, Math.cos(a) * o.pitch), vscale(e2, Math.sin(a) * o.pitch)));
 
-    flangeBolt(b, vadd(p, vscale(d, 1 + o.mateT)), d, hx, a);
+    const hd = o.flip ? nd : d; // the way the head faces
+    const tl = o.flip ? d : nd; // and the nut
 
-    // near side: a washer, the hex nut, and the bolt's end with its thread showing
-    const under = vadd(p, vscale(d, -o.castT));
+    flangeBolt(b, o.flip ? vadd(p, vscale(d, -o.castT)) : vadd(p, vscale(d, 1 + o.mateT)), hd, hx, a);
 
-    b.prismDir(under, nd, e1, e2, hx * 1.22, 0.8, 20, 0, MAT_STEEL_BRIGHT, MAT_STEEL_BRIGHT);
-    b.prismDir(vadd(under, vscale(nd, 0.8)), nd, e1, e2, hx, hx * 0.86, 6, a + 0.3, MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE);
+    // the other side: a washer, the hex nut, and the bolt's end with its thread showing
+    const under = o.flip ? vadd(p, vscale(d, 1 + o.mateT)) : vadd(p, vscale(d, -o.castT));
 
-    const tip = vadd(under, vscale(nd, 0.8 + hx * 0.86));
+    b.prismDir(under, tl, e1, e2, hx * 1.22, 0.8, 20, 0, MAT_STEEL_BRIGHT, MAT_STEEL_BRIGHT);
+    b.prismDir(vadd(under, vscale(tl, 0.8)), tl, e1, e2, hx, hx * 0.86, 6, a + 0.3, MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE);
 
-    b.prismDir(tip, nd, e1, e2, hx * 0.5, hx * 0.62, 14, 0, MAT_STEEL_BRIGHT, MAT_STEEL_BRIGHT);
+    const tip = vadd(under, vscale(tl, 0.8 + hx * 0.86));
+
+    b.prismDir(tip, tl, e1, e2, hx * 0.5, hx * 0.62, 14, 0, MAT_STEEL_BRIGHT, MAT_STEEL_BRIGHT);
 
     for (let t = 0; t < 3; t++) {
-      b.prismDir(vadd(tip, vscale(nd, hx * (0.1 + 0.17 * t))), nd, e1, e2, hx * 0.56, hx * 0.06, 14, 0, MAT_CT_NUT_SIDE, MAT_CT_NUT_SIDE);
+      b.prismDir(vadd(tip, vscale(tl, hx * (0.1 + 0.17 * t))), tl, e1, e2, hx * 0.56, hx * 0.06, 14, 0, MAT_CT_NUT_SIDE, MAT_CT_NUT_SIDE);
     }
   }
 }

@@ -227,7 +227,7 @@ export function buildConnectingRod(b: MeshBuilder) {
       b.prismDir(
         [0, L + 11, side * (eyeR + 3.8)],
         [0, 1, 0], [1, 0, 0], [0, 0, 1],
-        6.3, 5.5, 6, 0, MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE
+        6.3, 3.4, 6, 0, MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE // (a low nut: the cap's bolts short)
       );
     }
   }

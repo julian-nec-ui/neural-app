@@ -6,7 +6,7 @@ import { vadd, vcross, vnorm, vscale, vsub } from "../math/vec3";
 import type { FwMaterial, FwVec3 } from "./builder";
 import { MODULES, modulePoint } from "./exhaust";
 import type { TModule } from "./exhaust";
-import { MAT_ALU_TURNED, MAT_COOL_PIPE, MAT_CASE_GREY, MAT_EXH_GUNMETAL, MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE, MAT_FIN_BACK, MAT_IC_FIN, MAT_IC_FIN_DEEP, MAT_IC_PLATE, MAT_IC_RUBBER, MAT_IC_TANK, MAT_IC_TUBE, MAT_PIPE_BLACK, MAT_STEEL_BRIGHT, MAT_WELD, MAT_AIR_DUCT } from "./materials";
+import { MAT_ALU_TURNED, MAT_COOL_PIPE, MAT_CASE_GREY, MAT_EXH_GUNMETAL, MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE, MAT_FIN_BACK, MAT_IC_FIN, MAT_IC_FIN_DEEP, MAT_IC_PLATE, MAT_IC_RUBBER, MAT_IC_TANK, MAT_IC_TUBE, MAT_PIPE_BLACK, MAT_STEEL_BRIGHT, MAT_WELD, MAT_WELD_MATTE, MAT_AIR_DUCT } from "./materials";
 import { PIPES, PLENUM_INLETS, PORT_JOINT, weld } from "./plumbing";
 import { curveAt, curveFromPoints, flangeJoint, roundedCurve, sweepTube } from "./tubes";
 import type { Curve, MeshBuilder } from "./tubes";
@@ -451,7 +451,7 @@ export const IC_PORT_Y = IC_STAND_Y - IC_PORT_UP; // the level of the tanks' hos
 // to where it is; `icTurn` is the turn that goes with it ----
 // the middle of each half, in its bank's frame: its high tank level with the distributor, so that the cooled charge's
 // pipe runs straight back to it
-export const IC_FRONT = { x: -462, y: -244, z: 160 }; // (was x -480, z 235: brought in closer to the block, its pipes shorter)
+export const IC_FRONT = { x: -522, y: -244, z: 160 }; // (was x -462: moved 60 forward, so that the cooled pipe leaves in front of the timing cover, not through it)
 const IC_DROP = 125; // how far the intercoolers are lowered, straight down, from where the bank's frame puts them
 const IC_HALF_MID = (IC_INNER_Z + IC_OUTER_Z) / 2;
 
@@ -607,8 +607,9 @@ export function buildCoolPipeWelds(b: MeshBuilder) {
   CHARGE_PIPES.cool.forEach((c, bi) => {
     const { s0, s1 } = COOL_ELBOW[bi];
 
-    weld(b, c, s0, COOL_R);
-    weld(b, c, s1, COOL_R);
+    // (the elbow's two beads twice as thick, and dull)
+    weld(b, c, s0, COOL_R, undefined, 2, MAT_WELD_MATTE);
+    weld(b, c, s1, COOL_R, undefined, 2, MAT_WELD_MATTE);
     weld(b, c, c.total - 2.2, COOL_R);
     coolElbowDetail(b, c, s0, s1);
   });

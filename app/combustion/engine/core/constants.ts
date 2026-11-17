@@ -173,19 +173,22 @@ export function bankPoint(bank: Bank, x: number, y: number, z: number): FwVec3 {
 
 // Fuel injector, one per cylinder, in the free corridor on the intake side of
 // the head. It stands upright, parallel to the spark plug.
+// (as on a spray-guided direct-injection head: the injector in the middle of the chamber roof, on the bore's axis, the
+// spark plug beside it)
 export const INJ = {
-  x: 40, // axial offset from the cylinder axis
+  x: 0, // axial offset from the cylinder axis
   z: 0, // depth: between the intake and exhaust valve rows
   tilt: 0, // lean angle: 0 = vertical
   scale: 0.75,
   length: 116 * 0.75,
 };
 
-// Spark plug, one per cylinder: on the cylinder's axis, so that the flame that
-// starts from its spark spreads evenly through the bore
+// Spark plug, one per cylinder: right beside the injector, as on a real spray-guided direct-injection head (the injector
+// on the bore's axis, the plug just off it, its electrode at the edge of the spray), along the bank and leaning a little
+// to the exhaust side; its tube clear of the injector and of the valves' heads
 export const PLUG = {
-  x: 0, // axial offset from the cylinder axis
-  z: 0, // depth
+  x: 24, // axial offset from the cylinder axis
+  z: 4, // depth: a little toward the exhaust valves
 };
 
 export const TAU = Math.PI * 2;
