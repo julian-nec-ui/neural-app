@@ -507,7 +507,7 @@ export function createEngineRenderer(
 
       // the signature cut into the plenum's lid, on the solid engine (the plenum is taken away on the see-through one):
       // pulled toward the eye as the heads' lettering is, so that its floor shows on the lid's face
-      if (!SCENE_OPTIONS.seeThrough && phase === "back") {
+      if (!SCENE_OPTIONS.seeThrough && SCENE_OPTIONS.plenum && phase === "back") {
         const lc: FwVec3 = [(PLENUM.xf + PLENUM.xr) / 2, PLENUM.yLid - 60, 0];
         const dist = Math.max(200, Math.hypot(eye[0] - lc[0], eye[1] - lc[1], eye[2] - lc[2]));
 
@@ -519,7 +519,7 @@ export function createEngineRenderer(
 
       // The turbocharger module (one, in the V) and the runners, in the engine's own frame
       for (const m of MODULES) {
-        ghost(HEAD_RANGE.turboIntakePipe, INTAKE_DUCT_OPACITY, m.orientModule, modulePoint(m, [0, 0, 0]), PIPE_RIM, RIM_CHARGE, true);
+        if (SCENE_OPTIONS.airIntake) ghost(HEAD_RANGE.turboIntakePipe, INTAKE_DUCT_OPACITY, m.orientModule, modulePoint(m, [0, 0, 0]), PIPE_RIM, RIM_CHARGE, true);
         // (the exhaust's collector under the turbine: with the headers, solid engine only)
         if (!SCENE_OPTIONS.seeThrough) ghost(HEAD_RANGE.collector, HOT_PIPE_OPACITY, m.orientModule, modulePoint(m, [0, 0, 0]), PIPE_RIM, RIM_CHARGE, true);
         ghost(HEAD_RANGE.turboCasing, CASING_OPACITY, m.orientTurbo, modulePoint(m, TURBO_AT), 0, RIM_STEEL, true);
@@ -541,7 +541,7 @@ export function createEngineRenderer(
       for (const r of [HEAD_RANGE.drySumpShell, HEAD_RANGE.drySumpShellB]) ghost(r, SUMP_OPACITY, 0, [0, 0, 0], PIPE_RIM, RIM_CHARGE, true);
       // the cooled charge's, more metal than glass
       // (on the see-through engine they are taken away, with the Y they come into, to see the heads behind them)
-      if (!SCENE_OPTIONS.seeThrough) for (const r of [HEAD_RANGE.coolPipes, HEAD_RANGE.coolPipesB]) ghost(r, COOL_PIPE_OPACITY, 0, [0, 0, 0], PIPE_RIM, RIM_CHARGE, true);
+      if (!SCENE_OPTIONS.seeThrough && SCENE_OPTIONS.plenum) for (const r of [HEAD_RANGE.coolPipes, HEAD_RANGE.coolPipesB]) ghost(r, COOL_PIPE_OPACITY, 0, [0, 0, 0], PIPE_RIM, RIM_CHARGE, true);
 
       queue.sort((a, b) => b.d - a.d);
 

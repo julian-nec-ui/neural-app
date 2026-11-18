@@ -10,6 +10,7 @@ import type { EngineRenderer } from "../render/renderer";
 import { StartContext, useEngineClock } from "../sim/clock";
 import type { EngineFrame } from "../sim/clock";
 import Joystick from "./Joystick";
+import { SCENE_OPTIONS } from "../core/options";
 
 /* =========================================================
    THE VIEW: the canvas, and the
@@ -192,6 +193,159 @@ function DashStartButton() {
           ))}
         </svg>
       </button>
+    </div>
+  );
+}
+
+// The View panel, at the left under the joystick: closed, only its tab shows, an arrow pointing right; pressed, a panel
+// slides out to its right, down to the stage's foot, with switches to take parts away so the engine shows better, and the
+// arrow turns to point left, to close it
+const VIEW_TOP = 10 + DASH_D + 14 + JOY_D0 + 20; // 20 under the joystick
+const VIEW_CSS = `
+.ak-vp { position: absolute; left: 12px; top: ${VIEW_TOP}px; bottom: 8px; display: flex; align-items: flex-start; gap: 6px; pointer-events: none; z-index: 2; }
+.ak-vp > * { pointer-events: auto; }
+.ak-vp-tab { width: 26px; height: 46px; border-radius: 7px; border: 1px solid #3a3e46; background: linear-gradient(180deg, #23262b, #121316);
+  color: #d8dce3; display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.07); }
+.ak-vp-tab:hover { color: #fff; border-color: #50555f; }
+.ak-vp-tab svg { transition: transform .25s ease; }
+.ak-vp-panel { align-self: stretch; width: 250px; max-width: calc(100vw - 80px); overflow: visible; border-radius: 8px; border: 1px solid #2e3238;
+  background: rgba(14, 15, 18, 0.9); box-shadow: 0 6px 18px rgba(0,0,0,0.6); padding: 12px 12px; color: #d8dce3;
+  font: 12px/1.35 system-ui, -apple-system, "Segoe UI", sans-serif; transform-origin: left center; transition: opacity .2s ease, transform .2s ease; }
+.ak-vp-panel[data-open="false"] { opacity: 0; transform: translateX(-8px); pointer-events: none; }
+.ak-vp-title { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: #8b919b; margin: 0 0 10px; }
+.ak-vp-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 0; border-top: 1px solid #23262c; }
+.ak-vp-label { position: relative; cursor: help; }
+.ak-vp-tip { position: absolute; left: 0; top: calc(100% + 6px); width: 190px; z-index: 3; padding: 6px 8px; border-radius: 6px;
+  background: #1c1f24; border: 1px solid #3a3e46; box-shadow: 0 4px 12px rgba(0,0,0,0.6); color: #c3c8d0; font-size: 11px; line-height: 1.4;
+  opacity: 0; visibility: hidden; transition: opacity .15s; pointer-events: none; }
+.ak-vp-label:hover .ak-vp-tip { opacity: 1; visibility: visible; }
+.ak-vp-switch { flex: none; position: relative; width: 34px; height: 19px; border-radius: 10px; background: #3a3e46; transition: background .2s; border: 0; padding: 0; cursor: pointer; }
+.ak-vp-switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 15px; height: 15px; border-radius: 50%; background: #f2f4f7; transition: transform .2s; }
+.ak-vp-switch { box-shadow: inset 0 1px 2px rgba(0,0,0,0.45); transition: background .25s, box-shadow .25s; }
+.ak-vp-switch::after { box-shadow: 0 1px 3px rgba(0,0,0,0.5); }
+.ak-vp-switch[data-on="true"] { background: #2d8543; }
+.ak-vp-switch:hover { box-shadow: inset 0 1px 2px rgba(0,0,0,0.45), 0 0 0 3px rgba(190, 198, 210, 0.12), 0 0 14px 2px rgba(190, 198, 210, 0.22); }
+.ak-vp-switch[data-on="true"]:hover { background: #359c4f; box-shadow: inset 0 1px 2px rgba(0,0,0,0.3), 0 0 0 3px rgba(45, 133, 67, 0.32), 0 0 18px 4px rgba(53, 170, 85, 0.6); }
+.ak-vp-switch:hover::after { box-shadow: 0 0 8px 1px rgba(255,255,255,0.55), 0 1px 3px rgba(0,0,0,0.5); }
+.ak-vp-switch:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(53, 170, 85, 0.75); }
+.ak-vp-switch[data-on="true"]::after { transform: translateX(15px); }
+@media (max-width: 600px), (max-height: 500px) and (orientation: landscape) {
+  .ak-vp { top: ${Math.round(VIEW_TOP / 2)}px; left: 6px; }
+  .ak-vp-tab { width: 20px; height: 36px; }
+  .ak-vp-panel { width: 215px; padding: 10px; }
+}`;
+
+function ViewPanel({ onChange }: { onChange: () => void }) {
+  const ref = useRef<HTMLDivElement | null>(null);
+  const [open, setOpen] = useState(false);
+  const [accessories, setAccessories] = useState(() => SCENE_OPTIONS.accessories);
+  const [intercoolers, setIntercoolers] = useState(() => SCENE_OPTIONS.intercoolers);
+  const [airIntake, setAirIntake] = useState(() => SCENE_OPTIONS.airIntake);
+  const [plenum, setPlenum] = useState(() => SCENE_OPTIONS.plenum);
+
+  useEffect(() => {
+    const el = ref.current;
+
+    if (!el) return;
+
+    const stop = (e: Event) => e.stopPropagation(); // (a press here must not turn the view)
+
+    el.addEventListener("pointerdown", stop);
+    el.addEventListener("dblclick", stop);
+    el.addEventListener("wheel", stop);
+
+    return () => {
+      el.removeEventListener("pointerdown", stop);
+      el.removeEventListener("dblclick", stop);
+      el.removeEventListener("wheel", stop);
+    };
+  }, []);
+
+  // open, a press anywhere outside it closes it (caught on the way down, before anything else can stop it)
+  useEffect(() => {
+    if (!open) return;
+
+    const outside = (e: Event) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+
+    document.addEventListener("pointerdown", outside, true);
+
+    return () => document.removeEventListener("pointerdown", outside, true);
+  }, [open]);
+
+  const toggleAccessories = () => {
+    const next = !accessories;
+
+    SCENE_OPTIONS.accessories = next;
+    setAccessories(next);
+    onChange();
+  };
+
+  const toggleIntercoolers = () => {
+    const next = !intercoolers;
+
+    SCENE_OPTIONS.intercoolers = next;
+    setIntercoolers(next);
+    onChange();
+  };
+
+  const toggleAirIntake = () => {
+    const next = !airIntake;
+
+    SCENE_OPTIONS.airIntake = next;
+    setAirIntake(next);
+    onChange();
+  };
+
+  const togglePlenum = () => {
+    const next = !plenum;
+
+    SCENE_OPTIONS.plenum = next;
+    setPlenum(next);
+    onChange();
+  };
+
+  return (
+    <div ref={ref} className="ak-vp">
+      <style>{VIEW_CSS}</style>
+      <button type="button" className="ak-vp-tab" aria-label={open ? "Close the view panel" : "Open the view panel"} aria-expanded={open} onClick={() => setOpen(!open)}>
+        <svg width="12" height="16" viewBox="0 0 12 16" aria-hidden="true" style={{ transform: open ? "rotate(180deg)" : "none" }}>
+          <path d="M3 2 L9 8 L3 14" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+      <div className="ak-vp-panel" data-open={open} aria-hidden={!open}>
+        <p className="ak-vp-title">View</p>
+        <div className="ak-vp-row">
+          <span className="ak-vp-label">
+            Belt, pulleys…
+            <span className="ak-vp-tip" role="tooltip">Hides the belt, the pulleys, the alternator, the water pump, the power steering pump and the tensioner</span>
+          </span>
+          <button type="button" className="ak-vp-switch" role="switch" aria-checked={accessories} aria-label="Belt, pulleys and accessories" tabIndex={open ? 0 : -1} data-on={accessories} onClick={toggleAccessories} />
+        </div>
+        <div className="ak-vp-row">
+          <span className="ak-vp-label">
+            Intercoolers
+            <span className="ak-vp-tip" role="tooltip">Hides the two intercoolers: their cores, their fans, their tanks and the pipes' flanges on them</span>
+          </span>
+          <button type="button" className="ak-vp-switch" role="switch" aria-checked={intercoolers} aria-label="Intercoolers" tabIndex={open ? 0 : -1} data-on={intercoolers} onClick={toggleIntercoolers} />
+        </div>
+        <div className="ak-vp-row">
+          <span className="ak-vp-label">
+            Air filters
+            <span className="ak-vp-tip" role="tooltip">Hides the two air filters and their pipes into the turbocharger</span>
+          </span>
+          <button type="button" className="ak-vp-switch" role="switch" aria-checked={airIntake} aria-label="Air filters" tabIndex={open ? 0 : -1} data-on={airIntake} onClick={toggleAirIntake} />
+        </div>
+        <div className="ak-vp-row">
+          <span className="ak-vp-label">
+            Intake plenum
+            <span className="ak-vp-tip" role="tooltip">Hides the red intake plenum on top of the V, its throttle and the two cooled-air pipes that feed it (on the opaque engine; the transparent one leaves it out already)</span>
+          </span>
+          <button type="button" className="ak-vp-switch" role="switch" aria-checked={plenum} aria-label="Intake plenum" tabIndex={open ? 0 : -1} data-on={plenum} onClick={togglePlenum} />
+        </div>
+      </div>
     </div>
   );
 }
@@ -457,6 +611,8 @@ export function EngineStage() {
         />
       </div>
 
+
+      <ViewPanel onChange={() => camera.notify()} />
 
       <Loader hidden={loaded} />
 

@@ -1,9 +1,9 @@
 // The intake plenum and runners, the exhaust collector, the air intake and filter.
 
-import { BANKS, CT_X, HEAD_PORT_DZ, TAU } from "../core/constants";
+import { BANKS, CT_X, HEAD_PORT_DZ, TAU, bankPoint } from "../core/constants";
 import { vadd, vcross, vnorm, vscale, vsub } from "../math/vec3";
 import type { FwMaterial, FwVec3 } from "./builder";
-import { MAT_ALU_CAST, MAT_ALU_TURNED, MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE, MAT_EXH_GUNMETAL, MAT_HDR_BLUE, MAT_TURBO_INLET_PLATE, MAT_HDR_GOLD, MAT_HDR_PURPLE, MAT_IRON, MAT_MANIFOLD_GREY, MAT_MANIFOLD_GREY_DEEP, MAT_BOLT_MATTE_HEAD, MAT_BOLT_MATTE_SIDE, MAT_INTAKE_FLANGE, MAT_INTAKE_FLANGE_EDGE, MAT_PIPE_BLACK, MAT_RAIL_FACE, MAT_STEEL_BRIGHT, MAT_TURBO_GRAIN, MAT_WELD, MAT_FLANGE_BLACK, MAT_AIR_DUCT } from "./materials";
+import { MAT_ALU_CAST, MAT_ALU_TURNED, MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE, MAT_EXH_GUNMETAL, MAT_HDR_BLUE, MAT_TURBO_INLET_PLATE, MAT_HDR_GOLD, MAT_HDR_PURPLE, MAT_IRON, MAT_MANIFOLD_GREY, MAT_MANIFOLD_GREY_DEEP, MAT_BOLT_MATTE_HEAD, MAT_BOLT_MATTE_SIDE, MAT_INTAKE_FLANGE, MAT_INTAKE_FLANGE_EDGE, MAT_PIPE_BLACK, MAT_RAIL_FACE, MAT_STEEL_BRIGHT, MAT_TURBO_GRAIN, MAT_WELD, MAT_FLANGE_BLACK, MAT_AIR_DUCT, MAT_INJ_ORING, MAT_INJ_PLUG, MAT_INJ_LATCH, MAT_INJ_MOUNT, MAT_CT_GROOVE } from "./materials";
 import { collar, curveAt, curveFromPoints, flangeJoint, ovalFlare, roundedCurve, subCurve, sweepTube } from "./tubes";
 import type { Curve, MeshBuilder } from "./tubes";
 import { COLLECTOR_CONE, COLLECTOR_LEN, COMPRESSOR_OUTLET_LEN, HDR_CX, HDR_CZ, HDR_MOUTH_Y, PLENUM_Y, PLENUM_Z, PORT_Y, TB, collectorRadius, compressorCentre, turboWorld, TURBO_SCALE } from "./turbo";
@@ -50,10 +50,10 @@ export const INLET_FACING: FwVec3 = [0, -1, 0];
 export const PLENUM = {
   xf: CT_X[0] - 84, // its front
   xr: CT_X[CT_X.length - 1] + 140, // its back, a little past the heads' ends, covering them
-  wF: 142, // its half width, at the flange: broad at the front
-  wB: 108, // and narrower at the back
-  hF: 134, // the lid's height at the front: tall and round
-  hB: 86, // and at the back
+  wF: 156, // its half width, at the flange: broad at the front (out under the fuel rails)
+  wB: 146, // and only a little narrower at the back
+  hF: 160, // the lid's height at the front: tall and round (bigger, more robust)
+  hB: 98, // and at the back
   yLid: -443, // the flange's top, where the lid sits: low, the flange lying just over the heads' covers
   yFlange: -430, // the flange's underside
   yb: -375, // its body's flat bottom, deep in the V, just over the runners' base rails
@@ -71,7 +71,7 @@ const tAlong = (x: number) => Math.min(1, Math.max(0, (x - PLENUM.xf) / (PLENUM.
 // broadly at the back, a little at the front
 export function plenumW(x: number): number {
   const { xf, xr, wF, wB } = PLENUM;
-  const base = (xx: number) => wF + (wB - wF) * Math.pow(tAlong(xx), 1.15);
+  const base = (xx: number) => wF + (wB - wF) * Math.pow(tAlong(xx), 1.6); // (narrowing slowly at first)
   const rb = 58;
   const rf = 16;
 
@@ -91,12 +91,12 @@ export function lidHeight(x: number, z: number): number {
 
   const t = tAlong(x);
   const H = hF + (hB - hF) * Math.pow(t, 1.1);
-  const zl = 0.44 * W;
-  const wl = 0.75 * W;
+  const zl = 0.46 * W;
+  const wl = 0.72 * W; // (the lobes rounder, and the valley between them deeper)
   const e = (c: number) => Math.sqrt(Math.max(0, 1 - ((z - c) / wl) ** 2));
   const a = e(zl);
   const b = e(-zl);
-  const lob = (a + b + Math.sqrt((a - b) ** 2 + 0.15 * 0.15)) / 2; // the two lobes, the valley between them soft
+  const lob = (a + b + Math.sqrt((a - b) ** 2 + 0.07 * 0.07)) / 2; // the two lobes, the valley between them soft
   const d = Math.min(W - Math.abs(z), (xr - 4 - x) * 1.1, (x - xf) * 2.2);
   const R = 50 - 18 * t;
   const fall = d <= 0 ? 0 : Math.sqrt(Math.max(0, 1 - (1 - Math.min(d, R) / R) ** 2));
@@ -120,7 +120,7 @@ export function headY(z: number): number {
 }
 
 // The valley wall's z at height y
-const wallZ = (y: number) => 54 + ((115 - 54) * (y + 304)) / (-402 + 304);
+export const wallZ = (y: number) => 54 + ((115 - 54) * (y + 304)) / (-402 + 304);
 
 // The body's section at x, one side (+z), from the flange down: [z, y]: down from the flange to the head's cover, along
 // the cover and down the valley wall, let into them a little so that no gap shows anywhere, to its flat bottom over
@@ -135,10 +135,10 @@ export function bodySection(x: number): Array<[number, number]> {
   for (let k = 0; k <= 8; k++) {
     const z = W + ((115 - W) * k) / 8;
 
-    pts.push([z - (k ? SINK : 0), headY(z) + SINK]);
+    pts.push([z + (k ? SINK : 0), headY(z) + SINK]); // (let into the cover and the wall, not stood off them)
   }
 
-  const zb = wallZ(PLENUM.yb) - SINK;
+  const zb = wallZ(PLENUM.yb) + SINK;
 
   pts.push([zb, PLENUM.yb]);
 
@@ -203,13 +203,20 @@ export const PIPES = (() => {
     const { E, dir } = railFace();
     const at = (d: number): FwVec3 => [x, E[0] + dir[0] * d, E[1] + dir[1] * d];
 
+    // out of the plenum's flat bottom, leaning out, then one open bend (120 degrees between its legs, not a right angle)
+    // down on to the rail's tilted axis, and square into the rail's face: out clear of the injectors and their rail
+    const C = at(30); // the bend, just under the plenum's bottom
+    const cw = bankPoint(BANKS[1], 0, C[1], C[2]); // (in the engine's frame, on B's side)
+    const t = (-140 - 60 + 360) * (Math.PI / 180); // the axis's own heading (up and in), turned 60 degrees out
+    const up: [number, number] = [Math.cos(t), Math.sin(t)]; // (y, z): up, and out
+    const S = W(cw[1] + up[0] * 50, cw[2] + up[1] * 50); // in the plenum's body
+
     return roundedCurve([
-      W(-412, 64), // in the plenum's body, deep in the V
-      at(54), // short, down out of it, on the rail's tilted axis
-      at(24),
+      S,
+      C,
       at(0), // square into the rail's tilted face
       [x, PORT_Y, IN_SIDE * (98 + HEAD_PORT_DZ)], // and on into the port
-    ], 26, 3);
+    ], 24, 3);
   });
 
 
@@ -339,21 +346,88 @@ export function buildIntakeWelds(b: MeshBuilder) {
 
   for (let i = 0; i < CT_X.length; i++) {
     const r = PIPES.runner(i);
-    const s = r.total - 52;
+    const s = r.total - 20; // (on the runner's last leg, into the port: clear of its rise to the plenum)
     const p: FwVec3 = [0, 0, 0];
+    const rd: FwVec3 = [0, 0, 0];
 
-    curveAt(r, s, p);
+    curveAt(r, s, p, rd);
 
-    const axis = vnorm([0, -0.86, -IN_SIDE * 0.5]); // up, leaning toward the port
+    let axis = vnorm([0, -rd[2], rd[1]]); // square out of the runner, up
+
+    if (axis[1] > 0) axis = vscale(axis, -1);
     const e1: FwVec3 = [1, 0, 0];
     const e2 = vnorm([0, axis[2], -axis[1]]);
     const rr = runnerRadius(s / r.total);
     const base = vadd(p, vscale(axis, rr - 6));
 
     b.prismDir(base, axis, e1, e2, 9, 20, 24, 0, MAT_MANIFOLD_GREY, MAT_MANIFOLD_GREY); // the boss, cast with the runner
-    b.prismDir(vadd(base, vscale(axis, 20)), axis, e1, e2, 6.2, 9, 20, 0, MAT_PIPE_BLACK, MAT_PIPE_BLACK); // the injector
-    b.prismDir(vadd(base, vscale(axis, 23)), axis, e1, e2, 7, 2.2, 20, 0, MAT_STEEL_BRIGHT, MAT_STEEL_BRIGHT); // its clip
-    tops.push(vadd(base, vscale(axis, 32)));
+    // the weld round the boss's foot, where it is let into the runner: a raised gold bead of ripples, its heat colours beside it
+    weld(b, curveFromPoints([base, vadd(base, vscale(axis, 20))], 2), 4.4, 9, undefined, 1.25);
+
+    // the injector, out of its boss and curving over in toward the V like a beak: a steel collar and an O-ring at the boss,
+    // its black body bent over, a bright clip, and at its head the square electrical connector with its latch
+    const inward: FwVec3 = [0, 0, -IN_SIDE]; // (curving over in, toward the head: clear of the runner's rise)
+    const p0 = vadd(base, vscale(axis, 34)); // (over its threaded neck, its nut and its two O-rings)
+    const p3 = vadd(vadd(p0, vscale(axis, 13)), vscale(inward, 9));
+    const p1 = vadd(p0, vscale(axis, 6));
+    const p2 = vadd(vadd(p0, vscale(axis, 12)), vscale(inward, 3));
+    const beak = curveFromPoints([0, 0.2, 0.4, 0.6, 0.8, 1].map((u) => {
+      const a = (1 - u) ** 3;
+      const bb = 3 * u * (1 - u) ** 2;
+      const c = 3 * u * u * (1 - u);
+      const d = u ** 3;
+
+      return [0, 1, 2].map((k) => a * p0[k] + bb * p1[k] + c * p2[k] + d * p3[k]) as FwVec3;
+    }), 4);
+
+    // screwed into its boss: a hex nut down on the boss, the threaded neck above it, then the steel collar and the O-ring
+    b.prismDir(vadd(base, vscale(axis, 20)), axis, e1, e2, 8.6, 4.4, 6, 0.3, MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE); // the hex nut
+    b.prismDir(vadd(base, vscale(axis, 20)), axis, e1, e2, 9.4, 0.8, 24, 0, MAT_INJ_MOUNT, MAT_INJ_MOUNT); // its washer
+    for (let k = 0; k < 6; k++) {
+      b.prismDir(vadd(base, vscale(axis, 24.4 + k * 0.9)), axis, e1, e2, k % 2 ? 4.6 : 5.2, 0.9, 20, 0, k % 2 ? MAT_CT_GROOVE : MAT_STEEL_BRIGHT, k % 2 ? MAT_CT_GROOVE : MAT_STEEL_BRIGHT); // the thread
+    }
+    b.prismDir(vadd(base, vscale(axis, 29.8)), axis, e1, e2, 7.4, 1.6, 24, 0, MAT_INJ_MOUNT, MAT_INJ_MOUNT); // its collar
+    b.prismDir(vadd(base, vscale(axis, 31.2)), axis, e1, e2, 5.6, 1.3, 24, 0, MAT_INJ_ORING, MAT_INJ_ORING); // the O-rings, two
+    b.prismDir(vadd(base, vscale(axis, 32.5)), axis, e1, e2, 4.9, 0.3, 24, 0, MAT_PIPE_BLACK, MAT_PIPE_BLACK);
+    b.prismDir(vadd(base, vscale(axis, 32.8)), axis, e1, e2, 5.6, 1.3, 24, 0, MAT_INJ_ORING, MAT_INJ_ORING);
+    // and its hold-down: a small steel clamp over the nut's top, bolted down into a lug on the boss beside it
+    {
+      const lug = vadd(base, vscale(e1, 13));
+
+      b.prismDir(lug, axis, e1, e2, 4.6, 22, 16, 0, MAT_MANIFOLD_GREY, MAT_MANIFOLD_GREY); // the lug, cast with the boss
+      const top = vadd(base, vscale(axis, 24.6));
+      const lt = vadd(lug, vscale(axis, 24.6));
+
+      b.prismDir(vadd(top, vscale(e1, 6.5)), axis, e1, e2, 6.5, 1.6, 4, Math.PI / 4, MAT_INJ_MOUNT, MAT_INJ_MOUNT); // the clamp's plate
+      b.prismDir(lt, axis, e1, e2, 3.6, 3.2, 6, 0.4, MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE); // its bolt
+    }
+    sweepTube(b, beak, (u) => 4.6 + 0.9 * u, MAT_PIPE_BLACK, { segments: 20, capStart: true });
+
+    const tip: FwVec3 = [0, 0, 0];
+    const tg: FwVec3 = [0, 0, 0];
+
+    curveAt(beak, beak.total, tip, tg);
+
+    const t2 = vnorm([0, tg[2], -tg[1]]);
+
+    // at its head, its top O-ring and the bright clip that holds it in the rail's cup
+    b.prismDir(vadd(tip, vscale(tg, -3)), tg, e1, t2, 6.2, 1.6, 20, 0, MAT_STEEL_BRIGHT, MAT_STEEL_BRIGHT); // the clip
+    b.prismDir(tip, tg, e1, t2, 4.4, 2.4, 20, 0, MAT_INJ_ORING, MAT_INJ_ORING); // the top O-ring
+    // and on its side, at the middle of the bend, the electrical connector, square, its latch on top, out along the bank
+    {
+      const mid: FwVec3 = [0, 0, 0];
+      const mt: FwVec3 = [0, 0, 0];
+
+      curveAt(beak, beak.total * 0.45, mid, mt);
+
+      const across: FwVec3 = [1, 0, 0];
+      const m2 = vnorm([0, mt[2], -mt[1]]);
+
+      b.prismDir(vadd(mid, vscale(across, 3.5)), across, mt, m2, 4.6, 8, 4, Math.PI / 4, MAT_INJ_PLUG, MAT_INJ_PLUG); // its body
+      b.prismDir(vadd(mid, vscale(across, 11.5)), across, mt, m2, 3.6, 0.5, 4, Math.PI / 4, MAT_PIPE_BLACK, MAT_PIPE_BLACK); // its socket
+      b.prismDir(vadd(vadd(mid, vscale(across, 7.5)), vscale(mt, 3.4)), mt, across, m2, 1.4, 1.2, 4, Math.PI / 4, MAT_INJ_LATCH, MAT_INJ_LATCH); // its latch
+    }
+    tops.push(vadd(tip, vscale(tg, 9)));
   }
 
   // the rail: a black square bar along the six, a bolt down through it beside every second injector, and a fitting at
@@ -661,6 +735,11 @@ export function buildTurboFittings(b: MeshBuilder) {
     flangeJoint(b, vadd(p1, vscale(dir, PORT_JOINT.castT)), dir, PORT_JOINT);
   }
 
+}
+
+// The air intake's fittings (with its pipe, the View panel can take them away): the pipe's flange on the compressor's
+// inlet, its collars and the filter on its open end
+export function buildAirIntakeFittings(b: MeshBuilder) {
   const intake = PIPES.intake;
 
   // the intake's flange, cast as one with its pipe, black, set flush on the compressor's inlet flange (as wide as it): no

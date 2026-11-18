@@ -1,7 +1,7 @@
 // The chain's guides: the fixed guide, the tensioner arm and its hydraulic tensioner.
 
 import type { FwVec3, createMeshBuilder } from "../builder";
-import { MAT_CT_EDGE, MAT_CT_GROOVE, MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE, MAT_GUIDE_ARM, MAT_GUIDE_SAND, MAT_VT_JOURNAL, MAT_VT_PAD, MAT_VT_SEAT, MAT_VT_CAM_FACE, MAT_VT_TOWER_FACE } from "../materials";
+import { MAT_CT_EDGE, MAT_CT_GROOVE, MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE, MAT_GUIDE_ARM, MAT_GUIDE_ARM_NET, MAT_GUIDE_SAND, MAT_GUIDE_SAND_NET, MAT_VT_JOURNAL, MAT_VT_PAD, MAT_VT_SEAT, MAT_VT_CAM_FACE, MAT_VT_TOWER_FACE } from "../materials";
 import { VT } from "../valvetrain";
 import { CHAIN_K } from "./chainPath";
 import type { Chain, ChainSeg } from "./chainPath";
@@ -76,8 +76,9 @@ export function buildChainGuide(
   const seg = runs[run];
   const K = CHAIN_K;
   const mat = kind === "fixed" ? MAT_GUIDE_SAND : MAT_GUIDE_ARM;
-  const u0 = 0.09;
-  const u1 = 0.91;
+  const net = kind === "fixed" ? MAT_GUIDE_SAND_NET : MAT_GUIDE_ARM_NET; // its edges: a woven net in relief
+  const u0 = 0.131; // (10% shorter than it was, a little off each end)
+  const u1 = 0.869;
   const N = 40;
   const samples = sampleRun(seg, u0, u1, N);
   const gap = 6.5 * K; // the chain's edge, from its centre line (its plates 1.6 times as tall)
@@ -115,7 +116,7 @@ export function buildChainGuide(
       quad(P(i, gap, x + sg * hx), P(i + 1, gap, x + sg * hx), P(i + 1, d1, x + sg * hx), P(i, d0, x + sg * hx), [sg, 0, 0], 0.42, 0.42);
     }
 
-    quad(P(i, d0, x - hx - LIP * 0), P(i, d0, x + hx), P(i + 1, d1, x + hx), P(i + 1, d1, x - hx), [0, s.ny, s.nz], 0.95, 0.95); // back
+    quad(P(i, d0, x - hx - LIP * 0), P(i, d0, x + hx), P(i + 1, d1, x + hx), P(i + 1, d1, x - hx), [0, s.ny, s.nz], 0.95, 0.95, net); // back
     quad(P(i, gap, x - hx), P(i + 1, gap, x - hx), P(i + 1, gap, x + hx), P(i, gap, x + hx), [0, -s.ny, -s.nz], 0.7, 0.7); // channel floor
 
     // the lips either side of the channel, standing toward the chain
@@ -125,7 +126,7 @@ export function buildChainGuide(
 
       quad(P(i, gap, xi), P(i + 1, gap, xi), P(i + 1, gap - LIP, xi), P(i, gap - LIP, xi), [-sg, 0, 0], 0.75, 0.75);
       quad(P(i, gap - LIP, xi), P(i + 1, gap - LIP, xi), P(i + 1, gap - LIP, xo), P(i, gap - LIP, xo), [0, -s.ny, -s.nz], 1, 1);
-      quad(P(i, gap - LIP, xo), P(i + 1, gap - LIP, xo), P(i + 1, gap, xo), P(i, gap, xo), [sg, 0, 0], 0.9, 0.9);
+      quad(P(i, gap - LIP, xo), P(i + 1, gap - LIP, xo), P(i + 1, gap, xo), P(i, gap, xo), [sg, 0, 0], 0.9, 0.9, net);
     }
   }
 
@@ -135,12 +136,12 @@ export function buildChainGuide(
     const sg = i === 0 ? -1 : 1;
     const t: FwVec3 = [0, -s.nz * sg, s.ny * sg];
 
-    quad(P(i, gap - LIP, x - hx), P(i, gap - LIP, x + hx), P(i, gap + depth(i), x + hx), P(i, gap + depth(i), x - hx), t, 0.85, 0.85);
+    quad(P(i, gap - LIP, x - hx), P(i, gap - LIP, x + hx), P(i, gap + depth(i), x + hx), P(i, gap + depth(i), x - hx), t, 0.85, 0.85, net);
   }
 
   // the truss on both faces: a rim along the chain edge and along the back, ribs across at the ends, and diagonal ribs between
   // a raised bar from (i0, off0) to (i1, off1), `w` wide, on the face sg
-  const bar = (i0: number, off0: number, i1: number, off1: number, w: number, sg: number) => {
+  const bar = (i0: number, off0: number, i1: number, off1: number, w: number, sg: number, mt = mat) => {
     const a = P(i0, off0, 0);
     const c = P(i1, off1, 0);
     const dy = c[1] - a[1];
@@ -156,9 +157,9 @@ export function buildChainGuide(
     const c3: FwVec3 = [xr, a[1] + ny, a[2] + nz];
     const lo = (q: FwVec3): FwVec3 => [xs, q[1], q[2]];
 
-    quad(c0, c1, c2, c3, [sg, 0, 0], 1.12, 1.12); // its top
-    quad(lo(c0), lo(c1), c1, c0, [0, -ny, -nz], 0.8, 0.8); // its sides
-    quad(c3, c2, lo(c2), lo(c3), [0, ny, nz], 0.8, 0.8);
+    quad(c0, c1, c2, c3, [sg, 0, 0], 1.12, 1.12, mt); // its top
+    quad(lo(c0), lo(c1), c1, c0, [0, -ny, -nz], 0.8, 0.8, mt); // its sides
+    quad(c3, c2, lo(c2), lo(c3), [0, ny, nz], 0.8, 0.8, mt);
     quad(lo(c0), c0, c3, lo(c3), [0, -dy, -dz], 0.8, 0.8); // its ends
     quad(c1, lo(c1), lo(c2), c2, [0, dy, dz], 0.8, 0.8);
   };
@@ -168,14 +169,83 @@ export function buildChainGuide(
 
   for (const sg of [-1, 1]) {
     for (let i = 0; i < N; i++) {
-      bar(i, gap + 1.4, i + 1, gap + 1.4, 2.8, sg);
-      bar(i, gap + depth(i) - 1.4, i + 1, gap + depth(i + 1) - 1.4, 2.8, sg);
+      bar(i, gap + 1.4, i + 1, gap + 1.4, 2.8, sg, net); // (the rims round the edges: the net)
+      bar(i, gap + depth(i) - 1.4, i + 1, gap + depth(i + 1) - 1.4, 2.8, sg, net);
     }
 
     for (let i = BAY; i < N; i += BAY) bar(i, gap + 1.4, i, gap + depth(i) - 1.4, 2.0, sg);
 
     bar(0, gap + 1.4, 0, gap + depth(0) - 1.4, 2.6, sg);
     bar(N, gap + 1.4, N, gap + depth(N) - 1.4, 2.6, sg);
+  }
+
+  // in the pockets, the face cast as a fine net in relief: a diamond lattice of small ribs crossing on the diagonal, standing
+  // out of the floor, under the rim and the rungs, its pockets small and deep
+  {
+    const ds = ((u1 - u0) * seg.length) / N; // a sample's length along the run
+    const total = N * ds;
+    const PITCH = 4.2; // the lattice's pitch
+    const LW = 0.9; // a rib's width
+    const LH = 1.5; // how far it stands out of the floor
+    const STEP = 2.4; // the length of each straight piece
+    // a point on the face at length s along the run, `off` out from the chain
+    const Q = (sl: number, off: number, px: number): FwVec3 => {
+      const f = Math.max(0, Math.min(N, sl / ds));
+      const i = Math.min(N - 1, Math.floor(f));
+      const t = f - i;
+      const a = samples[i];
+      const c = samples[i + 1];
+      const y = a.y + (c.y - a.y) * t;
+      const z = a.z + (c.z - a.z) * t;
+      const ny = a.ny + (c.ny - a.ny) * t;
+      const nz = a.nz + (c.nz - a.nz) * t;
+
+      return [px, y + ny * off, z + nz * off];
+    };
+    const depthAt = (sl: number) => {
+      const f = Math.max(0, Math.min(N, sl / ds));
+      const i = Math.min(N - 1, Math.floor(f));
+
+      return depth(i) + (depth(i + 1) - depth(i)) * (f - i);
+    };
+    const inside = (sl: number, off: number) => sl > 1.5 && sl < total - 1.5 && off > gap + 2.6 && off < gap + depthAt(sl) - 2.6;
+    // one straight piece of rib on face sg, from (s0, o0) to (s1, o1)
+    const piece = (s0: number, o0: number, s1: number, o1: number, sg: number) => {
+      const xs = x + sg * hx;
+      const xr = x + sg * (hx + LH);
+      const a = Q(s0, o0, xs);
+      const c = Q(s1, o1, xs);
+      const dy = c[1] - a[1];
+      const dz = c[2] - a[2];
+      const l = Math.hypot(dy, dz) || 1;
+      const ny = (-dz / l) * (LW / 2);
+      const nz = (dy / l) * (LW / 2);
+      const top = (q: FwVec3, sgn: number): FwVec3 => [xr, q[1] + sgn * ny * 0.6, q[2] + sgn * nz * 0.6]; // (its top narrower: a draft, as cast)
+      const bot = (q: FwVec3, sgn: number): FwVec3 => [xs, q[1] + sgn * ny, q[2] + sgn * nz];
+
+      quad(top(a, -1), top(c, -1), top(c, 1), top(a, 1), [sg, 0, 0], 1.1, 1.1);
+      quad(bot(a, -1), bot(c, -1), top(c, -1), top(a, -1), [sg * 0.5, -ny, -nz], 0.62, 0.62);
+      quad(top(a, 1), top(c, 1), bot(c, 1), bot(a, 1), [sg * 0.5, ny, nz], 0.62, 0.62);
+    };
+
+    for (const sg of [-1, 1]) {
+      for (const dir of [-1, 1]) {
+        // the lines s - dir * off = k, every PITCH (measured square to them: PITCH * sqrt 2 along s)
+        const span = PITCH * Math.SQRT2;
+
+        for (let k = -gap - T - span; k < total + gap + T + span; k += span) {
+          let prev: [number, number] | null = null;
+
+          for (let sl = 0; sl <= total; sl += STEP / Math.SQRT2) {
+            const off = (sl - k) * dir;
+            const ok = inside(sl, off);
+
+            if (ok && prev) piece(prev[0], prev[1], sl, off, sg);
+            prev = ok ? [sl, off] : null;
+          }
+        }
+      }
+    }
   }
 
   // a bolt through the blade: a boss on the face, a washer, a flanged hex head; and its end on the far side
@@ -207,8 +277,11 @@ export function buildChainGuide(
     bolt(top, 4.2); // the arm's pivot
   }
 
-  // the hydraulic tensioner, bearing on the blade's back near its lower end (on both: the arm and the fixed guide)
-  const iT = upEnd === 1 ? Math.round(N * 0.24) : Math.round(N * 0.76);
+  // the hydraulic tensioner: on the arm only (the fixed guide is bolted and has none, as on a real engine), bearing on its
+  // back near its free lower end, far from the pivot, where it has the most leverage
+  if (kind !== "arm") return;
+
+  const iT = upEnd === 1 ? Math.round(N * 0.22) : Math.round(N * 0.78);
   const mid = samples[iT];
   const s = 1.25;
   const base = gap + depth(iT);

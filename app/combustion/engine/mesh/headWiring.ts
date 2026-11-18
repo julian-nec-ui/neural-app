@@ -3,16 +3,26 @@
 // on the other side the fuel rail, a steel pipe along the head, with a cup and a clip over each injector, fed at the front
 // through a braided line and a pressure regulator at its rear end.
 
-import { CT_X, INJ, PLUG } from "../core/constants";
+import { BANKS, CT_X, HEAD_WIDEN, INJ, PLUG, bankPoint } from "../core/constants";
 import type { FwMaterial, FwVec3 } from "./builder";
 import { HEAD } from "./head";
-import { MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE, MAT_FUEL_FIN, MAT_FUEL_LINE, MAT_FUEL_PIPE, MAT_FUEL_RAIL, MAT_RAIL_CLAMP, MAT_WELD, MAT_IGN_BOOT, MAT_IGN_LOOM, MAT_INJ_BRASS, MAT_COIL_BODY, MAT_COIL_COLLAR, MAT_COIL_HEAD, MAT_COIL_HEAD_SIDE, MAT_COIL_LATCH, MAT_COIL_PANEL, MAT_COIL_PANEL_SIDE, MAT_COIL_RED, MAT_COIL_SOCKET, MAT_PLENUM_RED_DEEP, MAT_CHEV_RED } from "./materials";
+import { MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE, MAT_FUEL_FIN, MAT_FUEL_LINE, MAT_FUEL_PIPE, MAT_FUEL_RAIL, MAT_RAIL_CLAMP, MAT_WELD, MAT_IGN_BOOT, MAT_IGN_LOOM, MAT_INJ_BRASS, MAT_COIL_BODY, MAT_COIL_COLLAR, MAT_COIL_HEAD, MAT_COIL_HEAD_SIDE, MAT_COIL_LATCH, MAT_COIL_PANEL, MAT_COIL_PANEL_SIDE, MAT_COIL_RED, MAT_COIL_SOCKET, MAT_PLENUM_RED_DEEP, MAT_CHEV_RED, MAT_RAIL_TUBE, MAT_RAIL_RIB, MAT_CLAMP_BLACK, MAT_CLAMP_BLACK_DEEP } from "./materials";
 import { curveFromPoints, sweepTube } from "./tubes";
 import { VT } from "./valvetrain";
 import type { MeshBuilder } from "./tubes";
 
-const LOOM_Z = 58; // the loom's line across the head, on its +z side
-const RAIL_Z = -70; // the fuel rail's, on the other side
+const LOOM_Z = 60; // the loom's line across the head, on its +z side
+export const RAIL_Z = -75; // the fuel rail's, on the other side (its line kept over the same place on the engine, raised)
+export const RAIL_RISE = 50; // how high over the cover it hangs: clear over the intake lid's flange and its bolts, held up on brackets from it
+
+const LINE_DROP = 42; // how far out from the rail each injector's line runs before it drops
+
+// the rail's axis in the engine's frame, [y, z], over bank bi (its x as in the head's)
+export const railWorld = (bi: number): [number, number] => {
+  const p = bankPoint(BANKS[bi], 0, HEAD.yTop - RAIL_RISE, RAIL_Z * HEAD_WIDEN);
+
+  return [p[1], p[2]];
+};
 
 // a cubic Bezier through four points, sampled
 function bez(p0: FwVec3, p1: FwVec3, p2: FwVec3, p3: FwVec3, n = 14): FwVec3[] {
@@ -41,7 +51,7 @@ function ry(b: MeshBuilder, x: number, z: number, s: Parameters<MeshBuilder["rev
 export function buildHeadWiring(b: MeshBuilder, shift = 0) {
   const top = HEAD.yTop; // the cover's top (y up is negative)
   const xFront = HEAD.x0 + shift;
-  const loomY = top - 13.5; // the loom lies on the cover, a little above it (thick: twice what it was)
+  const loomY = top - 42; // the loom hangs in the air over the cover, clear of it, on brackets (thick: twice what it was)
   const xs = CT_X.map((x) => x + PLUG.x);
 
   // ---- the ignition: a coil on each plug (pencil coils, as on a modern head), each standing in its plug's machined ring on
@@ -59,37 +69,56 @@ export function buildHeadWiring(b: MeshBuilder, shift = 0) {
 
     sweepTube(b, curveFromPoints(pts, 6), () => 12.4, MAT_IGN_LOOM, { segments: 20 });
 
-    // its clips to the cover, between the cylinders
-    for (let k = 0; k < xs.length - 1; k++) {
-      const xc = (xs[k] + xs[k + 1]) / 2;
+    // its brackets, between the cylinders, holding it up off the cover: a foot bolted down, a post up from it and a clamp
+    // round the loom, split on top, a bolt through it (as the fuel rail's)
+    const LR = 12.4;
+    const loomBracket = (xc: number) => {
+      const CR = LR + 2.6;
 
-      b.box(xc - 4, xc + 4, loomY - 13.6, top, LOOM_Z - 14, LOOM_Z + 14, MAT_CT_NUT_SIDE);
-      b.prismDir([xc, top, LOOM_Z + 17.5], [0, -1, 0], [1, 0, 0], [0, 0, 1], 2.8, 2.4, 6, 0.3, MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE);
-    }
+      b.box(xc - 9, xc + 9, top - 2.2, top, LOOM_Z - 10, LOOM_Z + 14, MAT_CLAMP_BLACK); // the foot
+      b.prismDir([xc, top - 2.2, LOOM_Z + 9], [0, -1, 0], [1, 0, 0], [0, 0, 1], 3.4, 2.6, 6, 0.3, MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE); // its bolt
+      b.box(xc - 3.5, xc + 3.5, loomY + CR - 1, top - 2.2, LOOM_Z - 5, LOOM_Z + 5, MAT_CLAMP_BLACK); // the post
+      b.box(xc - 3.55, xc + 3.55, loomY + CR - 1, top - 2.2, LOOM_Z - 1.6, LOOM_Z + 1.6, MAT_CLAMP_BLACK_DEEP); // a groove down it
+      b.revolve({ x0: xc - 5, r0: CR, x1: xc + 5, r1: CR, n: [0, 1], m: MAT_CLAMP_BLACK, steps: 32, cy: loomY, cz: LOOM_Z });
+      for (const sx of [-1, 1]) b.revolve({ x0: xc + sx * 5, r0: LR, x1: xc + sx * 5, r1: CR, n: [sx, 0], m: MAT_CLAMP_BLACK_DEEP, steps: 32, cy: loomY, cz: LOOM_Z });
+      b.box(xc - 5, xc + 5, loomY - CR - 5, loomY - CR + 1, LOOM_Z - 4.5, LOOM_Z + 4.5, MAT_CLAMP_BLACK); // its lug
+      b.box(xc - 5.05, xc + 5.05, loomY - CR - 5.05, loomY - CR + 1, LOOM_Z - 0.5, LOOM_Z + 0.5, MAT_CLAMP_BLACK_DEEP);
+      b.prismDir([xc, loomY - CR - 2.5, LOOM_Z + 4.5], [0, 0, 1], [1, 0, 0], [0, 1, 0], 2.8, 2.4, 6, 0.3, MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE);
+    };
 
-    // the harness connector at the front, the loom's end in it
+    for (let k = 0; k < xs.length - 1; k++) loomBracket((xs[k] + xs[k + 1]) / 2);
+
+    // the harness connector at the front, the loom's end in it, held up on a bracket of its own
     const cx = xStart + 2;
 
-    roundedBox(b, cx, LOOM_Z, 15, 16, loomY - 16, top, 3.5, MAT_COIL_HEAD, MAT_COIL_HEAD_SIDE);
-    b.box(cx - 17, cx - 15, loomY - 10, top - 4, LOOM_Z - 8, LOOM_Z + 8, MAT_COIL_LATCH);
+    roundedBox(b, cx, LOOM_Z, 15, 16, loomY - 16, loomY + 16, 3.5, MAT_COIL_HEAD, MAT_COIL_HEAD_SIDE);
+    b.box(cx - 17, cx - 15, loomY - 10, loomY + 10, LOOM_Z - 8, LOOM_Z + 8, MAT_COIL_LATCH);
+    b.box(cx - 9, cx + 9, top - 2.2, top, LOOM_Z - 12, LOOM_Z + 12, MAT_CLAMP_BLACK);
+    b.box(cx - 3.5, cx + 3.5, loomY + 16, top - 2.2, LOOM_Z - 5, LOOM_Z + 5, MAT_CLAMP_BLACK);
   }
 
   // ---- the fuel rail ----
   {
     const xi = CT_X.map((x) => x + INJ.x);
-    const railY = top - 26; // high enough over the cover that the injectors' lines are seen leaving it, straight down
+    const railY = top - RAIL_RISE; // hung high over the cover, over the intake lid's flange, on brackets from it (plenum.ts)
     const x0 = xi[0] - 22;
-    const x1 = xi[xi.length - 1] + 30;
+    const x1 = xi[xi.length - 1] + 45; // (on past the last bracket)
 
     // the rail itself, a straight steel pipe, its ends capped
-    b.revolve({ x0, r0: 10, x1, r1: 10, n: [0, 1], m: MAT_FUEL_RAIL, steps: 24, cy: railY, cz: RAIL_Z });
-    b.disc(x0, 0, 0, 10, MAT_FUEL_RAIL, 24, railY, RAIL_Z, -1);
+    b.revolve({ x0, r0: 10, x1, r1: 10, n: [0, 1], m: MAT_RAIL_TUBE, steps: 48, cy: railY, cz: RAIL_Z });
+    b.disc(x0, 0, 0, 10, MAT_RAIL_TUBE, 48, railY, RAIL_Z, -1);
+    // matte, with fine ribs along it, raised a little
+    for (let k = 0; k < 36; k++) {
+      const a = (k / 36) * Math.PI * 2;
+      const ca = Math.cos(a);
+      const sa = Math.sin(a);
 
-    // where each injector's line goes through the cover a grommet, and a clip and bolt holding the rail
+      b.prismDir([x0 + 0.3, railY + 10 * sa, RAIL_Z + 10 * ca], [1, 0, 0], [0, sa, ca], [0, ca, -sa], 0.55, x1 - x0 - 0.6, 6, 0, MAT_RAIL_RIB, MAT_RAIL_RIB);
+    }
+
+    // where each injector's line goes through the cover a grommet (the rail is held up on brackets from the intake lid)
     for (const x of xi) {
-      ry(b, x, RAIL_Z, { y0: top, r0: 9.6, y1: top - 2, r1: 9.6, n: [0, 1], m: MAT_INJ_BRASS, steps: 20 }); // a grommet where the line goes through the cover
-      b.box(x + 11, x + 17, railY - 12, top, RAIL_Z - 13, RAIL_Z + 13, MAT_CT_NUT_SIDE); // the bracket
-      b.prismDir([x + 14, railY - 12, RAIL_Z], [0, -1, 0], [1, 0, 0], [0, 0, 1], 2.8, 2.4, 6, 0.3, MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE);
+      ry(b, x, RAIL_Z + LINE_DROP, { y0: top, r0: 6.4, y1: top - 2, r1: 6.4, n: [0, 1], m: MAT_INJ_BRASS, steps: 20 });
     }
 
     // from each cup a steel feed line down through the cover onto its injector's top, a union nut at the injector (the lines
@@ -100,7 +129,7 @@ export function buildHeadWiring(b: MeshBuilder, shift = 0) {
       // out of the rail's side, facing the injectors, through its clamp: one smooth sweep, out level, round and straight down,
       // then over to the injector, its tangent unbroken from end to end
       const z0 = RAIL_Z + 16; // where it leaves the boss
-      const zd = RAIL_Z + 27; // the line of its drop
+      const zd = RAIL_Z + LINE_DROP; // the line of its drop: out past the lid's flange
       const B1 = bez([x, railY, z0], [x, railY, zd], [x, railY, zd], [x, top + 4, zd], 18);
       const B2 = bez([x, top + 4, zd], [x, top + 30, zd], [x, injTop - 24, INJ.z], [x, injTop - 3, INJ.z], 26);
       const line = [...B1, ...B2.slice(1)];

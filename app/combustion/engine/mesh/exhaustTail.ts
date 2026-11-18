@@ -8,7 +8,7 @@
 // is the same rounded trapezoid grown or shrunk by an offset, so the faces stay flat and the corners round.
 
 import type { FwMaterial, FwVec3 } from "./builder";
-import { MAT_MUFFLER_WIRE, MAT_TAIL_BORE, MAT_TAIL_PIPE, MAT_TAIL_COLLAR, MAT_TAIL_COLLAR_EDGE, MAT_TAIL_SCREW, MAT_WELD } from "./materials";
+import { MAT_MUFFLER_WIRE, MAT_TAIL_BORE, MAT_TAIL_PIPE, MAT_TAIL_COLLAR, MAT_TAIL_COLLAR_EDGE, MAT_TAIL_SCREW, MAT_WELD, MAT_FIN_GREY, MAT_FIN_GREY_CREST, MAT_FIN_GREY_ROOT } from "./materials";
 import type { MeshBuilder } from "./tubes";
 
 // half its height; half its width on top and below; its corners' radius; the steps round each corner
@@ -67,6 +67,33 @@ export function tailRing(off: number): Ring {
   return out;
 }
 
+// A fin's section, as the intake lid's (plenum.ts, finSection): across it and out from the skin, with its normals: a
+// fillet at the foot, walls with a little draft, a round crest
+function finProfile(t: number, h: number): Array<{ p: [number, number]; n: [number, number]; m: FwMaterial }> {
+  const f = t * 0.4;
+  const tb = t / 2;
+  const tt = Math.min(tb * 0.7, h * 0.42);
+  const yc = Math.max(tt, h - tt);
+  const wl = Math.hypot(yc - f, tb - tt) || 1;
+  const wall: [number, number] = [-(yc - f) / wl, (tb - tt) / wl];
+  const left: Array<{ p: [number, number]; n: [number, number]; m: FwMaterial }> = [];
+
+  for (let k = 0; k <= 3; k++) {
+    const a = (k / 3) * (Math.PI / 2);
+
+    left.push({ p: [-tb - f + f * Math.sin(a), f - f * Math.cos(a)], n: [-Math.sin(a), Math.cos(a)], m: MAT_FIN_GREY_ROOT });
+  }
+  left.push({ p: [-tb, f], n: wall, m: MAT_FIN_GREY });
+  left.push({ p: [-tt, yc], n: wall, m: MAT_FIN_GREY });
+  for (let k = 1; k <= 4; k++) {
+    const a = Math.PI - (k / 8) * Math.PI;
+
+    left.push({ p: [tt * Math.cos(a), yc + tt * Math.sin(a)], n: [Math.cos(a), Math.sin(a)], m: MAT_FIN_GREY_CREST });
+  }
+
+  return [...left, ...left.slice(0, -1).reverse().map((q) => ({ p: [-q.p[0], q.p[1]] as [number, number], n: [-q.n[0], q.n[1]] as [number, number], m: q.m }))];
+}
+
 // One pipe's tail, from x0 (inside its silencer's end) to x1 (its mouth), its middle at (y, z)
 export function buildTrapezoidTail(b: MeshBuilder, x0: number, x1: number, y: number, z: number) {
   const P = (x: number, q: [number, number]): FwVec3 => [x, y + q[0], z + q[1]];
@@ -110,6 +137,80 @@ export function buildTrapezoidTail(b: MeshBuilder, x0: number, x1: number, y: nu
 
   // the pipe itself, from inside the silencer's end to under the collar
   band(x0, 0, xc + 6, 0, MAT_TAIL_PIPE);
+
+  // all round it, close-set fins along it in relief, as on the intake's red lid: bright metallic grey, standing square out
+  // of its skin, a fillet at the foot, a round crest; from the silencer, where each rounds down into the pipe, back to the
+  // bright bead behind the collar, where each narrows to a point
+  {
+    const ring = tailRing(0);
+    const k = ring.p.length;
+    const cum: number[] = [0];
+
+    for (let i = 1; i <= k; i++) {
+      const a0 = ring.p[i - 1];
+      const a1 = ring.p[i % k];
+
+      cum.push(cum[i - 1] + Math.hypot(a1[0] - a0[0], a1[1] - a0[1]));
+    }
+
+    const perim = cum[k];
+    const at = (sl: number): { p: [number, number]; n: [number, number] } => {
+      let i = 1;
+
+      while (i < k && cum[i] < sl) i++;
+
+      const t = (sl - cum[i - 1]) / (cum[i] - cum[i - 1] || 1);
+      const a0 = ring.p[i - 1];
+      const a1 = ring.p[i % k];
+      const n0 = ring.n[i - 1];
+      const n1 = ring.n[i % k];
+      const ny = n0[0] + (n1[0] - n0[0]) * t;
+      const nz = n0[1] + (n1[1] - n0[1]) * t;
+      const nl = Math.hypot(ny, nz) || 1;
+
+      return { p: [a0[0] + (a1[0] - a0[0]) * t, a0[1] + (a1[1] - a0[1]) * t], n: [ny / nl, nz / nl] };
+    };
+
+    const COUNT = Math.round(perim / 5.6); // close-set
+    const FT = 2.6; // a fin's thickness at its foot
+    const FH = 3.2; // how far it stands out
+    const xs0 = x0 + 13; // from just behind the weld flange
+    const xs1 = xc - 14.2; // to the bright bead behind the collar
+    const NX = 60;
+    const ROUND = 8; // over how long it rounds down at the silencer's end
+    const POINT = 16; // over how long it narrows to a point at the back
+
+    for (let f = 0; f < COUNT; f++) {
+      const { p: q, n } = at((perim * (f + 0.5)) / COUNT);
+      const side: [number, number] = [-n[1], n[0]];
+      const rows: Array<Array<{ p: FwVec3; n: FwVec3; m: FwMaterial }>> = [];
+
+      for (let i = 0; i <= NX; i++) {
+        const x = xs0 + ((xs1 - xs0) * i) / NX;
+        const front = Math.min(1, (x - xs0) / ROUND);
+        const back = Math.min(1, (xs1 - x) / POINT);
+        const hh = Math.max(0.2, FH * Math.sqrt(Math.max(0, front)) * (0.35 + 0.65 * back));
+        const tt = Math.max(0.15, FT * (0.55 + 0.45 * Math.sqrt(Math.max(0, front))) * back);
+
+        rows.push(finProfile(tt, hh).map((c) => ({
+          p: [x, y + q[0] + side[0] * c.p[0] + n[0] * (c.p[1] - 0.25), z + q[1] + side[1] * c.p[0] + n[1] * (c.p[1] - 0.25)] as FwVec3,
+          n: [0, side[0] * c.n[0] + n[0] * c.n[1], side[1] * c.n[0] + n[1] * c.n[1]] as FwVec3,
+          m: c.m,
+        })));
+      }
+
+      for (let i = 0; i < NX; i++) {
+        const A = rows[i];
+        const B = rows[i + 1];
+
+        for (let j = 0; j + 1 < A.length; j++) {
+          const m = A[j].m === A[j + 1].m ? A[j].m : MAT_FIN_GREY;
+
+          for (const v of [A[j], B[j], B[j + 1], A[j], B[j + 1], A[j + 1]]) b.push(v.p, v.n, m, 1);
+        }
+      }
+    }
+  }
 
   // the weld flange where it leaves the silencer: a bevelled ring, a bead of weld behind it
   const xf = x0 + 6;

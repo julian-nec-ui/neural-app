@@ -278,7 +278,7 @@ export function computeSceneCommands(frame: EngineFrame): DrawCmd[] {
   // The nose of the shaft
   emit(TRAIN_MESH.snout, Math.cos(alpha), Math.sin(alpha), 0, 0, 0);
 
-  emitBeltDrive(alpha);
+  if (SCENE_OPTIONS.accessories) emitBeltDrive(alpha); // (the View panel can take the accessory drive away)
 
   // The flywheel turns with the crankshaft, on its flange, with its marked tooth
   // on the same line as the mark on the crankshaft
@@ -315,6 +315,7 @@ export function computeSceneCommands(frame: EngineFrame): DrawCmd[] {
 
     place(r.collectorFittings, m, false, [0, 0, 0]);
     place(r.turboFittings, m, false, [0, 0, 0]);
+    if (SCENE_OPTIONS.airIntake) place(r.airIntakeFittings, m, false, [0, 0, 0]); // (the View panel can take the air intake away)
     place(r.turboHousing, m, true, t);
     place(r.turboFilter, m, true, t);
     place(r.turboWheelC, m, true, t, c, sn);
@@ -354,15 +355,15 @@ export function computeSceneCommands(frame: EngineFrame): DrawCmd[] {
   }
 
   // The intake plenum on top of the V: on the solid engine only; on the see-through one it is taken away, to see in
-  if (!SCENE_OPTIONS.seeThrough) emit(r.vPlenum, 1, 0, 0, 0, 0);
-  if (!SCENE_OPTIONS.seeThrough) emit(r.plenumGate, 1, 0, 0, 0, 0); // its gate and square flange go with it
+  if (!SCENE_OPTIONS.seeThrough && SCENE_OPTIONS.plenum) emit(r.vPlenum, 1, 0, 0, 0, 0);
+  if (!SCENE_OPTIONS.seeThrough && SCENE_OPTIONS.plenum) emit(r.plenumGate, 1, 0, 0, 0, 0); // its gate and square flange go with it
   // and the intake manifold in front of it, the Y collecting the two cooled pipes and the throttle: on the solid engine only,
   // as the pipes themselves and their welds
-  if (!SCENE_OPTIONS.seeThrough) emit(r.intakeManifold, 1, 0, 0, 0, 0);
-  if (!SCENE_OPTIONS.seeThrough) emit(r.coolWelds, 1, 0, 0, 0, 0);
+  if (!SCENE_OPTIONS.seeThrough && SCENE_OPTIONS.plenum) emit(r.intakeManifold, 1, 0, 0, 0, 0);
+  if (!SCENE_OPTIONS.seeThrough && SCENE_OPTIONS.plenum) emit(r.coolWelds, 1, 0, 0, 0, 0);
 
   // The intercoolers, one on each side of the engine (see icPlace): each core, the fan on its outer face, its two tanks
-  for (const zs of [-1, 1]) {
+  for (const zs of SCENE_OPTIONS.intercoolers ? [-1, 1] : []) { // (the View panel can take them away)
     const turn = zs < 0 ? ORIENT.IC_NEG : ORIENT.IC_POS;
     const at = (p: FwVec3) => icPlace(zs, p);
     const core = at([0, IC_STAND_Y - IC.y, zs * IC_CORE_Z - IC.z]);
@@ -385,7 +386,7 @@ export function computeSceneCommands(frame: EngineFrame): DrawCmd[] {
   }
 
   emit(r.mufflers, 1, 0, 0, 0, 0); // the silencers, solid, in their wire sleeves
-  emit(r.chargeCouplers, 1, 0, 0, 0, 0);
+  if (SCENE_OPTIONS.intercoolers) emit(r.chargeCouplers, 1, 0, 0, 0, 0); // (the tanks' ports and the pipes' flanges on them: gone with the intercoolers)
   if (!SCENE_OPTIONS.seeThrough) emit(r.blowOffValves, 1, 0, 0, 0, 0); // (on the hot pipes: gone with them, see-through)
   if (!SCENE_OPTIONS.seeThrough) emit(r.manifoldWelds, 1, 0, 0, 0, 0); // (the headers' joints and bungs: likewise)
   emit(r.turbineArc, 1, 0, 0, 0, 0);

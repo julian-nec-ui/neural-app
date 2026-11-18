@@ -314,8 +314,10 @@ export const MAT_MUFFLER_WIRE = fwMat([150, 155, 163], 215, 1, 0.55); // the sil
 export const MAT_SHIELD_STREAK = fwMat([176, 178, 184], 200, 1, 0.3); // the dashed streaks along the shielded pipes, raised: now the light metallic grey, polished
 // and their flanges: plate stainless, cut and machined, a dull grey
 export const MAT_TURBO_INLET_PLATE = fwMat([104, 106, 110], 75, 9, 0.05); // the pipe's plate on the turbine's inlet: matte grey, a fine grit, not to glare from above
-export const MAT_GUIDE_SAND = fwMat([238, 214, 156], 50, 0, 0.02); // the chain's fixed guide: pale sand nylon, matte
-export const MAT_GUIDE_ARM = fwMat([38, 92, 196], 205, 0, 0.55); // the tensioner arm: metallic blue
+export const MAT_GUIDE_SAND = fwMat([75, 181, 121], 50, 0, 0.02); // the chain's fixed guides and the tensioners' shoes: green nylon (#4bb579), matte
+export const MAT_GUIDE_ARM = fwMat([0, 122, 204], 205, 0, 0.55); // the tensioner arm: metallic blue (#007acc)
+export const MAT_GUIDE_SAND_NET = fwMat([75, 181, 121], 90, 8, 0.08); // the guides' edges: their green, a woven net in relief (pattern 8)
+export const MAT_GUIDE_ARM_NET = fwMat([0, 122, 204], 180, 8, 0.4); // the arms' edges: their blue, the same net
 // the coils on the plugs: their heads a satin mid grey (as cast and painted), their bodies darker, the boots black with a
 // red band, a grey collar at the boot's foot
 export const MAT_COIL_HEAD = fwMat([44, 46, 51], 110, 0, 0.08); // (dark grey, semi-gloss: lighter than the loom)
@@ -333,7 +335,9 @@ export const MAT_IGN_BOOT = fwMat([30, 30, 33], 60, 0, 0.05); // their boots and
 export const MAT_IGN_LOOM = fwMat([46, 48, 54], 150, 8, 0.4); // the leads' loom: a black braided sleeve
 export const MAT_IGN_COIL = fwMat([150, 22, 26], 190, 0, 0.5); // the coil pack: red anodised
 export const MAT_FUEL_RAIL = fwMat([176, 180, 190], 210, 15, 0.45); // the fuel rail: polished steel, a raised square (pyramid) knurl
-export const MAT_RAIL_CLAMP = fwMat([200, 204, 212], 230, 0, 0.75); // the rail's clamps and the lines' bosses: plain polished steel
+export const MAT_RAIL_TUBE = fwMat([112, 116, 124], 170, 9, 0.35); // the rail's pipe: the feed lines' dark metallic grey
+export const MAT_RAIL_RIB = fwMat([100, 104, 111], 150, 0, 0.3); // its fine ribs along it, a shade darker
+export const MAT_RAIL_CLAMP = fwMat([84, 87, 93], 40, 0, 0.04); // the rail's clamps and the lines' bosses: dark grey, matte, no glare
 export const MAT_FUEL_PIPE = fwMat([112, 116, 124], 170, 9, 0.35); // the injectors' feed lines: dark steel, industrial
 export const MAT_FUEL_FIN = fwMat([150, 156, 166], 210, 0, 0.55); // their raised fins along them: a shade darker still
 export const MAT_FUEL_LINE = fwMat([150, 152, 158], 170, 8, 0.4); // the fuel feed: braided steel hose
@@ -359,7 +363,7 @@ export const MAT_FIN_LIGHT_CREST = fwMat([200, 205, 212], 230, 9, 0.75);
 export const MAT_FIN_LIGHT_ROOT = fwMat([108, 112, 120], 175, 9, 0.45);
 // The tail pipes' trapezoid outlets: the pipe engine-turned in overlapping polished spots (pattern 16), a shade darker
 // and soft-sheened; a separate collar of darker grey steel, its bevelled mouth brighter, its screws darker, the bore dark
-export const MAT_TAIL_PIPE = fwMat([150, 155, 164], 115, 16, 0.05); // (lighter: a light steel grey, standing out)
+export const MAT_TAIL_PIPE = fwMat([112, 117, 126], 40, 0, 0.02); // (under the fins: a matte steel grey, the shadow between them)
 export const MAT_TAIL_COLLAR = fwMat([84, 88, 96], 150, 1, 0.2);
 export const MAT_TAIL_COLLAR_EDGE = fwMat([150, 155, 164], 200, 0, 0.4);
 export const MAT_TAIL_SCREW = fwMat([52, 55, 61], 120, 0, 0.2);
@@ -411,4 +415,16 @@ export const MAT_ALT_NUT_SIDE = fwMat([94, 99, 109], 150, 0, 0.45);
 export const MAT_TERMINAL_RED = fwMat([196, 28, 30], 70, 0, 0.3); // the B+ terminal's boot
 export const MAT_HOSE_BLACK = fwMat([26, 27, 30], 26, 9, 0.12); // coolant hose
 export const MAT_HOSE_CLAMP = fwMat([196, 200, 206], 200, 0, 0.6); // worm-drive clamps
-export const MAT_TENSIONER = fwMat([44, 46, 52], 110, 7, 0.3); // the tensioner's black cast arm and base
+export const MAT_TENSIONER = fwMat([92, 97, 106], 160, 0, 0.45); // the tensioner's die-cast can and arm: the alternator's dark metallic grey
+export const MAT_TENS_ARM = fwMat([30, 31, 35], 30, 0, 0.03); // its arm, from the can to the pulley: matte black, plain (its grey ribs on it)
+export const MAT_TENS_RIB = fwMat([128, 134, 145], 190, 0, 0.55); // the fine ribs along its can: a lighter grey, catching the light
+export const MAT_TENS_FACE = fwMat([150, 156, 166], 200, 1, 0.6); // the can's front rim: turned, fine rings
+export const MAT_TENS_BORE = fwMat([40, 43, 49], 60, 0, 0.1); // inside the can: in shadow
+export const MAT_TENS_SPRING = fwMat([64, 112, 196], 210, 0, 0.9); // the coiled spring: blued spring steel
+export const MAT_TENS_SPRING_EDGE = fwMat([170, 186, 214], 230, 0, 1.1); // its front edge: bright where the strip is ground
+
+// The port injectors on the intake runners: their O-ring, their connector's plastic and its latch
+export const MAT_INJ_ORING = fwMat([150, 40, 30], 60, 0, 0.05);
+export const MAT_INJ_PLUG = fwMat([52, 55, 61], 90, 0, 0.1);
+export const MAT_INJ_LATCH = fwMat([214, 212, 204], 100, 0, 0.08);
+export const MAT_INJ_MOUNT = fwMat([138, 142, 149], 60, 0, 0.12); // their collar, washer and clamp: aluminium, matte, a little dark

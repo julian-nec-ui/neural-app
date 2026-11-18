@@ -7,15 +7,17 @@
 // The plenum is drawn on the solid engine only (taken away on the see-through one, to see in); the gate, the throttle and
 // the Y on both.
 
-import { BANKS, CT_X, TAU, bankPoint } from "../core/constants";
+import { BANKS, CT_X, DRIVE_DX, TAU, bankPoint } from "../core/constants";
+import { HEAD } from "./head";
 import { FW_STRIDE } from "./builder";
 import type { FwMaterial, FwVec3 } from "./builder";
 import { MAT_ALU_TURNED, MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE, MAT_CLAMP_BLACK, MAT_CLAMP_BLACK_DEEP, MAT_COVER_FIN, MAT_FIN_GREY, MAT_FIN_GREY_CREST, MAT_HEAD_CAST, MAT_FIN_GREY_ROOT, MAT_PIPE_BLACK, MAT_PLENUM_RED, MAT_PLENUM_RED_DEEP, MAT_STEEL_BRIGHT, MAT_TB_BODY, MAT_TB_BODY_DEEP, MAT_TB_COVER, MAT_TB_COVER_RIB, MAT_TB_HOLE, MAT_TB_LATCH, MAT_TB_PIN, MAT_TB_PLATE, MAT_TB_PLUG, MAT_TB_RIB, MAT_THROTTLE_RING } from "./materials";
 import { curveAt, curveFromPoints, flangeBolt, flangeJoint, roundedCurve, sweepTube } from "./tubes";
 import type { Curve, MeshBuilder } from "./tubes";
-import { PIPES, PLENUM, PLENUM_INLETS, Y_BRANCH, bodySection, headY, lidHeight, plenumW, socketCap } from "./plumbing";
+import { PIPES, PLENUM, PLENUM_INLETS, Y_BRANCH, bodySection, headY, lidHeight, plenumW, socketCap, wallZ } from "./plumbing";
 import { vadd, vnorm, vscale } from "../math/vec3";
-import { LID_SIG, lidInk } from "./headText";
+import { LID_SIG } from "./headText";
+import { railWorld } from "./headWiring";
 
 const GREY = MAT_PLENUM_RED; // (the plenum's red, matte, with its sandpaper grit)
 const DEEP = MAT_PLENUM_RED_DEEP;
@@ -33,21 +35,40 @@ function stations(): number[] {
 }
 
 // The plan's outline round the plenum, `o` out from its edge, as plenumW's: along the +z side from the back to the
-// front, across the front, back along the -z side, and across the back
+// front, across the front, back along the -z side, and across the back; each point moved out square to the plan's own
+// edge, so that its corners stay rounded (the plan's rounding, `o` broader)
 function outline(o: number): Array<[number, number]> {
   const { xf, xr } = PLENUM;
   const xs = stations();
-  const pts: Array<[number, number]> = [];
+  const plan: Array<[number, number]> = [];
   const across = (x: number, z0: number, z1: number) => {
-    for (let k = 1; k < 8; k++) pts.push([x, z0 + ((z1 - z0) * k) / 8]);
+    for (let k = 1; k < 8; k++) plan.push([x, z0 + ((z1 - z0) * k) / 8]);
   };
 
-  for (const x of xs.slice().reverse()) pts.push([x + (x >= xr - 1 ? o : x <= xf + 1 ? -o : 0), plenumW(x) + o]);
-  across(xf - o, plenumW(xf) + o, -(plenumW(xf) + o));
-  for (const x of xs) pts.push([x + (x >= xr - 1 ? o : x <= xf + 1 ? -o : 0), -(plenumW(x) + o)]);
-  across(xr + o, -(plenumW(xr) + o), plenumW(xr) + o);
+  for (const x of xs.slice().reverse()) plan.push([x, plenumW(x)]);
+  across(xf, plenumW(xf), -plenumW(xf));
+  for (const x of xs) plan.push([x, -plenumW(x)]);
+  across(xr, -plenumW(xr), plenumW(xr));
 
-  return pts;
+  const n = plan.length;
+  const cx = (xf + xr) / 2;
+
+  return plan.map(([x, z], k) => {
+    const [xa, za] = plan[(k - 1 + n) % n];
+    const [xb, zb] = plan[(k + 1) % n];
+    let nx = zb - za;
+    let nz = -(xb - xa);
+    const l = Math.hypot(nx, nz) || 1;
+
+    nx /= l;
+    nz /= l;
+    if ((x - cx) * nx + z * nz < 0) {
+      nx = -nx;
+      nz = -nz;
+    }
+
+    return [x + nx * o, z + nz * o];
+  });
 }
 
 // A plate in plan, of `outline`, from y0 down to y1 (y grows downward): its sides, top and underside
@@ -71,9 +92,9 @@ function plate(b: MeshBuilder, pts: Array<[number, number]>, y0: number, y1: num
 // than the plain #cc0000), held for its first quarter or so, then slowly, gently lightening toward the back, where it
 // ends lighter than it began but a touch darker than the plain red. Only the red changes (its deep red in the valleys
 // in step); its grit, its sheen and everything else stay as they are
-const RED_FRONT: FwVec3 = [143, 0, 0]; // at the front
+const RED_FRONT: FwVec3 = [129, 0, 0]; // at the front (deeper)
 const RED_BACK: FwVec3 = [192, 0, 0]; // and at the back
-const RED_HOLD = 0.27; // the share of the length, from the front, before it begins to lighten
+const RED_HOLD = 0.3; // the share of the length, from the front, before it begins to lighten
 const RED_END: FwVec3 = [214, 8, 6]; // where the back half ends: a little lighter than RED_BACK
 // the front half's red at a share u of the length (as the gradient first was, from RED_FRONT toward RED_BACK)
 function redFirst(u: number): FwVec3 {
@@ -172,9 +193,10 @@ function buildLid(b: MeshBuilder, xs: number[]) {
 const LID_FIN = {
   // in shares of the lid's half width; the outer four down each side evenly spaced along its curved skin (from the foot
   // by the head up to where it rounds over onto the top)
-  across: [-0.985, -0.93, -0.843, -0.7, -0.54, -0.38, -0.22, -0.07, 0.07, 0.22, 0.38, 0.54, 0.7, 0.843, 0.93, 0.985],
-  t: [9, 3.6], // the thickness at the foot, at the front and at the back
-  h: [15, 5], // how far it stands out
+  // (the two either side of the writing, out clear of its letters, straight and unbroken all along)
+  across: [-0.985, -0.93, -0.843, -0.7, -0.56, -0.42, -0.29, -0.07, 0.07, 0.29, 0.42, 0.56, 0.7, 0.843, 0.93, 0.985],
+  t: [10, 4], // the thickness at the foot, at the front and at the back (in step with the bigger lid)
+  h: [17, 5.8], // how far it stands out
 };
 
 export type FinPt = { p: [number, number]; n: [number, number]; m: typeof MAT_FIN_GREY };
@@ -218,8 +240,7 @@ function buildLidFins(b: MeshBuilder) {
     return vnorm([-hx, -1, -hz]);
   };
 
-  // which fins the writing's band cuts; of those, the outermost on each side runs on past the band and stops only where it
-  // would come to the writing itself (its ink, a margin round it), rounding down into the lid there as at its ends
+  // the fins in the middle stop short of the writing's band; the two either side of it run straight past it, clear of it
   const cut = (c: number) => {
     for (let k = 0; k <= n; k++) {
       const x = x0 + ((x1 - x0) * k) / n;
@@ -232,36 +253,6 @@ function buildLidFins(b: MeshBuilder) {
   };
   const cutFins = LID_FIN.across.filter(cut);
   const joined = new Set([Math.min(...cutFins), Math.max(...cutFins)]);
-  // the ink, in cells of 8, for finding how far a point is from it
-  const INK_CELL = 8;
-  const inkCells = new Map<string, number[]>();
-  const ink = lidInk();
-
-  for (let k = 0; k < ink.length; k += 2) {
-    const key = `${Math.floor(ink[k] / INK_CELL)},${Math.floor(ink[k + 1] / INK_CELL)}`;
-    const cell = inkCells.get(key);
-
-    if (cell) cell.push(ink[k], ink[k + 1]);
-    else inkCells.set(key, [ink[k], ink[k + 1]]);
-  }
-  const inkDist = (x: number, z: number, reach: number) => {
-    let d = reach;
-    const r = Math.ceil(reach / INK_CELL);
-    const cx = Math.floor(x / INK_CELL);
-    const cz = Math.floor(z / INK_CELL);
-
-    for (let i = -r; i <= r; i++) {
-      for (let j = -r; j <= r; j++) {
-        const cell = inkCells.get(`${cx + i},${cz + j}`);
-
-        if (cell) for (let q = 0; q < cell.length; q += 2) d = Math.min(d, Math.hypot(cell[q] - x, cell[q + 1] - z));
-      }
-    }
-
-    return d;
-  };
-  const INK_CLEAR = 5; // how far the fin's flank keeps from the ink
-  const INK_EASE = 12; // over how long it rounds down to the gap
 
   for (const c of LID_FIN.across) {
     const rows: Array<Array<{ p: FwVec3; n: FwVec3; m: typeof MAT_FIN_GREY }> | null> = [];
@@ -281,19 +272,19 @@ function buildLidFins(b: MeshBuilder) {
       const gx = Math.abs(x - LID_SIG.x) - (LID_SIG.hx + LID_SIG.margin);
       const inBand = !join && Math.abs(z - LID_SIG.z) < LID_SIG.hz + LID_SIG.margin;
       const u = k / n;
-      const tFoot = LID_FIN.t[0] + (LID_FIN.t[1] - LID_FIN.t[0]) * Math.pow(u, 0.9);
-      const gInk = join ? inkDist(x, z, tFoot / 2 + INK_CLEAR + INK_EASE) - (tFoot / 2 + INK_CLEAR) : 1e9;
 
-      if ((inBand && gx < 0) || gInk < 0) {
+      if (inBand && gx < 0) {
         rows.push(null);
         continue;
       }
 
-      const ends = Math.min(1, (x - x0) / 26, (x1 - x) / 40, inBand ? gx / 22 : 1, gInk / INK_EASE);
+      const ends = Math.min(1, (x - x0) / 26, (x1 - x) / 40, inBand ? gx / 22 : 1);
       const h = Math.max(0.5, (LID_FIN.h[0] + (LID_FIN.h[1] - LID_FIN.h[0]) * Math.pow(u, 0.9)) * Math.sqrt(Math.max(0, ends)));
       const t = (LID_FIN.t[0] + (LID_FIN.t[1] - LID_FIN.t[0]) * Math.pow(u, 0.9)) * (0.55 + 0.45 * Math.sqrt(Math.max(0, ends)));
       const p0 = P(x, z);
-      const nn = N(x, z);
+      // (the two in the middle, either side of the valley between the lobes, where the skin's slope turns sharply across,
+      // stand straight up, so that their crests run straight and do not wander with the slope)
+      const nn = Math.abs(c) < 0.1 ? ([0, -1, 0] as FwVec3) : N(x, z);
       const side = vnorm([0, nn[2], -nn[1]]);
 
       rows.push(finSection(t, h).map((q) => ({
@@ -318,30 +309,97 @@ function buildLidFins(b: MeshBuilder) {
   }
 }
 
-// The double flange round the plenum's top: the upper plate (the lid's), a fine groove, the lower (the body's); and on
-// it two staggered rows of socket-head bolts along both sides, and three round the back and the front
+// The double flange round the plenum's top: the upper plate (the lid's), a fine groove, the lower (the body's); broad, out
+// under the fuel rails; on it one row of big hex bolts round its outer edge, each on a washer; and from it, a bracket at
+// each cylinder holding up the fuel rail over it
+const FLANGE_O = 24; // how far the flange stands out round the lid
+const BOLT_O = 15; // the bolts' row, out from the lid's edge
+
+function hexBolt(b: MeshBuilder, x: number, y: number, z: number) {
+  const up: FwVec3 = [0, -1, 0];
+
+  b.prismDir([x, y, z], up, [1, 0, 0], [0, 0, 1], 7.6, 1.2, 24, 0, MAT_STEEL_BRIGHT, MAT_STEEL_BRIGHT); // the washer
+  b.prismDir([x, y - 1.2, z], up, [1, 0, 0], [0, 0, 1], 6.2, 4.6, 6, 0.4, MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE); // the head, a big hex
+  b.prismDir([x, y - 5.8, z], up, [1, 0, 0], [0, 0, 1], 2.6, 0.5, 12, 0, MAT_STEEL_BRIGHT, MAT_STEEL_BRIGHT); // the bolt's end
+}
+
 function buildFlange(b: MeshBuilder) {
   const { yLid, yFlange, xf, xr } = PLENUM;
   const ym = (yLid + yFlange) / 2;
 
-  plate(b, outline(14), yLid, ym - 0.8, GREY, GREY);
-  plate(b, outline(11.5), ym - 0.8, ym + 0.8, DEEP, DEEP);
-  plate(b, outline(14), ym + 0.8, yFlange, GREY, GREY);
+  plate(b, outline(FLANGE_O), yLid, ym - 0.8, GREY, GREY);
+  plate(b, outline(FLANGE_O - 2.5), ym - 0.8, ym + 0.8, DEEP, DEEP);
+  plate(b, outline(FLANGE_O), ym + 0.8, yFlange, GREY, GREY);
 
   const pitch = (CT_X[1] - CT_X[0]) / 2;
+  const TAB = 2.4; // the brackets' foot, a plate under the bolt
 
   for (let x = xf + 30, k = 0; x < xr - 40; x += pitch, k++) {
     for (const sd of [-1, 1]) {
-      const z = sd * (k % 2 === 0 ? plenumW(x) + 2 : plenumW(x) + 9.5);
+      const z = sd * (plenumW(x) + BOLT_O);
+      const bracket = k % 2 === 1 && k < 2 * CT_X.length; // (one at each cylinder)
 
-      socketCap(b, [x, yLid, z], [0, -1, 0], 3.6);
+      if (bracket) railBracket(b, x, z, sd, TAB);
+      hexBolt(b, x, yLid - (bracket ? TAB : 0), z);
     }
   }
 
-  for (const f of [-0.6, 0, 0.6]) {
-    socketCap(b, [xr + 6, yLid, f * plenumW(xr)], [0, -1, 0], 3.6);
-    socketCap(b, [xf - 6, yLid, f * 1.2 * plenumW(xf)], [0, -1, 0], 3.6);
+  // five across the back, evenly spaced along the bolts' line from one rounded corner to the other
+  {
+    const line = outline(BOLT_O).filter(([x]) => x > xr - 22);
+    // (in order round the back: the -z side's end, across, the +z side's end)
+    const back = line.slice().sort((p, q) => Math.atan2(p[1], p[0] - (xr - 60)) - Math.atan2(q[1], q[0] - (xr - 60)));
+    const len: number[] = [0];
+
+    for (let k = 1; k < back.length; k++) len.push(len[k - 1] + Math.hypot(back[k][0] - back[k - 1][0], back[k][1] - back[k - 1][1]));
+
+    const total = len[len.length - 1];
+
+    for (let i = 0; i < 5; i++) {
+      const t = (total * i) / 4;
+      let k = 1;
+
+      while (k < back.length - 1 && len[k] < t) k++;
+
+      const u = (t - len[k - 1]) / (len[k] - len[k - 1] || 1);
+
+      hexBolt(b, back[k - 1][0] + (back[k][0] - back[k - 1][0]) * u, yLid, back[k - 1][1] + (back[k][1] - back[k - 1][1]) * u);
+    }
   }
+  for (const f of [-0.6, 0, 0.6]) hexBolt(b, xf - BOLT_O, yLid, f * plenumW(xf));
+}
+
+// A bracket holding up the fuel rail over the flange: its foot a plate under one of the flange's bolts, a post standing
+// up from it beside the bolt, and round the rail a clamp, split on top, a bolt through it
+function railBracket(b: MeshBuilder, x: number, zb: number, sd: number, tab: number) {
+  const { yLid } = PLENUM;
+  const [yR, zR] = railWorld(sd > 0 ? 1 : 0);
+  const xp = x + 15; // the post's middle, beside the bolt
+  const CR = 13.6; // the clamp's outer radius (the rail's is 10)
+  const z0 = Math.min(zb, zR) - 9;
+  const z1 = Math.max(zb, zR) + 9;
+
+  // the foot, its corners off
+  b.box(x - 10, xp + 5, yLid - tab, yLid, z0, z1, MAT_CLAMP_BLACK);
+  // the post, leaning out from the foot up to the clamp
+  {
+    const f: FwVec3 = [xp, yLid - tab, zb];
+    const c: FwVec3 = [xp, yR + CR - 1, zR];
+    const d = vnorm([0, c[1] - f[1], c[2] - f[2]]);
+    const len = Math.hypot(c[1] - f[1], c[2] - f[2]);
+    const e2: FwVec3 = [0, d[2], -d[1]];
+
+    b.prismDir(f, d, [1, 0, 0], e2, 5.6, len, 4, Math.PI / 4, MAT_CLAMP_BLACK, MAT_CLAMP_BLACK);
+    b.prismDir(vadd(f, vscale(e2, 3.6)), d, [1, 0, 0], e2, 1.3, len, 6, 0, MAT_CLAMP_BLACK_DEEP, MAT_CLAMP_BLACK_DEEP); // a rib down its face
+  }
+  // the clamp round the rail
+  b.revolve({ x0: xp - 5, r0: CR, x1: xp + 5, r1: CR, n: [0, 1], m: MAT_CLAMP_BLACK, steps: 32, cy: yR, cz: zR });
+  for (const s of [-1, 1]) b.revolve({ x0: xp + s * 5, r0: 10, x1: xp + s * 5, r1: CR, n: [s, 0], m: MAT_CLAMP_BLACK_DEEP, steps: 32, cy: yR, cz: zR });
+  // its lug on top, split, and the bolt across it
+  b.box(xp - 5, xp + 5, yR - CR - 6, yR - CR + 1, zR - 5, zR + 5, MAT_CLAMP_BLACK);
+  b.box(xp - 5.05, xp + 5.05, yR - CR - 6.05, yR - CR + 1, zR - 0.5, zR + 0.5, MAT_CLAMP_BLACK_DEEP);
+  b.prismDir([xp, yR - CR - 3, zR + 5], [0, 0, 1], [1, 0, 0], [0, 1, 0], 3.2, 2.8, 6, 0.3, MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE);
+  b.prismDir([xp, yR - CR - 3, zR - 5], [0, 0, -1], [1, 0, 0], [0, 1, 0], 3.2, 2.4, 6, 0, MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE);
 }
 
 // The lower body under the flange: its section along the plenum, its ends closed; a column under the flange over each
@@ -394,41 +452,96 @@ function buildBody(b: MeshBuilder, xs: number[]) {
   }
 }
 
-// At the back, past the last runners, the V under the body closed down to where the heads' walls meet: a wedge cast
-// with the body, let into the walls a little, its back face flat, its front sloping down and forward
-function buildVClose(b: MeshBuilder) {
-  const x1 = CT_X[CT_X.length - 1] + 120; // its back face
-  const len = 50;
-  const ramp = 30;
-  const top = PLENUM.yb;
-  const apex = -214;
-  const wall = (y: number) => 54 + ((115 - 54) * (y + 304)) / (-402 + 304) - 2;
-  const sec: Array<[number, number]> = [];
+// At both ends, the V under the body closed right down to where the walls of the heads and the block meet: cast with the
+// body, filling the V whole, let into the walls so that no gap shows; at the back a wedge from under the body, its back face
+// flat, its front sloping down and forward; at the front a block from under the flange, its face flush with the heads'
+// fronts, so the red runs down the V as one casting
+function vSection(top: Array<[number, number]>, from: number, sink = 4, round = 0): Array<[number, number]> {
+  const apex = -208; // (a little below where the walls meet: the casting closes the V's foot)
+  const half: Array<[number, number]> = [...top];
 
-  for (let k = 0; k <= 12; k++) {
-    const y = top + ((apex - top) * k) / 12;
+  if (round > 0) {
+    // down the walls to where it is `round` from the middle, then round under the V's foot, as the block's own is rounded
+    const yr = -304 + ((round - sink - 54) * (-402 + 304)) / (115 - 54); // where wallZ + sink = round
 
-    sec.push([Math.max(4, wall(y)), y]);
+    for (let k = 1; k <= 14; k++) {
+      const y = from + ((yr - from) * k) / 14;
+
+      half.push([wallZ(y) + sink, y]);
+    }
+    for (let k = 1; k <= 8; k++) {
+      const t = (k / 8) * (Math.PI / 2);
+
+      half.push([round * Math.cos(t), yr + round * Math.sin(t)]);
+    }
+  } else {
+    for (let k = 1; k <= 14; k++) {
+      const y = from + ((apex - from) * k) / 14;
+
+      half.push([Math.max(0, wallZ(y) + sink), y]);
+    }
   }
-  for (let k = 12; k >= 0; k--) sec.push([-sec[k][0], sec[k][1]]);
 
-  const front = (y: number) => x1 - len + (ramp * (y - top)) / (apex - top);
-  const back = sec.map(([z, y]): FwVec3 => [x1, y, z]);
-  const fr = sec.map(([z, y]): FwVec3 => [front(y), y, z]);
-  const mid = (top + apex) / 2;
+  return [...half, ...half.slice().reverse().map(([z, y]): [number, number] => [-z, y])];
+}
 
-  b.flatFan([x1, mid, 0], [...back, back[0]], [1, 0, 0], GREY);
-  b.flatFan([front(mid), mid, 0], [...fr, fr[0]], [-1, 0, 0], DEEP);
+function vBlock(b: MeshBuilder, sec: Array<[number, number]>, xf0: (y: number) => number, xf1: (y: number) => number, face: -1 | 1, faceMat: FwMaterial) {
+  const A = sec.map(([z, y]): FwVec3 => [xf0(y), y, z]);
+  const B = sec.map(([z, y]): FwVec3 => [xf1(y), y, z]);
+  const ym = sec.reduce((m, [, y]) => m + y, 0) / sec.length;
 
-  for (let k = 0; k + 1 < sec.length; k++) {
+  // its outer face, and the inner one
+  const outer = face > 0 ? B : A;
+  const inner = face > 0 ? A : B;
+
+  b.flatFan([outer[0][0], ym, 0], [...outer, outer[0]], [face, 0, 0], faceMat);
+  b.flatFan([inner[0][0], ym, 0], [...inner, inner[0]], [-face, 0, 0], DEEP);
+
+  const n = sec.length;
+  const cz = 0;
+  const cy = ym;
+
+  for (let k = 0; k < n; k++) {
+    const j = (k + 1) % n;
     const [z0, y0] = sec[k];
-    const [z1, y1] = sec[k + 1];
-    const nz = y1 - y0;
-    const ny = -(z1 - z0);
+    const [z1, y1] = sec[j];
+    let nz = y1 - y0;
+    let ny = -(z1 - z0);
     const l = Math.hypot(nz, ny) || 1;
-    const sgn = (z0 + z1) * nz >= 0 ? 1 : -1;
 
-    b.flatQuad(back[k], back[k + 1], fr[k + 1], fr[k], [0, (sgn * ny) / l, (sgn * nz) / l], GREY);
+    nz /= l;
+    ny /= l;
+    if (((z0 + z1) / 2 - cz) * nz + ((y0 + y1) / 2 - cy) * ny < 0) {
+      nz = -nz;
+      ny = -ny;
+    }
+
+    b.flatQuad(A[k], A[j], B[j], B[k], [0, ny, nz], GREY);
+  }
+}
+
+function buildVClose(b: MeshBuilder) {
+  // at the back: from under the body (its flat bottom) down
+  {
+    const x1 = HEAD.x1 + DRIVE_DX + 2.5; // its back face, a little proud of the block's end: it wraps over its rounded edges
+    const len = 52;
+    const ramp = 30;
+    const top = PLENUM.yb;
+    const zt = wallZ(top) + 16;
+    const sec = vSection([[zt, top]], top, 16, 15); // (over the walls' rounded edges, and round under the V's rounded foot)
+    const apex = -198;
+
+    vBlock(b, sec, (y) => x1 - len + (ramp * (y - top)) / (apex - top), () => x1, 1, GREY);
+  }
+
+  // at the front: from under the flange, the body's own section, then down the V; from the heads' fronts back into the body
+  {
+    const xa = CT_X[0] - 112; // the heads' fronts
+    const xb = PLENUM.xf + 12; // into the body
+    const top = bodySection(PLENUM.xf).map(([z, y]): [number, number] => [z, y]);
+    const from = top[top.length - 1][1];
+
+    vBlock(b, vSection(top, from), () => xa, () => xb, -1, GREY);
   }
 }
 
@@ -488,15 +601,58 @@ function buildGateParts(b: MeshBuilder) {
     socketCap(b, [p[0] - 34, p[1], p[2]], [-1, 0, 0], 4);
   }
 
-  // the square flange: its plate, the bore dark in its face, and the four holes at its corners
+  // the square flange: its plate, its corners rounded, cut short at its foot so that it stands clear over the timing
+  // chains' covers; the bore dark in its face, and the four holes at its corners
   const half = gateR + 26;
+  const yTop = y - half;
+  const yBot = y + half - 16; // (its foot, short: over the covers)
+  const RC = 16; // its corners' radius
+  const rrect = (inset: number): Array<[number, number]> => {
+    const pts: Array<[number, number]> = []; // [y, z]
+    const r = RC - inset;
+    const cs: Array<[number, number, number]> = [[yBot - inset - r, half - inset - r, 0], [yTop + inset + r, half - inset - r, 1], [yTop + inset + r, -half + inset + r, 2], [yBot - inset - r, -half + inset + r, 3]];
 
-  b.box(xg, xg + 14, y - half, y + half, -half, half, GREY);
-  b.box(xg - 0.6, xg, y - half + 3, y + half - 3, -half + 3, half - 3, MAT_ALU_TURNED);
+    for (const [cy, cz, q] of cs) {
+      for (let k = 0; k <= 6; k++) {
+        const a = ((q + k / 6) * Math.PI) / 2;
+
+        pts.push([cy + r * Math.cos(a), cz + r * Math.sin(a)]);
+      }
+    }
+
+    return pts;
+  };
+  const plateRR = (x0: number, x1: number, inset: number, mFace: FwMaterial, mSide: FwMaterial) => {
+    const pts = rrect(inset);
+    const ym = (yTop + yBot) / 2;
+
+    b.flatFan([x0, ym, 0], [...pts, pts[0]].map(([py, pz]): FwVec3 => [x0, py, pz]), [-1, 0, 0], mFace);
+    b.flatFan([x1, ym, 0], [...pts, pts[0]].map(([py, pz]): FwVec3 => [x1, py, pz]), [1, 0, 0], mSide);
+    for (let k = 0; k < pts.length; k++) {
+      const [ya, za] = pts[k];
+      const [yb2, zb2] = pts[(k + 1) % pts.length];
+      const l = Math.hypot(yb2 - ya, zb2 - za) || 1;
+      let ny = (zb2 - za) / l;
+      let nz = -(yb2 - ya) / l;
+
+      if ((ya - ym) * ny + za * nz < 0) {
+        ny = -ny;
+        nz = -nz;
+      }
+      b.flatQuad([x0, ya, za], [x1, ya, za], [x1, yb2, zb2], [x0, yb2, zb2], [0, ny, nz], mSide);
+    }
+  };
+
+  plateRR(xg, xg + 14, 0, GREY, GREY);
+  plateRR(xg - 0.6, xg, 3, MAT_ALU_TURNED, MAT_ALU_TURNED);
   b.prismDir([xg - 0.6, y, 0], [-1, 0, 0], [0, 1, 0], [0, 0, 1], gateR, 0.4, 48, 0, MAT_PIPE_BLACK, MAT_PIPE_BLACK);
 
+  const boltAt = (dy: number, dz: number): [number, number] => [dy < 0 ? yTop + 14 : yBot - 14, dz * (half - 14)];
+
   for (const [dy, dz] of [[-1, -1], [-1, 1], [1, -1], [1, 1]]) {
-    socketCap(b, [xg - 0.6, y + dy * (half - 12), dz * (half - 12)], [-1, 0, 0], 4.6);
+    const [by, bz] = boltAt(dy, dz);
+
+    socketCap(b, [xg - 0.6, by, bz], [-1, 0, 0], 4.6);
   }
 
   // fins in relief on its face, upright, close together, as on the timing chain's cover: each a thin bar, parted round the
@@ -511,11 +667,21 @@ function buildGateParts(b: MeshBuilder) {
 
     for (let z = -half + 8; z <= half - 8 + 1e-6; z += pitch) {
       const runs: Array<[number, number]> = [];
-      let a = y - half + 6;
-      const end = y + half - 6;
-      // the stretches of y along this fin that are clear of the bore and of the corner bolts
-      const blocked = (yy: number) => Math.hypot(yy - y, z) < clearBore
-        || [[-1, -1], [-1, 1], [1, -1], [1, 1]].some(([dy, dz]) => Math.hypot(yy - (y + dy * (half - 12)), z - dz * (half - 12)) < clearBolt);
+      let a = yTop + 6;
+      const end = yBot - 6;
+      // the stretches of y along this fin that are clear of the bore, of the corner bolts and of the rounded corners
+      const inCorner = (yy: number) => {
+        const cy = Math.min(Math.max(yy, yTop + RC), yBot - RC);
+        const cz = Math.min(Math.max(z, -half + RC), half - RC);
+
+        return Math.hypot(yy - cy, z - cz) > RC - 6;
+      };
+      const blocked = (yy: number) => Math.hypot(yy - y, z) < clearBore || inCorner(yy)
+        || [[-1, -1], [-1, 1], [1, -1], [1, 1]].some(([dy, dz]) => {
+          const [by, bz] = boltAt(dy, dz);
+
+          return Math.hypot(yy - by, z - bz) < clearBolt;
+        });
 
       for (let yy = a; yy <= end; yy += 0.5) {
         if (blocked(yy)) {

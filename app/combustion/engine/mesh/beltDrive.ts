@@ -48,6 +48,12 @@ import {
   MAT_PUMP_RIB,
   MAT_PUMP_RIB_SIDE,
   MAT_TENSIONER,
+  MAT_TENS_ARM,
+  MAT_TENS_BORE,
+  MAT_TENS_FACE,
+  MAT_TENS_RIB,
+  MAT_TENS_SPRING,
+  MAT_TENS_SPRING_EDGE,
   MAT_TERMINAL_RED,
   MAT_TIMING_MARK,
   MAT_VT_HOLE,
@@ -325,35 +331,40 @@ export function buildAlternatorPulley(b: B) {
       tip.push([xb - h, rr * Math.cos(aa), rr * Math.sin(aa)]);
     }
 
+    // each point moved out to the blade's two faces square to the blade's own curve there (the mean of the segments either
+    // side), so that the faces run on unbroken through every bend, smooth, with no notch at the joins
+    const off = 1.1;
+    const side = root.map((_, k) => {
+      const pa = root[Math.max(0, k - 1)];
+      const pb = root[Math.min(N, k + 1)];
+      const ty = pb[1] - pa[1];
+      const tz = pb[2] - pa[2];
+      const l = Math.hypot(ty, tz) || 1;
+
+      return [-tz / l, ty / l] as [number, number];
+    });
+    const sh = (p: FwVec3, k: number, sg: number): FwVec3 => [p[0], p[1] + side[k][0] * off * sg, p[2] + side[k][1] * off * sg];
+
     for (let s2 = 0; s2 < N; s2++) {
-      const p0 = root[s2];
-      const p1 = root[s2 + 1];
-      const t0 = tip[s2];
-      const t1 = tip[s2 + 1];
-      const ty = p1[1] - p0[1];
-      const tz = p1[2] - p0[2];
-      // both faces of the blade, and its edge
-      const nA: FwVec3 = [0, -tz, ty];
-      const off = 1.1;
-      const ny = -tz / (Math.hypot(ty, tz) || 1);
-      const nz = ty / (Math.hypot(ty, tz) || 1);
-      const shift = (p: FwVec3, k: number): FwVec3 => [p[0], p[1] + ny * off * k, p[2] + nz * off * k];
+      const nA0: FwVec3 = [0, side[s2][0], side[s2][1]];
+      const nA1: FwVec3 = [0, side[s2 + 1][0], side[s2 + 1][1]];
+      const nB0: FwVec3 = [0, -side[s2][0], -side[s2][1]];
+      const nB1: FwVec3 = [0, -side[s2 + 1][0], -side[s2 + 1][1]];
+      const quadS = (q0: FwVec3, q1: FwVec3, q2: FwVec3, q3: FwVec3, n0: FwVec3, n1: FwVec3, m: FwMaterial) => {
+        for (const [q, n] of [[q0, n0], [q1, n1], [q2, n1], [q0, n0], [q2, n1], [q3, n0]] as Array<[FwVec3, FwVec3]>) b.push(q, n, m, 1);
+      };
 
       // (the leading face lit, the trailing one dark, the tip bright: the blades stand out of the backplate)
-      b.flatQuad(shift(p0, 1), shift(p1, 1), shift(t1, 1), shift(t0, 1), nA, MAT_ALT_FAN);
-      b.flatQuad(shift(p0, -1), shift(p1, -1), shift(t1, -1), shift(t0, -1), [0, tz, -ty], MAT_ALT_FAN_BACK);
-      b.flatQuad(shift(t0, 1), shift(t1, 1), shift(t1, -1), shift(t0, -1), [-1, 0, 0], MAT_ALT_FAN_EDGE);
+      quadS(sh(root[s2], s2, 1), sh(root[s2 + 1], s2 + 1, 1), sh(tip[s2 + 1], s2 + 1, 1), sh(tip[s2], s2, 1), nA0, nA1, MAT_ALT_FAN);
+      quadS(sh(root[s2], s2, -1), sh(root[s2 + 1], s2 + 1, -1), sh(tip[s2 + 1], s2 + 1, -1), sh(tip[s2], s2, -1), nB0, nB1, MAT_ALT_FAN_BACK);
+      b.flatQuad(sh(tip[s2], s2, 1), sh(tip[s2 + 1], s2 + 1, 1), sh(tip[s2 + 1], s2 + 1, -1), sh(tip[s2], s2, -1), [-1, 0, 0], MAT_ALT_FAN_EDGE);
     }
 
+    // its inner end, at the hub, closed
+    b.flatQuad(sh(root[0], 0, 1), sh(tip[0], 0, 1), sh(tip[0], 0, -1), sh(root[0], 0, -1), [0, -Math.cos(a0), -Math.sin(a0)], MAT_ALT_FAN_BACK);
+
     // the blade's outer end
-    b.flatQuad(
-      [root[N][0], root[N][1] + 1.1 * Math.cos(a0 - 0.75 + Math.PI / 2), root[N][2] + 1.1 * Math.sin(a0 - 0.75 + Math.PI / 2)],
-      [tip[N][0], tip[N][1] + 1.1 * Math.cos(a0 - 0.75 + Math.PI / 2), tip[N][2] + 1.1 * Math.sin(a0 - 0.75 + Math.PI / 2)],
-      [tip[N][0], tip[N][1] - 1.1 * Math.cos(a0 - 0.75 + Math.PI / 2), tip[N][2] - 1.1 * Math.sin(a0 - 0.75 + Math.PI / 2)],
-      [root[N][0], root[N][1] - 1.1 * Math.cos(a0 - 0.75 + Math.PI / 2), root[N][2] - 1.1 * Math.sin(a0 - 0.75 + Math.PI / 2)],
-      [0, Math.cos(a0 - 0.75), Math.sin(a0 - 0.75)],
-      MAT_ALT_FAN
-    );
+    b.flatQuad(sh(root[N], N, 1), sh(tip[N], N, 1), sh(tip[N], N, -1), sh(root[N], N, -1), [0, Math.cos(a0 - 0.75), Math.sin(a0 - 0.75)], MAT_ALT_FAN);
   }
 
   // the shaft's collar through the backplate to the rotor
@@ -796,16 +807,69 @@ export function buildAccessories(b: B) {
   // ---- the tensioner: a cast base bolted to the cover, a spring can on its pivot, the arm out to its pulley's spindle ----
   {
     const { y, z } = PULLEYS.idler;
-    const py = y + 30; // the pivot, toward the crank
-    const pz = z + 22;
+    const py = y + 58; // the pivot, toward the crank: out beside the pulley, so that the can shows, the arm long
+    const pz = z + 42;
     const x0 = behind + 3; // the arm's front
     const x1 = back; // its base on the cover
 
-    // the spring can and the base, round the pivot
-    b.revolve({ x0: x0 + 6, r0: 19, x1: x1, r1: 19, n: [0, 1], m: MAT_TENSIONER, steps: 64, cy: py, cz: pz });
-    b.revolve({ x0: x0 + 6, r0: 0, x1: x0 + 6, r1: 19, n: [-1, 0], m: MAT_TENSIONER, steps: 64, cy: py, cz: pz });
-    b.revolve({ x0: x0 + 5.9, r0: 0, x1: x0 + 5.9, r1: 9, n: [-1, 0], m: MAT_PUMP_MACH, steps: 32, cy: py, cz: pz });
-    frontBolt(b, x0 + 5.8, py, pz, 5.6);
+    // the spring can and the base, round the pivot: die-cast, the alternator's dark metallic grey, fine ribs along its
+    // barrel; its front open, so that the coiled spring inside shows: a flat spiral of blued spring steel, its inner end
+    // hooked on the pivot's hub, its outer end on the can's wall, winding the arm (and its pulley) into the belt
+    const RO = 19; // the can's outside
+    const RI = 14.5; // its bore
+    const xf = x0 + 6; // its front face
+    const xd = xf + 8; // the floor of its bore
+
+    b.revolve({ x0: xf, r0: RO, x1: x1, r1: RO, n: [0, 1], m: MAT_TENSIONER, steps: 64, cy: py, cz: pz });
+    b.revolve({ x0: xf, r0: RI, x1: xf, r1: RO, n: [-1, 0], m: MAT_TENS_FACE, steps: 64, cy: py, cz: pz }); // its front rim, turned
+    b.revolve({ x0: xf, r0: RI, x1: xd, r1: RI, n: [0, -1], m: MAT_TENS_BORE, steps: 64, cy: py, cz: pz }); // the bore's wall
+    b.revolve({ x0: xd, r0: 0, x1: xd, r1: RI, n: [-1, 0], m: MAT_TENS_BORE, steps: 64, cy: py, cz: pz }); // its floor
+    // the fine ribs along the barrel
+    for (let k = 0; k < 56; k++) {
+      const a = (k / 56) * Math.PI * 2;
+      const ca = Math.cos(a);
+      const sa = Math.sin(a);
+
+      b.prismDir([xf + 1.2, py + RO * sa, pz + RO * ca], [1, 0, 0], [0, sa, ca], [0, ca, -sa], 0.6, x1 - xf - 2, 6, 0, MAT_TENS_RIB, MAT_TENS_RIB);
+    }
+    // the hub on the pivot, through the spring, out to the front
+    b.revolve({ x0: x0 + 0.6, r0: 5.6, x1: xd, r1: 5.6, n: [0, 1], m: MAT_PUMP_MACH, steps: 32, cy: py, cz: pz });
+    b.revolve({ x0: x0 + 0.6, r0: 0, x1: x0 + 0.6, r1: 5.6, n: [-1, 0], m: MAT_PUMP_MACH, steps: 32, cy: py, cz: pz });
+    frontBolt(b, x0 + 0.5, py, pz, 5.6);
+    // the spring: a flat spiral strip, four turns from the hub out to the wall
+    {
+      const T = 4;
+      const r0 = 6.4;
+      const r1 = RI - 1.2;
+      const th = 0.45; // half its thickness
+      const sx0 = xf + 1;
+      const sx1 = xd - 0.6;
+      const NS = 220;
+      const at = (i: number) => {
+        const t = i / NS;
+        const a = t * T * Math.PI * 2 + 0.6;
+        const r = r0 + (r1 - r0) * t;
+
+        return { r, c: Math.cos(a), s: Math.sin(a) };
+      };
+
+      for (let i = 0; i < NS; i++) {
+        const A = at(i);
+        const C = at(i + 1);
+        const Q = (q: typeof A, dr: number, x: number): FwVec3 => [x, py + (q.r + dr) * q.s, pz + (q.r + dr) * q.c];
+
+        b.flatQuad(Q(A, th, sx0), Q(C, th, sx0), Q(C, th, sx1), Q(A, th, sx1), [0, A.s, A.c], MAT_TENS_SPRING); // outer face
+        b.flatQuad(Q(A, -th, sx1), Q(C, -th, sx1), Q(C, -th, sx0), Q(A, -th, sx0), [0, -A.s, -A.c], MAT_TENS_SPRING); // inner face
+        b.flatQuad(Q(A, -th, sx0), Q(C, -th, sx0), Q(C, th, sx0), Q(A, th, sx0), [-1, 0, 0], MAT_TENS_SPRING_EDGE); // its front edge, bright
+      }
+      // its outer end, bent and hooked into a slot in the wall; its inner end into the hub's slot
+      const E = at(NS);
+
+      b.box(xf + 1, xd - 0.6, py + RI * E.s - 1.2, py + RI * E.s + 1.2, pz + RI * E.c - 1.2, pz + RI * E.c + 1.2, MAT_TENS_SPRING);
+      const S = at(0);
+
+      b.box(xf + 1, xd - 0.6, py + 5.6 * S.s - 1, py + 5.6 * S.s + 1, pz + 5.6 * S.c - 1, pz + 5.6 * S.c + 1, MAT_TENS_SPRING);
+    }
 
     // its stop and wear-indicator arrow, cast on the can's face
     b.box(x0 + 5, x0 + 6, py - 16, py - 12, pz - 1.5, pz + 1.5, MAT_TIMING_MARK);
@@ -819,13 +883,43 @@ export function buildAccessories(b: B) {
     const ny = -uz;
     const nz = uy;
     const w = 9;
-    const xa = x0 + 6;
-    const xb = behind + 12;
+    // (in front of the can, over its open face: the spring shows round it)
+    const xa = x0 + 1.5;
+    const xb = x0 + 5.8;
     const P = (t: number, s: number, x: number): FwVec3 => [x, py + uy * t + ny * s, pz + uz * t + nz * s];
 
-    b.flatQuad(P(0, -w, xa), P(len, -w * 0.7, xa), P(len, w * 0.7, xa), P(0, w, xa), [-1, 0, 0], MAT_TENSIONER);
-    b.flatQuad(P(0, w, xa), P(len, w * 0.7, xa), P(len, w * 0.7, xb), P(0, w, xb), [0, ny, nz], MAT_TENSIONER);
-    b.flatQuad(P(0, -w, xa), P(len, -w * 0.7, xa), P(len, -w * 0.7, xb), P(0, -w, xb), [0, -ny, -nz], MAT_TENSIONER);
+    // its half width along it: broad at its root, round the pivot, its sides running straight in to halfway, a trapezoid;
+    // then straight on, slim, to the pulley
+    const W0 = 12; // at its root (the round end over the pivot is as wide)
+    const W1 = 6.6; // from halfway
+    const tm = len * 0.5;
+    const hw = (t: number) => (t < tm ? W0 + ((W1 - W0) * t) / tm : W1 + ((w * 0.7 - W1) * (t - tm)) / (len - tm));
+    const NA = 40;
+
+    for (let i = 0; i < NA; i++) {
+      const t0 = (len * i) / NA;
+      const t1 = (len * (i + 1)) / NA;
+      const h0 = hw(t0);
+      const h1 = hw(t1);
+      const sl = (h1 - h0) / (t1 - t0); // its sides' slope, for their normals
+
+      b.flatQuad(P(t0, -h0, xa), P(t1, -h1, xa), P(t1, h1, xa), P(t0, h0, xa), [-1, 0, 0], MAT_TENS_ARM);
+      for (const sg of [-1, 1]) {
+        const nl = Math.hypot(1, sl);
+        const nn: FwVec3 = [0, (sg * ny - sl * uy) / nl, (sg * nz - sl * uz) / nl];
+
+        b.flatQuad(P(t0, sg * h0, xa), P(t1, sg * h1, xa), P(t1, sg * h1, xb), P(t0, sg * h0, xb), nn, MAT_TENS_ARM);
+      }
+    }
+    // the arm's round end over the pivot
+    b.revolve({ x0: xa, r0: 0, x1: xa, r1: W0, n: [-1, 0], m: MAT_TENS_ARM, steps: 40, cy: py, cz: pz });
+    b.revolve({ x0: xa, r0: W0, x1: xb, r1: W0, n: [0, 1], m: MAT_TENS_ARM, steps: 40, cy: py, cz: pz });
+    // fine ribs along it in relief, on its face
+    for (const s0 of [-4.6, -1.8, 1.8, 4.6]) {
+      const d: FwVec3 = [0, uy, uz];
+
+      b.prismDir(P(w + 1, s0 * 0.85, xa), d, [1, 0, 0], [0, ny, nz], 0.75, len - w - 4, 6, 0, MAT_TENS_RIB, MAT_TENS_RIB);
+    }
 
     // the spindle behind the pulley, back to the arm
     b.revolve({ x0: behind, r0: 8, x1: xb, r1: 8, n: [0, 1], m: MAT_PUMP_MACH, steps: 32, cy: y, cz: z });
