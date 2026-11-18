@@ -205,7 +205,8 @@ const VIEW_CSS = `
 .ak-vp { position: absolute; left: 12px; top: ${VIEW_TOP}px; bottom: 8px; display: flex; align-items: flex-start; gap: 6px; pointer-events: none; z-index: 2; }
 .ak-vp > * { pointer-events: auto; }
 .ak-vp-tab { width: 26px; height: 46px; border-radius: 7px; border: 1px solid #3a3e46; background: linear-gradient(180deg, #23262b, #121316);
-  color: #d8dce3; display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0;
+  color: #d8dce3; display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; margin: 0; box-sizing: border-box;
+  -webkit-appearance: none; appearance: none; -webkit-tap-highlight-color: transparent; touch-action: manipulation;
   box-shadow: 0 3px 8px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.07); }
 .ak-vp-tab:hover { color: #fff; border-color: #50555f; }
 .ak-vp-tab svg { transition: transform .25s ease; }
@@ -219,21 +220,28 @@ const VIEW_CSS = `
 .ak-vp-tip { position: absolute; left: 0; top: calc(100% + 6px); width: 190px; z-index: 3; padding: 6px 8px; border-radius: 6px;
   background: #1c1f24; border: 1px solid #3a3e46; box-shadow: 0 4px 12px rgba(0,0,0,0.6); color: #c3c8d0; font-size: 11px; line-height: 1.4;
   opacity: 0; visibility: hidden; transition: opacity .15s; pointer-events: none; }
-.ak-vp-label:hover .ak-vp-tip { opacity: 1; visibility: visible; }
-.ak-vp-switch { flex: none; position: relative; width: 34px; height: 19px; border-radius: 10px; background: #3a3e46; transition: background .2s; border: 0; padding: 0; cursor: pointer; }
-.ak-vp-switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 15px; height: 15px; border-radius: 50%; background: #f2f4f7; transition: transform .2s; }
+.ak-vp-label { outline: none; -webkit-tap-highlight-color: transparent; }
+.ak-vp-label:focus .ak-vp-tip { opacity: 1; visibility: visible; }
+.ak-vp-switch { flex: 0 0 34px; position: relative; display: block; box-sizing: border-box; width: 34px; height: 19px; min-width: 34px; max-width: 34px; min-height: 19px; max-height: 19px;
+  margin: 0; border-radius: 10px; background: #3a3e46; transition: background .2s; border: 0; padding: 0; cursor: pointer;
+  -webkit-appearance: none; appearance: none; font-size: 0; line-height: 0; vertical-align: middle; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+.ak-vp-switch::after { content: ""; position: absolute; top: 50%; left: 2px; box-sizing: border-box; width: 15px; height: 15px; margin-top: -7.5px; border-radius: 50%; background: #f2f4f7; transition: transform .2s; }
 .ak-vp-switch { box-shadow: inset 0 1px 2px rgba(0,0,0,0.45); transition: background .25s, box-shadow .25s; }
 .ak-vp-switch::after { box-shadow: 0 1px 3px rgba(0,0,0,0.5); }
 .ak-vp-switch[data-on="true"] { background: #2d8543; }
-.ak-vp-switch:hover { box-shadow: inset 0 1px 2px rgba(0,0,0,0.45), 0 0 0 3px rgba(190, 198, 210, 0.12), 0 0 14px 2px rgba(190, 198, 210, 0.22); }
-.ak-vp-switch[data-on="true"]:hover { background: #359c4f; box-shadow: inset 0 1px 2px rgba(0,0,0,0.3), 0 0 0 3px rgba(45, 133, 67, 0.32), 0 0 18px 4px rgba(53, 170, 85, 0.6); }
-.ak-vp-switch:hover::after { box-shadow: 0 0 8px 1px rgba(255,255,255,0.55), 0 1px 3px rgba(0,0,0,0.5); }
 .ak-vp-switch:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(53, 170, 85, 0.75); }
 .ak-vp-switch[data-on="true"]::after { transform: translateX(15px); }
+@media (hover: hover) {
+  .ak-vp-switch:hover { box-shadow: inset 0 1px 2px rgba(0,0,0,0.45), 0 0 0 3px rgba(190, 198, 210, 0.12), 0 0 14px 2px rgba(190, 198, 210, 0.22); }
+  .ak-vp-switch[data-on="true"]:hover { background: #359c4f; box-shadow: inset 0 1px 2px rgba(0,0,0,0.3), 0 0 0 3px rgba(45, 133, 67, 0.32), 0 0 18px 4px rgba(53, 170, 85, 0.6); }
+  .ak-vp-switch:hover::after { box-shadow: 0 0 8px 1px rgba(255,255,255,0.55), 0 1px 3px rgba(0,0,0,0.5); }
+  .ak-vp-label:hover .ak-vp-tip { opacity: 1; visibility: visible; }
+}
 @media (max-width: 600px), (max-height: 500px) and (orientation: landscape) {
   .ak-vp { top: ${Math.round(VIEW_TOP / 2)}px; left: 6px; }
   .ak-vp-tab { width: 20px; height: 36px; }
   .ak-vp-panel { width: 215px; padding: 10px; }
+  .ak-vp-tip { width: 160px; }
 }`;
 
 function ViewPanel({ onChange }: { onChange: () => void }) {
@@ -318,28 +326,28 @@ function ViewPanel({ onChange }: { onChange: () => void }) {
       <div className="ak-vp-panel" data-open={open} aria-hidden={!open}>
         <p className="ak-vp-title">View</p>
         <div className="ak-vp-row">
-          <span className="ak-vp-label">
+          <span className="ak-vp-label" tabIndex={open ? 0 : -1}>
             Belt, pulleys…
             <span className="ak-vp-tip" role="tooltip">Hides the belt, the pulleys, the alternator, the water pump, the power steering pump and the tensioner</span>
           </span>
           <button type="button" className="ak-vp-switch" role="switch" aria-checked={accessories} aria-label="Belt, pulleys and accessories" tabIndex={open ? 0 : -1} data-on={accessories} onClick={toggleAccessories} />
         </div>
         <div className="ak-vp-row">
-          <span className="ak-vp-label">
+          <span className="ak-vp-label" tabIndex={open ? 0 : -1}>
             Intercoolers
             <span className="ak-vp-tip" role="tooltip">Hides the two intercoolers: their cores, their fans, their tanks and the pipes' flanges on them</span>
           </span>
           <button type="button" className="ak-vp-switch" role="switch" aria-checked={intercoolers} aria-label="Intercoolers" tabIndex={open ? 0 : -1} data-on={intercoolers} onClick={toggleIntercoolers} />
         </div>
         <div className="ak-vp-row">
-          <span className="ak-vp-label">
+          <span className="ak-vp-label" tabIndex={open ? 0 : -1}>
             Air filters
             <span className="ak-vp-tip" role="tooltip">Hides the two air filters and their pipes into the turbocharger</span>
           </span>
           <button type="button" className="ak-vp-switch" role="switch" aria-checked={airIntake} aria-label="Air filters" tabIndex={open ? 0 : -1} data-on={airIntake} onClick={toggleAirIntake} />
         </div>
         <div className="ak-vp-row">
-          <span className="ak-vp-label">
+          <span className="ak-vp-label" tabIndex={open ? 0 : -1}>
             Intake plenum
             <span className="ak-vp-tip" role="tooltip">Hides the red intake plenum on top of the V, its throttle and the two cooled-air pipes that feed it (on the opaque engine; the transparent one leaves it out already)</span>
           </span>
