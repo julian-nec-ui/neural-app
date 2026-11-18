@@ -231,6 +231,15 @@ const VIEW_CSS = `
 .ak-vp-switch[data-on="true"] { background: #2d8543; }
 .ak-vp-switch:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(53, 170, 85, 0.75); }
 .ak-vp-switch[data-on="true"]::after { transform: translateX(15px); }
+/* (held against the page's own rules for its buttons on a phone or a tablet: a minimum height, side padding, a font size; the
+   switches and the tab keep their own shape everywhere) */
+.ak-vp .ak-vp-switch { width: 34px !important; height: 19px !important; min-width: 34px !important; max-width: 34px !important; min-height: 19px !important; max-height: 19px !important;
+  padding: 0 !important; margin: 0 !important; font-size: 0 !important; line-height: 0 !important; border: 0 !important; border-radius: 10px !important; flex: 0 0 34px !important; }
+.ak-vp .ak-vp-tab { padding: 0 !important; min-height: 0 !important; font-size: 0 !important; line-height: 0 !important; margin: 0 !important; flex: none !important; }
+.ak-vp .ak-vp-tab svg { display: block !important; width: 12px !important; height: 16px !important; flex: none !important; }
+@media (max-width: 600px), (max-height: 500px) and (orientation: landscape) {
+  .ak-vp .ak-vp-tab { width: 20px !important; height: 36px !important; }
+}
 @media (hover: hover) {
   .ak-vp-switch:hover { box-shadow: inset 0 1px 2px rgba(0,0,0,0.45), 0 0 0 3px rgba(190, 198, 210, 0.12), 0 0 14px 2px rgba(190, 198, 210, 0.22); }
   .ak-vp-switch[data-on="true"]:hover { background: #359c4f; box-shadow: inset 0 1px 2px rgba(0,0,0,0.3), 0 0 0 3px rgba(45, 133, 67, 0.32), 0 0 18px 4px rgba(53, 170, 85, 0.6); }
