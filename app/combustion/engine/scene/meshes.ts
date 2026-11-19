@@ -21,7 +21,7 @@ import { buildEngineMount } from "../mesh/engineMount";
 import { buildSmallFan } from "../mesh/fan";
 import { buildBlowOffValves, buildChargeCouplers, buildChargePipes, buildCoolPipeWelds, buildCoolPipes, buildIntercooler, buildIntercoolerTank } from "../mesh/intercooler";
 import { MAT_VT_HEAD_EX, MAT_VT_HEAD_IN, MAT_VT_VALVE_EX, MAT_VT_VALVE_IN } from "../mesh/materials";
-import { buildCollector, buildCollectorFittings, buildIntakePipes, buildIntakeWelds, buildTurboFittings, buildTurboIntakePipe, buildAirIntakeFittings } from "../mesh/plumbing";
+import { buildCollector, buildCollectorFittings, buildIntakePipes, buildIntakeWelds, buildRunnerDetail, buildPlenumLogs, buildTurboFittings, buildTurboIntakePipe, buildAirIntakeFittings } from "../mesh/plumbing";
 import { stretchTurn, buildStarterBody, buildStarterDisc, buildStarterDrive, buildStarterDriveShell, buildStarterFork, buildStarterPinion, buildStarterPlunger, buildStarterShaft, buildStarterShell, buildStarterSpring, buildStarterYoke } from "../mesh/starter";
 import { CAM_RC, CHAIN_K, CHAIN_SEP, CHAIN_TEETH, DRIVE, MARK_ANGLE } from "../mesh/timingChain/chainPath";
 import { buildChainLink } from "../mesh/timingChain/chainLink";
@@ -40,9 +40,9 @@ export const PART_NAMES = [
   "valveIn", "valveEx", "valveStatic", "spring", "camIn", "camEx", "camInB", "camExB", "towers", "deck", "deckB", "deckSlab", "deckSlabB",
   "headShell", "headShellB", "headSolid", "headSolidB", "headTop", "headTopB", "headWiring", "headWiringB", "linerRim", "turboHousing", "turboCasing", "intakePipes", "turboIntakePipe", "collector",
   "turboFilter", "seatIn", "seatEx", "turboWheelC", "turboWheelT", "collectorFittings", "turboFittings", "airIntakeFittings",
-  "intercooler", "blowOffValves", "manifoldWelds", "intakeWelds", "turbineArc", "timingCover", "starterShell", "starterYoke", "drySump", "drySumpShell", "drySumpShellB", "block", "icTank", "icTankB", "icTankLow", "icTankLowB", "icTankBare", "icTankBareB", "fanShroud", "fanRotor", "chargePipes", "chargePipesB", "coolPipes", "coolPipesB", "coolWelds", "chargeCouplers", "exhaustLogs", "exhaustLogsR", "exhaustLogsB", "exhaustLogsBR", "turboFeed", "turboFeedB", "exhaustStubs",
+  "intercooler", "blowOffValves", "manifoldWelds", "intakeWelds", "runnerDetail", "turbineArc", "timingCover", "starterShell", "starterYoke", "drySump", "drySumpShell", "drySumpShellB", "block", "icTank", "icTankB", "icTankLow", "icTankLowB", "icTankBare", "icTankBareB", "fanShroud", "fanRotor", "chargePipes", "chargePipesB", "coolPipes", "coolPipesB", "coolWelds", "chargeCouplers", "exhaustLogs", "exhaustLogsR", "exhaustLogsB", "exhaustLogsBR", "turboFeed", "turboFeedB", "exhaustStubs",
   "exhaustFlanges", "downpipes", "downpipesB", "mufflers", "starterBody", "starterShaft", "starterDrive", "starterDriveShell", "starterPinion", "starterPlunger",
-  "starterDisc", "starterSpring", "starterFork", "headTextA", "headTextB", "lidText", "vPlenum", "plenumGate", "intakeManifold", "gearCrank", "sumpFrontCover", "beltCrank", "beltAlternator", "beltPump", "beltIdler", "beltSteering", "beltAccessories", "beltPiece",
+  "starterDisc", "starterSpring", "starterFork", "headTextA", "headTextB", "lidText", "vPlenum", "plenumGate", "intakeManifold", "plenumLogs", "gearCrank", "sumpFrontCover", "beltCrank", "beltAlternator", "beltPump", "beltIdler", "beltSteering", "beltAccessories", "beltPiece",
   "gearIdler1", "idlerPost2", "idlerPost2Spaced", "sprocketIdler", "sprocketCam",
   "sprocketCamSpaced", "chainInner", "chainOuter", "guideFixed", "guideArm", "injector", "sparkPlug", "engineMount",
 ] as const;
@@ -152,9 +152,11 @@ function buildHeadMesh(): HeadMesh {
   part("drySumpShellB", () => buildDrySump(b, "shell", 1));
   part("block", () => buildBlock(b));
   part("intakeWelds", () => buildIntakeWelds(b));
+  part("runnerDetail", () => buildRunnerDetail(b));
   part("vPlenum", () => buildVPlenum(b));
   part("plenumGate", () => buildPlenumGate(b));
   part("intakeManifold", () => buildIntakeManifold(b));
+  part("plenumLogs", () => buildPlenumLogs(b));
   part("icTank", () => buildIntercoolerTank(b, 1));
   part("icTankB", () => buildIntercoolerTank(b, -1));
   part("icTankLow", () => buildIntercoolerTank(b, 1, true, false));

@@ -130,7 +130,7 @@ export function buildHeadWiring(b: MeshBuilder, shift = 0) {
       // then over to the injector, its tangent unbroken from end to end
       const z0 = RAIL_Z + 16; // where it leaves the boss
       const zd = RAIL_Z + LINE_DROP; // the line of its drop: out past the lid's flange
-      const B1 = bez([x, railY, z0], [x, railY, zd], [x, railY, zd], [x, top + 4, zd], 18);
+      const B1 = bez([x, railY, z0], [x, railY - 18, z0 + 4], [x, railY - 18, zd + 6], [x, top + 4, zd], 22); // (arching up over, then down: it shows)
       const B2 = bez([x, top + 4, zd], [x, top + 30, zd], [x, injTop - 24, INJ.z], [x, injTop - 3, INJ.z], 26);
       const line = [...B1, ...B2.slice(1)];
       sweepTube(b, curveFromPoints(line, 3), () => 2.4, MAT_FUEL_PIPE, { segments: 12 });

@@ -428,3 +428,8 @@ export const MAT_INJ_ORING = fwMat([150, 40, 30], 60, 0, 0.05);
 export const MAT_INJ_PLUG = fwMat([52, 55, 61], 90, 0, 0.1);
 export const MAT_INJ_LATCH = fwMat([214, 212, 204], 100, 0, 0.08);
 export const MAT_INJ_MOUNT = fwMat([138, 142, 149], 60, 0, 0.12); // their collar, washer and clamp: aluminium, matte, a little dark
+
+// The intake runners under the plenum: a lighter grey, matte, and their ribs along them, lighter still, catching the light
+export const MAT_RUNNER = fwMat([150, 155, 163], 30, 0, 0.03);
+export const MAT_RUNNER_RIB = fwMat([196, 200, 207], 60, 0, 0.08);
+export const MAT_RUNNER_IN = fwMat([118, 122, 130], 25, 0, 0.02); // inside their mouths: smooth, matte grey

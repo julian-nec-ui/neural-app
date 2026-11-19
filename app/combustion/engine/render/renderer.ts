@@ -4,6 +4,9 @@ import type { Bank } from "../core/constants";
 import { BANKS, BORE_R, DRIVE_DX, CYLS, FLYWHEEL_WORLD_X, LINER_H, LINER_OUTER_R, LINER_WALL_H, ORIENT, TAU, bankPoint, composeTurn } from "../core/constants";
 import { normalizeCycle } from "../core/numbers";
 import { SCENE_OPTIONS } from "../core/options";
+import { GHOST, INSPECT, INSPECT_RADIUS, INSPECT_TARGET } from "../core/inspect";
+import type { InspectView } from "../core/inspect";
+import { COMPONENTS, SELECT, componentById, partShown } from "../core/select";
 import { FOG_FLOATS, FOG_GROUPS } from "../fx/airflow/bodies";
 import { FOG_STATE } from "../fx/airflow/update";
 import { STREAKS, STREAK_FLOATS } from "../fx/airflow/streaks";
@@ -17,15 +20,15 @@ import { icTurn } from "../mesh/intercooler";
 
 import { ST_AT } from "../mesh/starter";
 import { VT } from "../mesh/valvetrain";
-import { CAM_FOV, LIGHT_FILL, LIGHT_KEY, LIGHT_KICK, viewProjection } from "./camera";
+import { CAM_FOV, LIGHT_FILL, LIGHT_KEY, LIGHT_KICK, inspectView, viewProjection } from "./camera";
 import type { CameraController } from "./camera";
 import { blurSteps, createMotionBlur } from "./motionBlur";
 import { BACKGROUND, BLOCK_RIM, STARTER_YOKE_OPACITY, CAM_NEAR_DEPTH, CASING_OPACITY, COOL_PIPE_OPACITY, DECK_OPACITY, HOT_CHARGE_OPACITY, EXHAUST_PALE, JET_STEEL, FLOOR_Y, FOG_DENSITY, FOG_PALETTE, HOT_PIPE_OPACITY, INTAKE_DUCT_OPACITY, OIL_BAND, PIPE_OPACITY, PIPE_RIM, RIM_CHARGE, RIM_EXHAUST, RIM_STEEL, SUMP_OPACITY, headOpacityAt, mix3, smooth01 } from "./look";
-import { FLOOR_FRAGMENT_SHADER, FLOOR_VERTEX_SHADER, FOG_FRAGMENT_SHADER, FOG_VERTEX_SHADER, GLASS_FRAGMENT_SHADER, GLASS_VERTEX_SHADER, PART_FRAGMENT_SHADER, POINT_FRAGMENT_SHADER, POINT_VERTEX_SHADER, SCENE_VERTEX_SHADER, STREAK_FRAGMENT_SHADER, STREAK_VERTEX_SHADER, VOLUME_FRAGMENT_SHADER, VOLUME_VERTEX_SHADER } from "./shaders";
+import { FLOOR_FRAGMENT_SHADER, FLOOR_VERTEX_SHADER, FOG_FRAGMENT_SHADER, ID_FRAGMENT_SHADER, ID_VERTEX_SHADER, OUTLINE_FRAGMENT_SHADER, OUTLINE_VERTEX_SHADER, FOG_VERTEX_SHADER, GLASS_FRAGMENT_SHADER, GLASS_VERTEX_SHADER, PART_FRAGMENT_SHADER, POINT_FRAGMENT_SHADER, POINT_VERTEX_SHADER, SCENE_VERTEX_SHADER, STREAK_FRAGMENT_SHADER, STREAK_VERTEX_SHADER, VOLUME_FRAGMENT_SHADER, VOLUME_VERTEX_SHADER } from "./shaders";
 import { computeSceneCommands } from "../scene/commands";
 import type { DrawCmd } from "../scene/commands";
 import { HEAD_RANGE, SCENE_VERTICES, bankPart, partCenter } from "../scene/meshes";
-import { PLENUM } from "../mesh/plumbing";
+import { LOG, PLENUM } from "../mesh/plumbing";
 import { RPM_MAX, createFrame } from "../sim/clock";
 import type { EngineFrame } from "../sim/clock";
 
@@ -67,6 +70,8 @@ export type EngineRenderer = {
   project: (x: number, y: number, z: number, margin?: number) => [number, number, boolean];
   // The stage's size in CSS pixels
   frame: () => [number, number];
+  // The component (core/select.ts) under a point of the stage, in its CSS pixels: its number, or 0 for none
+  pick: (x: number, y: number) => number;
   dispose: () => void;
 };
 
@@ -213,6 +218,8 @@ export function createEngineRenderer(
     const pointProgram = link(POINT_VERTEX_SHADER, POINT_FRAGMENT_SHADER);
     const streakProgram = link(STREAK_VERTEX_SHADER, STREAK_FRAGMENT_SHADER);
     const fogProgram = link(FOG_VERTEX_SHADER, FOG_FRAGMENT_SHADER);
+    const idProgram = link(ID_VERTEX_SHADER, ID_FRAGMENT_SHADER);
+    const outlineProgram = link(OUTLINE_VERTEX_SHADER, OUTLINE_FRAGMENT_SHADER);
 
     const uniformCache = new Map<WebGLProgram, Map<string, WebGLUniformLocation | null>>();
 
@@ -269,6 +276,36 @@ export function createEngineRenderer(
       stride: sceneStride,
       offset: (offset as number) * Float32Array.BYTES_PER_ELEMENT,
     }));
+
+    const idAttribs: AttribSpec[] = [{ location: attrib(idProgram, "aPosition"), size: 3, stride: sceneStride, offset: 0 }];
+    const quadBuffer = makeBuffer(new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+    const quadAttribs: AttribSpec[] = [{ location: attrib(outlineProgram, "aXY"), size: 2, stride: 0, offset: 0 }];
+
+    // each part's first vertex -> its component's number (core/select.ts), for the picking pass
+    const componentOf = new Map<number, number>();
+
+    for (const c of COMPONENTS) for (const name of c.parts) {
+      const range = (HEAD_RANGE as Record<string, [number, number] | undefined>)[name];
+
+      if (range) componentOf.set(range[0], c.id);
+    }
+
+    // the parts taken out of the engine into the detail window (their first vertices): not drawn on it
+    let hiddenStarts = new Set<number>();
+    let hiddenFor = -1;
+    const refreshHidden = () => {
+      if (hiddenFor === SELECT.detached) return;
+      hiddenFor = SELECT.detached;
+      hiddenStarts = new Set();
+
+      const c = componentById(SELECT.detached);
+
+      if (c) for (const name of [...c.parts, ...c.extras]) {
+        const range = (HEAD_RANGE as Record<string, [number, number] | undefined>)[name];
+
+        if (range) hiddenStarts.add(range[0]);
+      }
+    };
 
     const half = 4000;
     const floorBuffer = makeBuffer(
@@ -406,6 +443,7 @@ export function createEngineRenderer(
       // the exhaust's and the charge's contours are wider, and lit more strongly
       gl.uniform1f(uniform(sceneProgram, "uRimWide"), tint === RIM_EXHAUST || tint === RIM_CHARGE ? 1 : 0);
       gl.uniform1f(uniform(sceneProgram, "uFrontOnly"), 0);
+      gl.uniform1f(uniform(sceneProgram, "uClipOn"), 0);
     };
 
     // The see-through castings: each head's deck and shell, in its bank's place
@@ -507,7 +545,7 @@ export function createEngineRenderer(
 
       // the signature cut into the plenum's lid, on the solid engine (the plenum is taken away on the see-through one):
       // pulled toward the eye as the heads' lettering is, so that its floor shows on the lid's face
-      if (!SCENE_OPTIONS.seeThrough && SCENE_OPTIONS.plenum && phase === "back") {
+      if (!SCENE_OPTIONS.seeThrough && SCENE_OPTIONS.plenum && partShown("lidText") && phase === "back") {
         const lc: FwVec3 = [(PLENUM.xf + PLENUM.xr) / 2, PLENUM.yLid - 60, 0];
         const dist = Math.max(200, Math.hypot(eye[0] - lc[0], eye[1] - lc[1], eye[2] - lc[2]));
 
@@ -541,7 +579,7 @@ export function createEngineRenderer(
       for (const r of [HEAD_RANGE.drySumpShell, HEAD_RANGE.drySumpShellB]) ghost(r, SUMP_OPACITY, 0, [0, 0, 0], PIPE_RIM, RIM_CHARGE, true);
       // the cooled charge's, more metal than glass
       // (on the see-through engine they are taken away, with the Y they come into, to see the heads behind them)
-      if (!SCENE_OPTIONS.seeThrough && SCENE_OPTIONS.plenum) for (const r of [HEAD_RANGE.coolPipes, HEAD_RANGE.coolPipesB]) ghost(r, COOL_PIPE_OPACITY, 0, [0, 0, 0], PIPE_RIM, RIM_CHARGE, true);
+      if (!SCENE_OPTIONS.seeThrough && SCENE_OPTIONS.plenum && partShown("coolPipes")) for (const r of [HEAD_RANGE.coolPipes, HEAD_RANGE.coolPipesB]) ghost(r, COOL_PIPE_OPACITY, 0, [0, 0, 0], PIPE_RIM, RIM_CHARGE, true);
 
       queue.sort((a, b) => b.d - a.d);
 
@@ -589,6 +627,8 @@ export function createEngineRenderer(
 
       for (let i = 0; i < cmds.length; i++) {
         const cmd = cmds[i];
+
+        if (hiddenStarts.has(cmd.range[0])) continue; // (taken out into the detail window)
 
         if (cmd.orient !== orient) {
           orient = cmd.orient;
@@ -864,11 +904,306 @@ export function createEngineRenderer(
       gl.disable(gl.BLEND);
     };
 
+    // The plenum inspector, over the scene, in its own box on the stage (INSPECT): the plenum, its gate and its front Y, the
+    // signature on its lid, and both banks' runners down to the heads, from its own view; the plenum cut open along its
+    // length on the side toward the eye, so that the chamber and the runners' mouths in it show
+    // (`el`: the box on the stage; `turn`: how it is turned; `section`: the half cut away; `bg`: what the box is cleared to)
+    const drawBox = (el: HTMLElement, turn: InspectView, section: -1 | 0 | 1, bg: [number, number, number]) => {
+      const cb = canvas.getBoundingClientRect();
+      const eb = el.getBoundingClientRect();
+      const sx = canvas.width / Math.max(1, cb.width);
+      const sy = canvas.height / Math.max(1, cb.height);
+      const x = Math.round((eb.left - cb.left) * sx);
+      const w = Math.round(eb.width * sx);
+      const h = Math.round(eb.height * sy);
+      const y = Math.round(canvas.height - (eb.top - cb.top) * sy - h);
+
+      if (w < 8 || h < 8) return;
+
+      const saveVP = viewProj;
+      const saveEye = eye;
+      const saveFocus = focus;
+      const view = inspectView(turn, INSPECT_TARGET, INSPECT_RADIUS, w / h);
+
+      viewProj = viewProjection(view, w / h);
+      eye = view.eye;
+      focus = view.distance;
+
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      gl.viewport(x, y, w, h);
+      gl.enable(gl.SCISSOR_TEST);
+      gl.scissor(x, y, w, h);
+      gl.clearColor(bg[0], bg[1], bg[2], 1);
+      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+      gl.enable(gl.DEPTH_TEST);
+      gl.depthFunc(gl.LESS);
+      gl.depthMask(true);
+      gl.disable(gl.BLEND);
+      gl.disable(gl.CULL_FACE);
+
+      prepareParts(1);
+
+      const put = (range: [number, number], orient: number, o: FwVec3, clip: boolean) => {
+        gl.uniform2f(uniform(sceneProgram, "uSpin"), 1, 0);
+        gl.uniform3f(uniform(sceneProgram, "uOffset"), o[0], o[1], o[2]);
+        gl.uniform1f(uniform(sceneProgram, "uScaleY"), 1);
+        gl.uniformMatrix3fv(uniform(sceneProgram, "uOrient"), false, ORIENTATIONS[orient]);
+        gl.uniform1f(uniform(sceneProgram, "uClipOn"), clip ? 1 : 0);
+        gl.drawArrays(gl.TRIANGLES, range[0], range[1]);
+      };
+      // the section: the left or the right half of the red plenum cut away along its length, through its middle, and the
+      // log plenum on that side cut through its own axis, so that its inside shows, the runners' mouths in its floor
+      const side = section;
+      const clip = side !== 0;
+
+      gl.uniform4f(uniform(sceneProgram, "uClip"), 0, 0, side, 2);
+
+      for (const name of ["vPlenum", "plenumGate", "intakeManifold"] as const) put(HEAD_RANGE[name], 0, [0, 0, 0], clip);
+
+      gl.uniform4f(uniform(sceneProgram, "uClip"), 0, 0, side, LOG.z);
+      put(HEAD_RANGE.plenumLogs, 0, [0, 0, 0], clip);
+
+      for (const bank of BANKS) {
+        for (const name of ["intakePipes", "runnerDetail", "intakeWelds"] as const) put(HEAD_RANGE[name], bank.orient, [bank.dx, 0, 0], false);
+      }
+
+      // the signature, pulled a little toward the eye as on the engine
+      gl.uniform4f(uniform(sceneProgram, "uClip"), 0, 0, side, 2);
+      gl.enable(gl.POLYGON_OFFSET_FILL);
+      gl.polygonOffset(-1, -4);
+      put(HEAD_RANGE.lidText, 0, [0, 0, 0], clip);
+      gl.disable(gl.POLYGON_OFFSET_FILL);
+
+      gl.uniform1f(uniform(sceneProgram, "uClipOn"), 0);
+      gl.disable(gl.SCISSOR_TEST);
+      gl.viewport(0, 0, canvas.width, canvas.height);
+
+      viewProj = saveVP;
+      eye = saveEye;
+      focus = saveFocus;
+    };
+
+    const drawInspector = () => {
+      if (INSPECT.on && INSPECT.el && INSPECT.view) drawBox(INSPECT.el, INSPECT.view(), INSPECT.section, [0.085, 0.09, 0.1]);
+      if (GHOST.el && GHOST.view) drawBox(GHOST.el, GHOST.view(), 0, [0.1, 0.11, 0.13]);
+    };
+
+    // ---- picking, and the selected component's outline ----
+    // The picking pass goes into a buffer of its own, at the screen's resolution (not the drawing buffer's, which in HD is
+    // finer still): every part flat in its component's number, with its depth
+    let mask: { fb: WebGLFramebuffer; tex: WebGLTexture; depth: WebGLRenderbuffer; w: number; h: number } | null = null;
+
+    const maskSize = (): [number, number] => {
+      const ratio = Math.min(2, Math.max(1, window.devicePixelRatio || 1));
+      const w = Math.max(1, Math.min(canvas.width, Math.round(cssWidth * ratio)));
+      const h = Math.max(1, Math.min(canvas.height, Math.round(cssHeight * ratio)));
+
+      return [w, h];
+    };
+
+    const releaseMask = () => {
+      if (!mask) return;
+      gl.deleteFramebuffer(mask.fb);
+      gl.deleteTexture(mask.tex);
+      gl.deleteRenderbuffer(mask.depth);
+      mask = null;
+    };
+
+    const ensureMask = () => {
+      const [w, h] = maskSize();
+
+      if (mask && mask.w === w && mask.h === h) return mask;
+
+      releaseMask();
+
+      const fb = gl.createFramebuffer();
+      const tex = gl.createTexture();
+      const depth = gl.createRenderbuffer();
+
+      if (!fb || !tex || !depth) return null;
+
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      gl.bindRenderbuffer(gl.RENDERBUFFER, depth);
+      gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, w, h);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+      gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, depth);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      gl.bindTexture(gl.TEXTURE_2D, null);
+      gl.bindRenderbuffer(gl.RENDERBUFFER, null);
+      mask = { fb, tex, depth, w, h };
+
+      return mask;
+    };
+
+    const drawMask = (frame: EngineFrame) => {
+      const m = ensureMask();
+
+      if (!m) return null;
+
+      refreshHidden();
+
+      const cmds = computeSceneCommands(frame);
+
+      gl.bindFramebuffer(gl.FRAMEBUFFER, m.fb);
+      gl.viewport(0, 0, m.w, m.h);
+      gl.disable(gl.SCISSOR_TEST);
+      gl.disable(gl.BLEND);
+      gl.disable(gl.CULL_FACE);
+      gl.enable(gl.DEPTH_TEST);
+      gl.depthFunc(gl.LESS);
+      gl.depthMask(true);
+      gl.clearColor(0, 0, 0, 1);
+      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+      gl.useProgram(idProgram);
+      gl.bindBuffer(gl.ARRAY_BUFFER, sceneBuffer);
+      bindAttribs(idAttribs);
+      gl.uniformMatrix4fv(uniform(idProgram, "uViewProj"), false, viewProj);
+
+      const idU = uniform(idProgram, "uId");
+      const spinU = uniform(idProgram, "uSpin");
+      const offsetU = uniform(idProgram, "uOffset");
+      const scaleU = uniform(idProgram, "uScaleY");
+      const orientU = uniform(idProgram, "uOrient");
+
+      for (const cmd of cmds) {
+        if (hiddenStarts.has(cmd.range[0])) continue;
+        gl.uniform1f(idU, componentOf.get(cmd.range[0]) ?? 0);
+        gl.uniform2f(spinU, cmd.spin[0], cmd.spin[1]);
+        gl.uniform3f(offsetU, cmd.offset[0], cmd.offset[1], cmd.offset[2]);
+        gl.uniform1f(scaleU, cmd.scaleY);
+        gl.uniformMatrix3fv(orientU, false, ORIENTATIONS[cmd.orient]);
+        gl.drawArrays(gl.TRIANGLES, cmd.range[0], cmd.range[1]);
+      }
+
+      return m;
+    };
+
+    // the part of the drawing buffer the outline can fall in: the component's box seen from the camera, and a margin (all of
+    // it if part of the box is behind the eye)
+    const outlineArea = (center: FwVec3, radius: number): [number, number, number, number] => {
+      let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+      const m = viewProj;
+
+      for (let k = 0; k < 8; k++) {
+        const x = center[0] + (k & 1 ? radius : -radius);
+        const y = center[1] + (k & 2 ? radius : -radius);
+        const z = center[2] + (k & 4 ? radius : -radius);
+        const cw = m[3] * x + m[7] * y + m[11] * z + m[15];
+
+        if (cw <= 1) return [0, 0, canvas.width, canvas.height];
+
+        const nx = (m[0] * x + m[4] * y + m[8] * z + m[12]) / cw;
+        const ny = (m[1] * x + m[5] * y + m[9] * z + m[13]) / cw;
+
+        x0 = Math.min(x0, nx); x1 = Math.max(x1, nx); y0 = Math.min(y0, ny); y1 = Math.max(y1, ny);
+      }
+
+      const pad = 24;
+      const ax = Math.max(0, Math.floor((x0 * 0.5 + 0.5) * canvas.width) - pad);
+      const ay = Math.max(0, Math.floor((y0 * 0.5 + 0.5) * canvas.height) - pad);
+      const bx = Math.min(canvas.width, Math.ceil((x1 * 0.5 + 0.5) * canvas.width) + pad);
+      const by = Math.min(canvas.height, Math.ceil((y1 * 0.5 + 0.5) * canvas.height) + pad);
+
+      return [ax, ay, Math.max(0, bx - ax), Math.max(0, by - ay)];
+    };
+
+    const drawOutline = (frame: EngineFrame) => {
+      const c = componentById(SELECT.selected);
+
+      if (!c || SELECT.detached === c.id) return;
+
+      const m = drawMask(frame);
+
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      gl.viewport(0, 0, canvas.width, canvas.height);
+
+      if (!m) return;
+
+      const [ax, ay, aw, ah] = outlineArea(c.center, c.radius);
+
+      if (aw < 1 || ah < 1) return;
+
+      gl.enable(gl.SCISSOR_TEST);
+      gl.scissor(ax, ay, aw, ah);
+      gl.disable(gl.DEPTH_TEST);
+      gl.enable(gl.BLEND);
+      gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+      gl.useProgram(outlineProgram);
+      gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
+      bindAttribs(quadAttribs);
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, m.tex);
+      gl.uniform1i(uniform(outlineProgram, "uMask"), 0);
+      gl.uniform2f(uniform(outlineProgram, "uScreen"), canvas.width, canvas.height);
+      gl.uniform2f(uniform(outlineProgram, "uMaskSize"), m.w, m.h);
+      gl.uniform1f(uniform(outlineProgram, "uSel"), c.id);
+      gl.uniform1f(uniform(outlineProgram, "uRadius"), 3.5 * (m.w / Math.max(1, cssWidth)));
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+      gl.bindTexture(gl.TEXTURE_2D, null);
+      gl.disable(gl.BLEND);
+      gl.disable(gl.SCISSOR_TEST);
+      gl.enable(gl.DEPTH_TEST);
+    };
+
+    // what is under a point of the stage: the picking pass drawn for the view now, and read back there (the nearest
+    // component within a few pixels, so that a finger need not be exact)
+    const pick = (px: number, py: number) => {
+      if (disposed || gl.isContextLost() || !lastFrame) return 0;
+
+      const view = camera.view;
+
+      eye = view.eye;
+      focus = view.distance;
+      viewProj = viewProjection(view, canvas.width / Math.max(1, canvas.height));
+
+      const m = drawMask(lastFrame);
+
+      if (!m) return 0;
+
+      const sx = m.w / Math.max(1, cssWidth);
+      const cx = Math.round(px * sx);
+      const cy = Math.round(m.h - py * sx);
+      const R = Math.round(4 * sx);
+      const x0 = Math.max(0, cx - R), y0 = Math.max(0, cy - R);
+      const w = Math.max(1, Math.min(m.w, cx + R + 1) - x0), h = Math.max(1, Math.min(m.h, cy + R + 1) - y0);
+      const px8 = new Uint8Array(w * h * 4);
+
+      gl.readPixels(x0, y0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, px8);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      gl.viewport(0, 0, canvas.width, canvas.height);
+
+      let best = 0;
+      let bestD = Infinity;
+
+      for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+        const id = px8[(j * w + i) * 4];
+
+        if (!id) continue;
+
+        const d = Math.hypot(x0 + i - cx, y0 + j - cy);
+
+        if (d < bestD) {
+          bestD = d;
+          best = id;
+        }
+      }
+
+      return best;
+    };
+
     // `still` redraws a frame without any motion (after a resize or a camera move)
     const draw = (frame: EngineFrame, still = false) => {
       if (disposed || gl.isContextLost()) return;
 
       lastFrame = frame;
+      refreshHidden();
       // how hot the exhaust past the collectors shows: pale below 2000 rpm, turning orange as the speed rises above it
       exhaustHeat = smooth01(((frame.rpm ?? 0) - 2000) / (RPM_MAX - 2000));
       jetLoad = smooth01((frame.rpm ?? 0) / RPM_MAX);
@@ -940,6 +1275,8 @@ export function createEngineRenderer(
         gl.clearColor(BACKGROUND[0], BACKGROUND[1], BACKGROUND[2], 1);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
         drawScene(frame);
+        drawOutline(frame);
+        drawInspector();
 
         return;
       }
@@ -962,6 +1299,8 @@ export function createEngineRenderer(
           drawScene(subFrame);
         }
       );
+      drawOutline(frame);
+      drawInspector();
     };
 
     const resize = () => {
@@ -1015,10 +1354,12 @@ export function createEngineRenderer(
       resize,
       project,
       frame: (): [number, number] => [cssWidth, cssHeight],
+      pick,
       dispose: () => {
         if (disposed) return;
         disposed = true;
         blur?.dispose();
+        releaseMask();
         releaseResources();
       },
     };

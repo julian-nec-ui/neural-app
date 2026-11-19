@@ -3,7 +3,7 @@
 import { BANKS, CT_X, HEAD_PORT_DZ, TAU, bankPoint } from "../core/constants";
 import { vadd, vcross, vnorm, vscale, vsub } from "../math/vec3";
 import type { FwMaterial, FwVec3 } from "./builder";
-import { MAT_ALU_CAST, MAT_ALU_TURNED, MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE, MAT_EXH_GUNMETAL, MAT_HDR_BLUE, MAT_TURBO_INLET_PLATE, MAT_HDR_GOLD, MAT_HDR_PURPLE, MAT_IRON, MAT_MANIFOLD_GREY, MAT_MANIFOLD_GREY_DEEP, MAT_BOLT_MATTE_HEAD, MAT_BOLT_MATTE_SIDE, MAT_INTAKE_FLANGE, MAT_INTAKE_FLANGE_EDGE, MAT_PIPE_BLACK, MAT_RAIL_FACE, MAT_STEEL_BRIGHT, MAT_TURBO_GRAIN, MAT_WELD, MAT_FLANGE_BLACK, MAT_AIR_DUCT, MAT_INJ_ORING, MAT_INJ_PLUG, MAT_INJ_LATCH, MAT_INJ_MOUNT, MAT_CT_GROOVE } from "./materials";
+import { MAT_ALU_CAST, MAT_ALU_TURNED, MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE, MAT_EXH_GUNMETAL, MAT_HDR_BLUE, MAT_TURBO_INLET_PLATE, MAT_HDR_GOLD, MAT_HDR_PURPLE, MAT_IRON, MAT_MANIFOLD_GREY, MAT_MANIFOLD_GREY_DEEP, MAT_BOLT_MATTE_HEAD, MAT_BOLT_MATTE_SIDE, MAT_INTAKE_FLANGE, MAT_INTAKE_FLANGE_EDGE, MAT_PIPE_BLACK, MAT_RAIL_FACE, MAT_STEEL_BRIGHT, MAT_TURBO_GRAIN, MAT_WELD, MAT_FLANGE_BLACK, MAT_AIR_DUCT, MAT_INJ_ORING, MAT_INJ_PLUG, MAT_INJ_LATCH, MAT_INJ_MOUNT, MAT_CT_GROOVE, MAT_RUNNER, MAT_RUNNER_RIB, MAT_RUNNER_IN } from "./materials";
 import { collar, curveAt, curveFromPoints, flangeJoint, ovalFlare, roundedCurve, subCurve, sweepTube } from "./tubes";
 import type { Curve, MeshBuilder } from "./tubes";
 import { COLLECTOR_CONE, COLLECTOR_LEN, COMPRESSOR_OUTLET_LEN, HDR_CX, HDR_CZ, HDR_MOUTH_Y, PLENUM_Y, PLENUM_Z, PORT_Y, TB, collectorRadius, compressorCentre, turboWorld, TURBO_SCALE } from "./turbo";
@@ -203,12 +203,12 @@ export const PIPES = (() => {
     const { E, dir } = railFace();
     const at = (d: number): FwVec3 => [x, E[0] + dir[0] * d, E[1] + dir[1] * d];
 
-    // out of the plenum's flat bottom, leaning out, then one open bend (120 degrees between its legs, not a right angle)
+    // out of the plenum's flat bottom, leaning in, then one open bend (140 degrees between its legs, not a right angle)
     // down on to the rail's tilted axis, and square into the rail's face: out clear of the injectors and their rail
     const C = at(30); // the bend, just under the plenum's bottom
     const cw = bankPoint(BANKS[1], 0, C[1], C[2]); // (in the engine's frame, on B's side)
-    const t = (-140 - 60 + 360) * (Math.PI / 180); // the axis's own heading (up and in), turned 60 degrees out
-    const up: [number, number] = [Math.cos(t), Math.sin(t)]; // (y, z): up, and out
+    const t = (-140 - 40 + 360) * (Math.PI / 180); // the axis's own heading (up and in), turned 40 degrees out
+    const up: [number, number] = [Math.cos(t), Math.sin(t)]; // (y, z): up, leaning in
     const S = W(cw[1] + up[0] * 50, cw[2] + up[1] * 50); // in the plenum's body
 
     return roundedCurve([
@@ -258,7 +258,110 @@ export const runnerRadius = (u: number) =>
   19 + 5 * Math.pow(Math.max(0, 1 - u / 0.14), 2) - 5 * Math.pow(Math.max(0, (u - 0.66) / 0.34), 1.5);
 
 export function buildIntakePipes(b: MeshBuilder) {
-  for (let i = 0; i < CT_X.length; i++) sweepTube(b, PIPES.runner(i), runnerRadius, MAT_MANIFOLD_GREY, { segments: 32 });
+  for (let i = 0; i < CT_X.length; i++) {
+    const c = PIPES.runner(i);
+
+    sweepTube(b, c, runnerRadius, MAT_RUNNER, { segments: 40 });
+  }
+}
+
+// The runners' ribs, their lips and the inside of their mouths: solid (the skins themselves are drawn see-through)
+export function buildRunnerDetail(b: MeshBuilder) {
+  for (let i = 0; i < CT_X.length; i++) runnerRibs(b, PIPES.runner(i));
+}
+
+// On each runner, fine ribs along it in relief, a lighter grey, following its every bend and opening out with its bell
+// mouth (so that the mouth reads in perspective), and at the mouth a rolled lip
+function runnerRibs(b: MeshBuilder, c: Curve) {
+  const n = c.pts.length;
+  const T: FwVec3[] = [];
+
+  for (let k = 0; k < n; k++) T.push(vnorm(vsub(c.pts[Math.min(n - 1, k + 1)], c.pts[Math.max(0, k - 1)])));
+
+  // frames carried along the curve without twist
+  let nrm = vnorm(vcross(T[0], Math.abs(T[0][1]) < 0.9 ? [0, 1, 0] : [1, 0, 0]));
+  const N1: FwVec3[] = [];
+  const N2: FwVec3[] = [];
+  const len: number[] = [0];
+
+  for (let k = 0; k < n; k++) {
+    const t = T[k];
+    const d = nrm[0] * t[0] + nrm[1] * t[1] + nrm[2] * t[2];
+
+    nrm = vnorm(vsub(nrm, vscale(t, d)));
+    N1.push(nrm);
+    N2.push(vcross(t, nrm));
+    if (k > 0) len.push(len[k - 1] + Math.hypot(...(vsub(c.pts[k], c.pts[k - 1]) as [number, number, number])));
+  }
+
+  const total = len[n - 1] || 1;
+  const K = 22; // ribs round it
+  const tail = 0.94; // (they stop short of the port's flange)
+
+  for (let r = 0; r < K; r++) {
+    const a = (r / K) * TAU;
+    const ca = Math.cos(a);
+    const sa = Math.sin(a);
+    const pts: FwVec3[] = [];
+
+    for (let k = 0; k < n; k++) {
+      const u = len[k] / total;
+
+      if (u > tail) break;
+
+      const R = runnerRadius(u) + 0.35;
+
+      pts.push(vadd(c.pts[k], vadd(vscale(N1[k], R * ca), vscale(N2[k], R * sa))));
+    }
+
+    if (pts.length < 3) continue;
+
+    const rc = curveFromPoints(pts, 1);
+
+    sweepTube(b, rc, (u) => 0.95 * Math.min(1, (1 - u) * 14, u * 40 + 0.4), MAT_RUNNER_RIB, { segments: 6 });
+  }
+
+  // inside the mouth and down its throat, a smooth lining, matte grey, facing in: the ribs on the outside do not show
+  // through, and the bell's depth reads in its shading
+  {
+    const SEG = 40;
+    const kEnd = len.findIndex((l) => l / total > 0.75);
+    const ring = (k: number) => {
+      const u = len[k] / total;
+      const R = runnerRadius(u) - 1.3; // (inside the ribs' feet)
+
+      return Array.from({ length: SEG + 1 }, (_, j) => {
+        const a = (j / SEG) * TAU;
+        const d = vadd(vscale(N1[k], Math.cos(a)), vscale(N2[k], Math.sin(a)));
+
+        return { p: vadd(c.pts[k], vscale(d, R)), n: vscale(d, -1) };
+      });
+    };
+    let A = ring(0);
+
+    for (let k = 1; k <= kEnd; k++) {
+      const B = ring(k);
+
+      for (let j = 0; j < SEG; j++) {
+        for (const v of [A[j], B[j + 1], B[j], A[j], A[j + 1], B[j + 1]]) b.push(v.p, v.n, MAT_RUNNER_IN, 1);
+      }
+      A = B;
+    }
+  }
+
+  // the bell mouth's rolled lip, where it opens into the plenum
+  {
+    const R = runnerRadius(0);
+    const ring: FwVec3[] = [];
+
+    for (let k = 0; k <= 48; k++) {
+      const a = (k / 48) * TAU;
+
+      ring.push(vadd(c.pts[0], vadd(vscale(N1[0], R * Math.cos(a)), vscale(N2[0], R * Math.sin(a)))));
+    }
+
+    sweepTube(b, curveFromPoints(ring, 1), () => 1.6, MAT_RUNNER_RIB, { segments: 10 });
+  }
 }
 
 // The manifold's base, solid, for each bank, in its frame: a cast rail bolted along the head's valley face, over the
@@ -771,4 +874,66 @@ export function buildAirIntakeFittings(b: MeshBuilder) {
   collar(b, intake, intake.total - 3, 20, 24.5, 6, MAT_ALU_TURNED);
   // The air filter, hanging from the intake's open end: a K&N-style cone
   buildAirFilter(b, intake.pts[intake.pts.length - 1], FILTER_DIR);
+}
+
+// Inside the red plenum, two log plenums, one for each bank, each fed on its own: a round steel tube along the bank, over
+// its six runners, fine ribs along it in relief; each runner's bell mouth coming up into it through a hole in its floor,
+// a welded collar round the hole; its back end closed with a domed cap, its front end bent in and down into the gate's
+// mouth behind the throttle, where the two meet. Built in the engine's frame (the runners' tops at y -417, z ±44)
+export const LOG = { y: -443, z: 44, r: 38 };
+
+export function buildPlenumLogs(b: MeshBuilder) {
+  const x0 = PLENUM.xf + 30;
+  const x1 = PLENUM.xr - 58;
+  const { y, z: zl, r } = LOG;
+
+  for (const s of [-1, 1]) {
+    const z = s * zl;
+    const body = curveFromPoints([[x1, y, z], [x0, y, z]], 2);
+
+    sweepTube(b, body, () => r, MAT_RUNNER, { segments: 48 });
+
+    // the ribs along it
+    for (let k = 0; k < 30; k++) {
+      const a = (k / 30) * TAU;
+      const ca = Math.cos(a);
+      const sa = Math.sin(a);
+
+      b.prismDir([x0 + 4, y + r * sa, z + r * ca], [1, 0, 0], [0, sa, ca], [0, ca, -sa], 0.85, x1 - x0 - 8, 6, 0, MAT_RUNNER_RIB, MAT_RUNNER_RIB);
+    }
+
+    // the back end: a domed cap, and a ring where it is welded on
+    for (let k = 0; k < 8; k++) {
+      const a0 = (k / 8) * (Math.PI / 2);
+      const a1 = ((k + 1) / 8) * (Math.PI / 2);
+
+      b.revolve({ x0: x1 + r * 0.35 * Math.sin(a0), r0: r * Math.cos(a0), x1: x1 + r * 0.35 * Math.sin(a1), r1: r * Math.cos(a1), n: [0.5, 1], m: MAT_RUNNER, steps: 48, cy: y, cz: z });
+    }
+    weld(b, body, 1.5, r, undefined, 1.1);
+
+    // its front end, bent in and down into the gate's mouth
+    const feed = roundedCurve([[x0 + 2, y, z], [x0 - 34, y, z], [PLENUM.xf - 6, PLENUM.yGate + 10, s * 22]], 24, 3);
+
+    sweepTube(b, feed, (u) => r - 8 * u, MAT_RUNNER, { segments: 40 });
+    weld(b, body, body.total - 1.5, r, undefined, 1.1);
+
+    // the holes in its floor, each with a welded collar round it, where a runner comes up into it
+    for (let i = 0; i < CT_X.length; i++) {
+      const c = PIPES.runner(i);
+      const top = c.pts[0];
+      const ring: FwVec3[] = [];
+      const cx = top[0] + (s < 0 ? BANKS[0] : BANKS[1]).dx; // (bank B stands a little along from bank A)
+      const R = runnerRadius(0.06) + 1.5;
+
+      for (let k = 0; k <= 40; k++) {
+        const a = (k / 40) * TAU;
+        const dz = R * Math.sin(a);
+        const yy = y + Math.sqrt(Math.max(0, r * r - dz * dz)) - 0.2; // (on the tube's round floor)
+
+        ring.push([cx + R * Math.cos(a), yy, z + dz]);
+      }
+
+      sweepTube(b, curveFromPoints(ring, 1), () => 1.7, MAT_WELD, { segments: 8 });
+    }
+  }
 }

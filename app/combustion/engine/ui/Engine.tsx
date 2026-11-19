@@ -21,7 +21,7 @@ import { Dials } from "./Gauges";
    ========================================================= */
 
 // The delivery this page is (raised at each one): shown, faint, in the hints, so that a deployed page can be told from an old one
-const BUILD = 731;
+const BUILD = 737;
 
 const VIEW_LABELS: Record<ViewName, string> = {
   default: "3/4",
@@ -65,7 +65,7 @@ const LAYOUT_CSS = `
   .ak-right { margin-left: 0; align-items: stretch !important; width: 100%; }
   .ak-firing, .ak-legend { justify-content: center !important; }
   .ak-root [role="group"] { justify-content: center; }
-  .ak-root button:not(.ak-vp button) { min-height: 34px; }
+  .ak-root button:not(.ak-vp button):not(.ak-insp button):not(.ak-dw button):not(.ak-menu button) { min-height: 34px; }
 }
 @media (max-height: 640px) and (orientation: landscape) {
   .ak-stage { height: 86dvh; }
@@ -78,7 +78,7 @@ const LAYOUT_CSS = `
 }
 @media (max-width: 480px) {
   .ak-root { padding: 6px; border-radius: 10px; }
-  .ak-root button:not(.ak-vp button) { font-size: 12px !important; padding-left: 10px; padding-right: 10px; }
+  .ak-root button:not(.ak-vp button):not(.ak-insp button):not(.ak-dw button):not(.ak-menu button) { font-size: 12px !important; padding-left: 10px; padding-right: 10px; }
 }
 @media (max-width: 600px) {
   .ak-hint-line { white-space: normal; font-size: 11px; } /* (on a phone: readable, over two lines) */

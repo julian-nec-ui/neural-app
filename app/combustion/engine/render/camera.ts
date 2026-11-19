@@ -90,6 +90,18 @@ function cameraView(yawDeg: number, pitchDeg: number, zoom: number, target: FwVe
   return { eye, right, down, back, distance, shift, shiftY };
 }
 
+// The plenum inspector's view (core/inspect.ts): turned as its own camera is (`turn`: that camera's axes, and its distance at
+// its zoom), round the inspector's target, far enough back that a ball of `radius` fills its box (of aspect `aspect`)
+// at zoom 1
+export function inspectView(turn: { right: FwVec3; down: FwVec3; back: FwVec3; distance: number }, target: FwVec3, radius: number, aspect: number): CameraView {
+  const fit = (radius / Math.sin(CAM_FOV / 2)) / Math.min(1, aspect);
+  const zoom = CAM_BASE_DISTANCE / Math.max(1, turn.distance);
+  const distance = fit / zoom;
+  const { right, down, back } = turn;
+
+  return { eye: [target[0] + back[0] * distance, target[1] + back[1] * distance, target[2] + back[2] * distance], right, down, back, distance, shift: 0, shiftY: 0 };
+}
+
 // View and projection in one matrix, column-major, for the shaders. The
 // engine's frame has Y down, so the screen's up is -down.
 export function viewProjection(view: CameraView, aspect: number): Float32Array {
@@ -355,7 +367,8 @@ export function createCameraController(options: CameraOptions) {
     // nearest axis square to that (so the engine stands up, or lies a quarter or a half turn round, whichever it nearly
     // did): no tilt, no roll left. Then in the middle of the stage, as close as leaves it filling three quarters of it,
     // its height or, on a narrow stage, its width (`aspect`: the stage's width over its height). The turntable stops
-    center(aspect: number) {
+    // (`fill` false: squared up only, at zoom 1, kept where it is: the plenum inspector's)
+    center(aspect: number, fill = true) {
       const back = qRotate(goal.q, Z_AXIS);
       const down = qRotate(goal.q, Y_AXIS);
       const [bi, bs] = nearestAxis(back);
@@ -370,10 +383,10 @@ export function createCameraController(options: CameraOptions) {
 
       auto = false;
       goal.q = quatFromAxes(r, d, b);
-      goal.zoom = clamp(zoom, 0.55, 7);
+      goal.zoom = fill ? clamp(zoom, 0.55, 7) : 1;
       goal.shift = 0;
       goal.shiftY = 0;
-      goal.target = [CENTER_FILL.target[0], CENTER_FILL.target[1], CENTER_FILL.target[2]];
+      if (fill) goal.target = [CENTER_FILL.target[0], CENTER_FILL.target[1], CENTER_FILL.target[2]];
       show(null);
     },
 

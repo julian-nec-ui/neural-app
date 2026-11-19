@@ -4,13 +4,16 @@
 
 import { useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Loader } from "./Loader";
-import { useCamera } from "../render/camera";
+import { CAM_BASE_DISTANCE, createCameraController, useCamera, type CameraController } from "../render/camera";
 import { createEngineRenderer } from "../render/renderer";
 import type { EngineRenderer } from "../render/renderer";
 import { StartContext, useEngineClock } from "../sim/clock";
 import type { EngineFrame } from "../sim/clock";
 import Joystick from "./Joystick";
+import { CenterButton } from "./CenterButton";
 import { SCENE_OPTIONS } from "../core/options";
+import { GHOST, INSPECT } from "../core/inspect";
+import { SELECT, componentById } from "../core/select";
 
 /* =========================================================
    THE VIEW: the canvas, and the
@@ -233,7 +236,7 @@ const VIEW_CSS = `
 .ak-vp-switch[data-on="true"]::after { transform: translateX(15px); }
 /* (held against the page's own rules for its buttons on a phone or a tablet: a minimum height, side padding, a font size; the
    switches and the tab keep their own shape everywhere) */
-.ak-vp .ak-vp-switch { width: 34px !important; height: 19px !important; min-width: 34px !important; max-width: 34px !important; min-height: 19px !important; max-height: 19px !important;
+.ak-vp .ak-vp-switch, .ak-insp .ak-vp-switch, .ak-dw .ak-vp-switch { width: 34px !important; height: 19px !important; min-width: 34px !important; max-width: 34px !important; min-height: 19px !important; max-height: 19px !important;
   padding: 0 !important; margin: 0 !important; font-size: 0 !important; line-height: 0 !important; border: 0 !important; border-radius: 10px !important; flex: 0 0 34px !important; }
 .ak-vp .ak-vp-tab { padding: 0 !important; min-height: 0 !important; font-size: 0 !important; line-height: 0 !important; margin: 0 !important; flex: none !important; }
 .ak-vp .ak-vp-tab svg { display: block !important; width: 12px !important; height: 16px !important; flex: none !important; }
@@ -367,6 +370,399 @@ function ViewPanel({ onChange }: { onChange: () => void }) {
   );
 }
 
+// The selection and the detail window (core/select.ts). A right click (on a phone or a tablet, a finger held still for half
+// a second) opens the context menu; its "Select component" turns the pointer to a cross, and the next press picks the
+// component under it, outlined in metallic blue on the stage. A drag begun on it carries it, in a small card, toward the
+// detail window, which shows only then: its edge metallic blue, turning metallic green once the pointer is inside it. Let
+// go there, the component leaves the engine for the window (silver, with minimize, maximize and close: closing puts it
+// back); let go anywhere else (or Escape), it glides back and nothing changes
+const SELECT_CSS = `
+.ak-menu { position: absolute; z-index: 6; min-width: 178px; padding: 4px; box-sizing: border-box; border-radius: 8px;
+  background: linear-gradient(180deg, rgba(64,69,78,0.97), rgba(34,37,42,0.97) 55%, rgba(26,28,32,0.97));
+  border: 1px solid rgba(206,212,220,0.26); box-shadow: 0 10px 24px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.14), inset 0 -1px 0 rgba(0,0,0,0.4);
+  font: 12px/1.3 system-ui, -apple-system, "Segoe UI", sans-serif; color: #e4e7ec; animation: ak-menu-in .12s ease-out; transform-origin: top left; }
+@keyframes ak-menu-in { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: none; } }
+.ak-menu-title { padding: 4px 9px 5px; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: #8e959f; border-bottom: 1px solid rgba(255,255,255,0.07); margin-bottom: 3px; }
+.ak-menu button { display: flex !important; align-items: center; gap: 9px; width: 100% !important; min-height: 0 !important; margin: 0 !important; padding: 7px 9px !important;
+  border: 0 !important; border-radius: 5px !important; background: transparent; color: inherit; font: inherit !important; text-align: left; cursor: pointer;
+  -webkit-appearance: none; appearance: none; -webkit-tap-highlight-color: transparent; }
+.ak-menu button svg { flex: none; color: #8fc9f2; }
+.ak-menu button:focus-visible { outline: none; background: rgba(0,122,204,0.35); }
+@media (hover: hover) { .ak-menu button:hover { background: linear-gradient(180deg, rgba(0,122,204,0.62), rgba(0,92,156,0.62)); } .ak-menu button:hover svg { color: #fff; } }
+.ak-dw { position: absolute; right: 10px; top: 10px; width: min(52%, 760px); height: min(88%, 700px); z-index: 3; box-sizing: border-box; border-radius: 8px;
+  transition: box-shadow .15s ease, background-color .15s ease; }
+.ak-dw::before { content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 2px; pointer-events: none; z-index: 2;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0); }
+.ak-dw[data-state="target"], .ak-dw[data-state="hot"] { pointer-events: none; }
+.ak-dw[data-state="target"] { background-color: rgba(0,122,204,0.05); box-shadow: 0 0 9px 1px rgba(0,122,204,0.35), 0 4px 14px rgba(0,0,0,0.35); }
+.ak-dw[data-state="target"]::before { background: linear-gradient(160deg, #7cc8f7, #007acc 45%, #00487d); }
+.ak-dw[data-state="hot"] { background-color: rgba(75,181,121,0.06); box-shadow: 0 0 11px 2px rgba(75,181,121,0.45), 0 4px 14px rgba(0,0,0,0.35); }
+.ak-dw[data-state="hot"]::before { background: linear-gradient(160deg, #a6ebc3, #4bb579 45%, #226c47); }
+.ak-dw[data-state="open"] { background-color: #15171b; box-shadow: 0 8px 22px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,0,0,0.5); }
+.ak-dw[data-state="open"]::before { background: linear-gradient(160deg, #f1f3f6, #b9c0ca 38%, #7b828c 75%, #a9b0ba); }
+.ak-dw[data-max="true"] { left: 6px; right: 6px; top: 6px; bottom: 6px; width: auto; height: auto; }
+.ak-dw[data-min="true"] { height: 34px; width: min(52%, 300px); }
+.ak-dw-drop { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+  font: 600 13px/1.3 system-ui, -apple-system, "Segoe UI", sans-serif; letter-spacing: .06em; text-transform: uppercase; }
+.ak-dw[data-state="target"] .ak-dw-drop { color: #8fcaf3; }
+.ak-dw[data-state="hot"] .ak-dw-drop { color: #a6ebc3; }
+.ak-dw-size { font: 11px/1 system-ui, -apple-system, "Segoe UI", sans-serif; letter-spacing: 0; text-transform: none; opacity: .7; }
+.ak-dw-bar { position: absolute; left: 2px; right: 2px; top: 2px; height: 30px; display: flex; align-items: center; gap: 6px; padding-left: 10px; box-sizing: border-box;
+  border-radius: 6px 6px 0 0; background: linear-gradient(180deg, #3a3f47, #24272d); border-bottom: 1px solid #0d0e10;
+  font: 12px/1 system-ui, -apple-system, "Segoe UI", sans-serif; color: #dfe3e8; cursor: default; user-select: none; }
+.ak-dw[data-min="true"] .ak-dw-bar { border-radius: 6px; border-bottom: 0; }
+.ak-dw-name { flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; letter-spacing: .02em; }
+.ak-dw-bar button { flex: none; display: flex !important; align-items: center; justify-content: center; width: 34px !important; height: 28px !important; min-height: 0 !important;
+  margin: 0 !important; padding: 0 !important; border: 0 !important; border-radius: 4px !important; background: transparent; color: #c9ced6; cursor: pointer;
+  -webkit-appearance: none; appearance: none; -webkit-tap-highlight-color: transparent; font-size: 0 !important; }
+.ak-dw-bar button:last-child { margin-right: 1px !important; border-radius: 4px 5px 4px 4px !important; }
+.ak-dw-bar button:focus-visible { outline: none; background: rgba(255,255,255,0.12); }
+@media (hover: hover) { .ak-dw-bar button:hover { background: rgba(255,255,255,0.12); color: #fff; } .ak-dw-bar button.ak-dw-x:hover { background: #c42b1c; color: #fff; } }
+.ak-dw-body { position: absolute; left: 2px; right: 2px; top: 33px; bottom: 2px; border-radius: 0 0 6px 6px; overflow: hidden; }
+.ak-ghost { position: absolute; left: 0; top: 0; width: 170px; height: 116px; border-radius: 8px; z-index: 5; pointer-events: none; display: none;
+  box-shadow: 0 12px 26px rgba(0,0,0,0.6), 0 0 0 1.5px rgba(124,200,247,0.75), 0 0 10px rgba(0,122,204,0.35); will-change: transform; }
+.ak-insp { position: absolute; inset: 0; box-sizing: border-box; cursor: grab; touch-action: none; }
+.ak-insp:active { cursor: grabbing; }
+.ak-insp-ctl { position: absolute; left: 8px; top: 6px; display: flex; flex-direction: column; gap: 6px; cursor: default;
+  font: 11px/1.3 system-ui, -apple-system, "Segoe UI", sans-serif; color: #c3c8d0; }
+.ak-insp-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 132px; }
+.ak-insp-center { padding-left: 25px; margin-top: 2px; }
+.ak-insp-hint { position: absolute; left: 8px; bottom: 6px; font: 10px/1.3 system-ui, -apple-system, "Segoe UI", sans-serif; color: #6c727c; pointer-events: none; }
+@media (max-width: 600px), (max-height: 500px) and (orientation: landscape) {
+  .ak-dw { right: 6px; top: 6px; width: 58%; height: 62%; }
+  .ak-dw[data-min="true"] { width: 58%; height: 30px; }
+  .ak-dw-bar { height: 26px; font-size: 11px; }
+  .ak-dw-bar button { width: 30px !important; height: 24px !important; }
+  .ak-dw-body { top: 29px; }
+  .ak-ghost { width: 120px; height: 82px; }
+  .ak-insp-ctl { font-size: 9px; gap: 4px; }
+  .ak-insp-row { width: 104px; }
+  .ak-insp-center { transform: scale(0.6); transform-origin: 0 0; height: 32px; }
+  .ak-insp-hint { display: none; }
+}`;
+
+// its camera, made once, and kept while the page is open (the plenum stays as it was left)
+let inspectCam: CameraController | null = null;
+
+const getInspectCam = () => {
+  if (!inspectCam) {
+    inspectCam = createCameraController({ auto: false, autoSpeed: 0 });
+    inspectCam.lookAt([0, 0, 0], 215, 28, 1);
+    for (let k = 0; k < 400; k++) inspectCam.update(0.05);
+  }
+
+  return inspectCam;
+};
+
+function PlenumInspector({ onChange }: { onChange: () => void }) {
+  const ref = useRef<HTMLDivElement | null>(null);
+  const [section, setSection] = useState<-1 | 0 | 1>(() => INSPECT.section);
+
+  const cut = (side: -1 | 1) => {
+    const next = INSPECT.section === side ? 0 : side;
+
+    INSPECT.section = next;
+    setSection(next);
+    onChange();
+  };
+
+  useEffect(() => {
+    const el = ref.current;
+
+    if (!el) return;
+
+    const cam = getInspectCam();
+
+    INSPECT.view = () => cam.view;
+    INSPECT.el = el;
+    INSPECT.on = true;
+    onChange();
+
+    // its own easing, every frame, while it is open
+    let raf = 0;
+    let last = 0;
+    const tick = (now: number) => {
+      const dt = last > 0 ? Math.min(0.1, (now - last) / 1000) : 0;
+
+      last = now;
+      if (cam.update(dt)) onChange();
+      raf = requestAnimationFrame(tick);
+    };
+
+    raf = requestAnimationFrame(tick);
+
+    const pointers = new Map<number, { x: number; y: number }>();
+    let pinch = 0;
+    let twist = 0;
+    const list = () => [...pointers.values()];
+    const spread = () => {
+      const p = list();
+
+      return p.length < 2 ? 0 : Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y);
+    };
+    const angleOf = () => {
+      const p = list();
+
+      return p.length < 2 ? 0 : Math.atan2(p[1].y - p[0].y, p[1].x - p[0].x);
+    };
+    const onDown = (e: PointerEvent) => {
+      e.stopPropagation();
+      if ((e.target as HTMLElement).closest(".ak-insp-ctl")) return; // (its controls take their own presses)
+      e.preventDefault();
+      el.setPointerCapture(e.pointerId);
+      pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      cam.setDragging(true);
+      if (pointers.size === 2) {
+        pinch = spread();
+        twist = angleOf();
+      }
+    };
+    const onMove = (e: PointerEvent) => {
+      const p = pointers.get(e.pointerId);
+
+      if (!p) return;
+
+      e.stopPropagation();
+
+      const dx = e.clientX - p.x;
+      const dy = e.clientY - p.y;
+
+      p.x = e.clientX;
+      p.y = e.clientY;
+
+      if (pointers.size === 1) {
+        if (e.shiftKey) cam.roll(dx * 0.35);
+        else cam.orbit(dx, dy);
+      } else if (pointers.size === 2) {
+        const now = spread();
+
+        if (pinch > 0 && now > 0) cam.zoomBy(now / pinch);
+        pinch = now;
+
+        const angle = angleOf();
+        const turn = Math.atan2(Math.sin(angle - twist), Math.cos(angle - twist));
+
+        twist = angle;
+        cam.roll((turn * 180) / Math.PI);
+      }
+    };
+    const onUp = (e: PointerEvent) => {
+      e.stopPropagation();
+      pointers.delete(e.pointerId);
+      if (pointers.size === 0) cam.setDragging(false);
+    };
+    const onWheel = (e: WheelEvent) => {
+      e.stopPropagation();
+      e.preventDefault();
+      cam.zoomBy(Math.exp(-e.deltaY * 0.0012));
+    };
+    const stop = (e: Event) => e.stopPropagation();
+
+    el.addEventListener("pointerdown", onDown);
+    el.addEventListener("pointermove", onMove);
+    el.addEventListener("pointerup", onUp);
+    el.addEventListener("pointercancel", onUp);
+    el.addEventListener("wheel", onWheel, { passive: false });
+    el.addEventListener("dblclick", stop);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      el.removeEventListener("pointerdown", onDown);
+      el.removeEventListener("pointermove", onMove);
+      el.removeEventListener("pointerup", onUp);
+      el.removeEventListener("pointercancel", onUp);
+      el.removeEventListener("wheel", onWheel);
+      el.removeEventListener("dblclick", stop);
+      INSPECT.on = false;
+      INSPECT.el = null;
+      INSPECT.view = null;
+      onChange();
+    };
+  }, [onChange]);
+
+  // the Center button: squared up to the nearest of its faces, from where it is seen now, as the engine's is
+  const center = () => {
+    const el = ref.current;
+    const aspect = el && el.clientHeight > 0 ? el.clientWidth / el.clientHeight : 1.4;
+
+    getInspectCam().center(aspect, false);
+  };
+
+  return (
+    <div ref={ref} className="ak-insp" role="img" aria-label="The intake plenum, its two log plenums and its runners: drag to turn it, pinch or scroll to zoom">
+      <div className="ak-insp-ctl">
+        <div className="ak-insp-row">
+          <span>Left section</span>
+          <button type="button" className="ak-vp-switch" role="switch" aria-checked={section === -1} aria-label="Left section" data-on={section === -1} onClick={() => cut(-1)} />
+        </div>
+        <div className="ak-insp-row">
+          <span>Right section</span>
+          <button type="button" className="ak-vp-switch" role="switch" aria-checked={section === 1} aria-label="Right section" data-on={section === 1} onClick={() => cut(1)} />
+        </div>
+        <div className="ak-insp-center">
+          <CenterButton onCenter={center} />
+        </div>
+      </div>
+      <span className="ak-insp-hint">Drag to turn · Shift-drag or twist to roll · scroll or pinch to zoom</span>
+    </div>
+  );
+}
+
+// The context menu, where it was opened (in the stage's CSS pixels, kept inside it)
+function ContextMenu({ at, onSelect, onClose }: { at: { x: number; y: number }; onSelect: () => void; onClose: () => void }) {
+  const ref = useRef<HTMLDivElement | null>(null);
+  const [pos, setPos] = useState(at);
+
+  useLayoutEffect(() => {
+    const el = ref.current;
+    const stage = el?.parentElement;
+
+    if (!el || !stage) return;
+
+    const x = Math.max(6, Math.min(at.x, stage.clientWidth - el.offsetWidth - 6));
+    const y = Math.max(6, Math.min(at.y, stage.clientHeight - el.offsetHeight - 6));
+
+    if (x !== pos.x || y !== pos.y) setPos({ x, y });
+  }, [at, pos.x, pos.y]);
+
+  useEffect(() => {
+    const el = ref.current;
+
+    if (!el) return;
+
+    const stop = (e: Event) => e.stopPropagation();
+    const noMenu = (e: Event) => {
+      e.preventDefault();
+      e.stopPropagation();
+    };
+    // a press anywhere outside it closes it (caught on the way down)
+    const outside = (e: Event) => {
+      if (!el.contains(e.target as Node)) onClose();
+    };
+
+    el.addEventListener("pointerdown", stop);
+    el.addEventListener("dblclick", stop);
+    el.addEventListener("contextmenu", noMenu);
+    document.addEventListener("pointerdown", outside, true);
+    el.querySelector("button")?.focus({ preventScroll: true });
+
+    return () => {
+      el.removeEventListener("pointerdown", stop);
+      el.removeEventListener("dblclick", stop);
+      el.removeEventListener("contextmenu", noMenu);
+      document.removeEventListener("pointerdown", outside, true);
+    };
+  }, [onClose]);
+
+  return (
+    <div ref={ref} className="ak-menu" role="menu" style={{ left: pos.x, top: pos.y }}>
+      <div className="ak-menu-title">Component</div>
+      <button type="button" role="menuitem" onClick={onSelect}>
+        <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
+          <circle cx="7" cy="7" r="4.2" fill="none" stroke="currentColor" strokeWidth="1.4" />
+          <path d="M7 0.5 V3.5 M7 10.5 V13.5 M0.5 7 H3.5 M10.5 7 H13.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+        </svg>
+        Select component
+      </button>
+    </div>
+  );
+}
+
+export type DockState = "none" | "target" | "hot" | "open";
+
+// The detail window, on the stage's right: while a component is dragged, only its edge and "Drop here" (blue, green once the
+// pointer is in it); once one is dropped there, a silver window with a title bar (minimize, maximize, close) and the component
+// in it, turned and cut as the inspector lets it be
+function DetailWindow({ state, boxRef, onChange, onClose }: { state: DockState; boxRef: { current: HTMLDivElement | null }; onChange: () => void; onClose: () => void }) {
+  const [min, setMin] = useState(false);
+  const [max, setMax] = useState(false);
+  const [size, setSize] = useState("");
+  const comp = componentById(SELECT.detached);
+
+  useEffect(() => {
+    if (state !== "open") {
+      setMin(false);
+      setMax(false);
+    }
+  }, [state]);
+
+  // the box's size, shown while a component is carried over it
+  useLayoutEffect(() => {
+    const el = boxRef.current;
+
+    if (el && (state === "target" || state === "hot")) setSize(`${Math.round(el.clientWidth)} × ${Math.round(el.clientHeight)}`);
+  }, [state, boxRef]);
+
+  useEffect(() => {
+    const el = boxRef.current;
+
+    if (!el) return;
+
+    const stop = (e: Event) => e.stopPropagation();
+    const noMenu = (e: Event) => e.preventDefault();
+
+    el.addEventListener("pointerdown", stop);
+    el.addEventListener("dblclick", stop);
+    el.addEventListener("wheel", stop);
+    el.addEventListener("contextmenu", noMenu);
+
+    return () => {
+      el.removeEventListener("pointerdown", stop);
+      el.removeEventListener("dblclick", stop);
+      el.removeEventListener("wheel", stop);
+      el.removeEventListener("contextmenu", noMenu);
+    };
+  }, [boxRef, state]);
+
+  // the renderer reads the box's place each frame: a redraw once it has moved or changed size
+  useEffect(() => {
+    const t = window.setTimeout(onChange, 0);
+
+    return () => window.clearTimeout(t);
+  }, [min, max, state, onChange]);
+
+  if (state === "none") return null;
+
+  return (
+    <div ref={(el) => { boxRef.current = el; }} className="ak-dw" data-state={state} data-min={state === "open" && min} data-max={state === "open" && max && !min}>
+      {state !== "open" ? (
+        <div className="ak-dw-drop">
+          <svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true">
+            <rect x="2" y="2" width="26" height="26" rx="5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeDasharray="4 3" />
+            <path d="M15 8 V20 M10 15.5 L15 20.5 L20 15.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          Drop here
+          <span className="ak-dw-size">{size}</span>
+        </div>
+      ) : (
+        <>
+          <div className="ak-dw-bar">
+            <span className="ak-dw-name">{comp?.name ?? "Component"}</span>
+            <button type="button" aria-label={min ? "Restore" : "Minimize"} title={min ? "Restore" : "Minimize"} onClick={() => setMin(!min)}>
+              <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M1.5 9.5 H10.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" /></svg>
+            </button>
+            <button type="button" aria-label={max ? "Restore" : "Maximize"} title={max ? "Restore" : "Maximize"} onClick={() => { setMax(!max); setMin(false); }}>
+              {max ? (
+                <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><rect x="1.5" y="3.5" width="7" height="7" fill="none" stroke="currentColor" strokeWidth="1.2" /><path d="M3.5 3.5 V1.5 H10.5 V8.5 H8.5" fill="none" stroke="currentColor" strokeWidth="1.2" /></svg>
+              ) : (
+                <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><rect x="1.5" y="1.5" width="9" height="9" fill="none" stroke="currentColor" strokeWidth="1.2" /></svg>
+              )}
+            </button>
+            <button type="button" className="ak-dw-x" aria-label="Close: the component goes back into the engine" title="Close" onClick={onClose}>
+              <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 2 L10 10 M10 2 L2 10" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" /></svg>
+            </button>
+          </div>
+          {!min && (
+            <div className="ak-dw-body">
+              <PlenumInspector onChange={onChange} />
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
 export function EngineStage() {
   const clock = useEngineClock();
   const camera = useCamera();
@@ -374,6 +770,25 @@ export function EngineStage() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [failed, setFailed] = useState(false);
   const [loaded, setLoaded] = useState(false); // the engine is drawn: the loader goes
+  const notifyCamera = useRef(() => camera.notify()).current; // (one function for good: the inspector's effect runs once)
+  const [menu, setMenu] = useState<{ x: number; y: number } | null>(null); // the context menu, where it was opened
+  const [arm, setArm] = useState(false); // "Select component" chosen: the next press picks
+  const [dock, setDock] = useState<DockState>("none"); // the detail window
+  const dockRef = useRef<HTMLDivElement | null>(null);
+  const ghostRef = useRef<HTMLDivElement | null>(null);
+  // shared with the pointer's handlers (set up once): the menu's choice, and when the menu last opened
+  const ix = useRef({ arm: false, menuAt: -1e9 }).current;
+  const closeMenu = useRef(() => setMenu(null)).current;
+  const chooseSelect = () => {
+    setMenu(null);
+    ix.arm = true;
+    setArm(true);
+  };
+  const closeDock = () => {
+    SELECT.detached = 0;
+    setDock("none");
+    camera.notify();
+  };
 
   useLayoutEffect(() => {
     const canvas = canvasRef.current;
@@ -472,7 +887,122 @@ export function EngineStage() {
     let lastTap = { t: 0, x: 0, y: 0 };
     let lastTapDone = -1e9;
 
+    // ---- the selection, and the drag into the detail window ----
+    const local = (event: { clientX: number; clientY: number }) => {
+      const b = canvas.getBoundingClientRect();
+
+      return { x: event.clientX - b.left, y: event.clientY - b.top };
+    };
+    const LONG_PRESS = 500; // ms a finger is held still for the context menu
+    let longPress = 0;
+    let drag: { id: number; pointerId: number; x0: number; y0: number; active: boolean; hot: boolean } | null = null;
+    let glide = 0;
+
+    const openMenu = (x: number, y: number) => {
+      ix.menuAt = performance.now();
+      ix.arm = false;
+      setArm(false);
+      setMenu({ x, y });
+    };
+
+    const placeGhost = (x: number, y: number) => {
+      const g = ghostRef.current;
+
+      if (!g) return;
+
+      g.style.transform = `translate(${Math.round(x - g.offsetWidth / 2)}px, ${Math.round(y - g.offsetHeight * 0.62)}px)`;
+    };
+
+    const endDrag = (dropped: boolean) => {
+      const d = drag;
+
+      drag = null;
+      camera.setDragging(false);
+
+      if (!d) return;
+
+      if (!d.active) return;
+
+      const g = ghostRef.current;
+
+      if (dropped) {
+        SELECT.detached = d.id;
+        SELECT.selected = 0;
+        GHOST.el = null;
+        GHOST.view = null;
+        if (g) g.style.display = "none";
+        setDock("open");
+        camera.notify();
+
+        return;
+      }
+
+      // missed: the card glides back to where the component was picked up, and all is as it was
+      setDock("none");
+      if (!g) return;
+      g.style.transition = "transform .26s cubic-bezier(.3,.7,.4,1), opacity .26s";
+      placeGhost(d.x0, d.y0);
+      g.style.opacity = "0.2";
+
+      const t0 = performance.now();
+      const step = () => {
+        camera.notify();
+        if (performance.now() - t0 < 300) glide = requestAnimationFrame(step);
+        else {
+          g.style.transition = "";
+          g.style.display = "none";
+          g.style.opacity = "";
+          GHOST.el = null;
+          GHOST.view = null;
+          camera.notify();
+        }
+      };
+
+      glide = requestAnimationFrame(step);
+    };
+
+    const overDock = (event: PointerEvent) => {
+      const el = dockRef.current;
+
+      if (!el) return false;
+
+      const b = el.getBoundingClientRect();
+
+      return event.clientX >= b.left && event.clientX <= b.right && event.clientY >= b.top && event.clientY <= b.bottom;
+    };
+
     const onDown = (event: PointerEvent) => {
+      if (event.button === 2) return; // (the right button opens the menu: contextmenu)
+
+      const at = local(event);
+
+      // "Select component" chosen: this press picks what is under it, and does nothing else
+      if (ix.arm) {
+        ix.arm = false;
+        setArm(false);
+        SELECT.selected = renderer?.pick(at.x, at.y) ?? 0;
+        camera.notify();
+
+        return;
+      }
+
+      // a component selected: a press on it begins carrying it (the engine stays still); anywhere else lets it go, and
+      // the engine turns as ever
+      if (SELECT.selected) {
+        if (pointers.size === 0 && renderer?.pick(at.x, at.y) === SELECT.selected) {
+          frameEl.setPointerCapture(event.pointerId);
+          camera.setDragging(true);
+          drag = { id: SELECT.selected, pointerId: event.pointerId, x0: at.x, y0: at.y, active: false, hot: false };
+
+          return;
+        }
+
+        SELECT.selected = 0;
+        camera.notify();
+      }
+
+      if (drag) return;
+
       frameEl.setPointerCapture(event.pointerId);
       pointers.set(event.pointerId, { x: event.clientX, y: event.clientY, x0: event.clientX, y0: event.clientY, live: event.pointerType !== "touch" });
       camera.setDragging(true);
@@ -480,6 +1010,24 @@ export function EngineStage() {
       if (pointers.size === 2) {
         pinch = spread();
         twist = angleOf();
+      }
+
+      // a finger held still opens the context menu (the system's own is kept away: contextmenu, -webkit-touch-callout)
+      window.clearTimeout(longPress);
+      if (event.pointerType === "touch" && pointers.size === 1) {
+        const id = event.pointerId;
+
+        longPress = window.setTimeout(() => {
+          const p = pointers.get(id);
+
+          if (!p || p.live || pointers.size !== 1) return;
+
+          pointers.delete(id);
+          camera.setDragging(false);
+          lastTap = { t: 0, x: 0, y: 0 };
+          navigator.vibrate?.(12);
+          openMenu(at.x, at.y);
+        }, LONG_PRESS);
       }
 
       if (event.pointerType === "touch" && pointers.size === 1) {
@@ -496,6 +1044,45 @@ export function EngineStage() {
     };
 
     const onMove = (event: PointerEvent) => {
+      if (drag && event.pointerId === drag.pointerId) {
+        const at = local(event);
+
+        if (!drag.active) {
+          if (Math.hypot(at.x - drag.x0, at.y - drag.y0) < 6) return;
+
+          drag.active = true;
+
+          const g = ghostRef.current;
+
+          if (g) {
+            g.style.transition = "";
+            g.style.opacity = "";
+            g.style.display = "block";
+          }
+
+          GHOST.el = g;
+          GHOST.view = () => {
+            const v = camera.view;
+
+            return { right: v.right, down: v.down, back: v.back, distance: CAM_BASE_DISTANCE / 1.7 }; // (the plenum filling the card)
+          };
+          setDock("target");
+        }
+
+        placeGhost(at.x, at.y);
+
+        const hot = overDock(event);
+
+        if (hot !== drag.hot) {
+          drag.hot = hot;
+          setDock(hot ? "hot" : "target");
+        }
+
+        camera.notify();
+
+        return;
+      }
+
       const known = pointers.get(event.pointerId);
 
       if (!known) return;
@@ -506,6 +1093,7 @@ export function EngineStage() {
         if (Math.hypot(event.clientX - known.x0, event.clientY - known.y0) < TAP_SLOP) return;
 
         known.live = true;
+        window.clearTimeout(longPress);
       }
 
       const dx = event.clientX - known.x;
@@ -535,6 +1123,13 @@ export function EngineStage() {
     };
 
     const onUp = (event: PointerEvent) => {
+      if (drag && event.pointerId === drag.pointerId) {
+        endDrag(event.type === "pointerup" && drag.active && overDock(event));
+
+        return;
+      }
+
+      window.clearTimeout(longPress);
       pointers.delete(event.pointerId);
 
       if (pointers.size === 0) camera.setDragging(false);
@@ -549,10 +1144,42 @@ export function EngineStage() {
     const onDouble = (event: MouseEvent) => {
       // (on a touch screen the double tap has done it already)
       if ((event as PointerEvent).pointerType === "touch" || performance.now() - lastTapDone < 400) return;
+      if (SELECT.selected || drag) return; // (two presses on a selected component are no change of view)
 
       camera.nextView();
     };
 
+    // A right click (a two-finger click on a trackpad) opens the context menu, in place of the browser's; on a touch screen
+    // the held finger has done it (a browser that also sends contextmenu then is not heeded)
+    const onContext = (event: MouseEvent) => {
+      event.preventDefault();
+
+      if (performance.now() - ix.menuAt < 900 || drag) return;
+      if ((event as PointerEvent).pointerType === "touch") return;
+
+      const at = local(event);
+
+      openMenu(at.x, at.y);
+    };
+
+    // Escape: a drag goes back, the menu closes, the cross gives up, the selection is let go
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+
+      if (drag) endDrag(false);
+      else if (ix.arm) {
+        ix.arm = false;
+        setArm(false);
+      } else if (SELECT.selected) {
+        SELECT.selected = 0;
+        camera.notify();
+      }
+
+      setMenu(null);
+    };
+
+    frameEl.addEventListener("contextmenu", onContext);
+    window.addEventListener("keydown", onKey);
     frameEl.addEventListener("pointerdown", onDown);
     frameEl.addEventListener("pointermove", onMove);
     frameEl.addEventListener("pointerup", onUp);
@@ -573,6 +1200,10 @@ export function EngineStage() {
       canvas.removeEventListener("webglcontextlost", contextLost);
       canvas.removeEventListener("webglcontextrestored", contextRestored);
 
+      window.clearTimeout(longPress);
+      cancelAnimationFrame(glide);
+      frameEl.removeEventListener("contextmenu", onContext);
+      window.removeEventListener("keydown", onKey);
       frameEl.removeEventListener("pointerdown", onDown);
       frameEl.removeEventListener("pointermove", onMove);
       frameEl.removeEventListener("pointerup", onUp);
@@ -598,8 +1229,10 @@ export function EngineStage() {
         flex: "1 1 0", // it fills the height the controls under it leave
         minHeight: 0,
         touchAction: "none",
-        cursor: "grab",
+        cursor: arm ? "crosshair" : "grab",
         userSelect: "none",
+        WebkitUserSelect: "none",
+        WebkitTouchCallout: "none",
       }}
     >
       <canvas
@@ -629,7 +1262,12 @@ export function EngineStage() {
       </div>
 
 
-      <ViewPanel onChange={() => camera.notify()} />
+      <ViewPanel onChange={notifyCamera} />
+
+      <style>{SELECT_CSS}</style>
+      <DetailWindow state={dock} boxRef={dockRef} onChange={notifyCamera} onClose={closeDock} />
+      <div ref={ghostRef} className="ak-ghost" aria-hidden="true" />
+      {menu && <ContextMenu at={menu} onSelect={chooseSelect} onClose={closeMenu} />}
 
       <Loader hidden={loaded} />
 

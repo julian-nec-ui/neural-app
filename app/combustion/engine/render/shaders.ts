@@ -100,6 +100,8 @@ export const PART_FRAGMENT_SHADER = `
   uniform vec3 uRimTint; // the contour's bright line: plain steel, or a cold blue that stands out against the red heads
   uniform float uRimWide; // 0..1: how much wider and brighter the contour is (the exhaust's, against the heads)
   uniform float uFrontOnly; // 1: a see-through pipe or casing, drawn as only its skin toward the eye (its far wall left out)
+  uniform float uClipOn; // 1: cut open (the plenum inspector): what lies on the eye's side of the plane goes, its inside shows
+  uniform vec4 uClip; // the plane: its normal, and how far along it the cut is
 
   float hash21(vec2 p) {
     return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
@@ -288,6 +290,10 @@ float emboss(vec2 p, out vec2 gr) {
     // A see-through pipe or casing shows only the skin that faces the eye: one layer of glass, so that it stays one whole
     // piece, its far wall never laid over what is behind it
     if (uFrontOnly > 0.5 && dot(n, view) < -0.02) discard;
+
+    if (uClipOn > 0.5 && dot(vWorld, uClip.xyz) > uClip.w) discard;
+
+    bool inner = uClipOn > 0.5 && dot(n, view) < 0.0; // (the inside of a part cut open)
 
     // Lit on both sides: a part seen from behind, or from inside, is not black
     if (dot(n, view) < 0.0) n = -n;
@@ -858,6 +864,16 @@ float emboss(vec2 p, out vec2 gr) {
     // The glints on rough cast metal are not dimmed by the see-through skin: they sparkle on it
     vec3 glint = vec3(1.0, 0.84, 0.80) * spec * 0.5 * isRough;
 
+    // inside the part cut open: its cast walls, a matte metallic grey, lit, so that its depth reads
+    if (inner) {
+      float li = 0.26 + 0.62 * max(dot(n, normalize(uKey)), 0.0) + 0.2 * max(dot(n, normalize(uFill)), 0.0);
+      vec3 wallCol = vec3(0.47, 0.49, 0.53) * (0.92 + 0.16 * vnoise(vWorld.xz * 0.9 + vWorld.y * 0.4));
+
+      col = wallCol * li + vec3(0.08) * pow(max(dot(n, normalize(normalize(uKey) + view)), 0.0), 24.0);
+      alpha = 1.0;
+      glint = vec3(0.0);
+    }
+
     gl_FragColor = vec4(clamp(col * alpha + glint, 0.0, 1.0), alpha);
   }
 `;
@@ -1379,5 +1395,93 @@ export const POINT_FRAGMENT_SHADER = `
     float a = vCol.a * s * s;
 
     gl_FragColor = vec4(vCol.rgb * a, a);
+  }
+`;
+
+// The picking pass: every part drawn flat in its component's number (core/select.ts; 0 for none), with its depth, so that
+// what is under a point of the stage, and what of a component shows, can be read back
+export const ID_VERTEX_SHADER = `
+  precision highp float;
+
+  attribute vec3 aPosition;
+
+  uniform vec2 uSpin;
+  uniform vec3 uOffset;
+  uniform float uScaleY;
+  uniform mat3 uOrient;
+  uniform mat4 uViewProj;
+
+  void main() {
+    vec3 l = vec3(aPosition.x, aPosition.y * uScaleY, aPosition.z);
+    vec3 s = vec3(l.x, l.y * uSpin.x + l.z * uSpin.y, -l.y * uSpin.y + l.z * uSpin.x);
+
+    gl_Position = uViewProj * vec4(uOrient * s + uOffset, 1.0);
+  }
+`;
+
+export const ID_FRAGMENT_SHADER = `
+  precision mediump float;
+
+  uniform float uId;
+
+  void main() {
+    gl_FragColor = vec4(uId / 255.0, 0.0, 0.0, 1.0);
+  }
+`;
+
+// The selected component's outline: a band of metallic blue, some 3.5 pixels wide, round what of it shows (from the picking
+// pass), lighter at its inner edge and toward the top, with a faint glow beyond it
+export const OUTLINE_VERTEX_SHADER = `
+  attribute vec2 aXY;
+
+  void main() {
+    gl_Position = vec4(aXY, 0.0, 1.0);
+  }
+`;
+
+export const OUTLINE_FRAGMENT_SHADER = `
+  precision highp float;
+
+  uniform sampler2D uMask;
+  uniform vec2 uScreen;   // the drawing buffer, in its pixels
+  uniform vec2 uMaskSize; // the picking pass's, in its pixels
+  uniform float uSel;     // the selected component's number
+  uniform float uRadius;  // the band's width, in the picking pass's pixels
+
+  float picked(vec2 uv) {
+    return abs(texture2D(uMask, uv).r * 255.0 - uSel) < 0.5 ? 1.0 : 0.0;
+  }
+
+  void main() {
+    vec2 uv = gl_FragCoord.xy / uScreen;
+
+    if (picked(uv) > 0.5) discard;
+
+    vec2 texel = 1.0 / uMaskSize;
+    float reach = uRadius * 1.8;
+    float best = 1e3;
+
+    for (int r = 1; r <= 9; r++) {
+      float rad = reach * float(r) / 9.0;
+
+      for (int a = 0; a < 16; a++) {
+        float ang = float(a) * 0.3926991;
+
+        if (picked(uv + vec2(cos(ang), sin(ang)) * rad * texel) > 0.5) best = min(best, rad);
+      }
+
+      if (best < 1e3) break;
+    }
+
+    if (best >= 1e3) discard;
+
+    float core = 1.0 - smoothstep(uRadius - 0.8, uRadius + 0.4, best);
+    float glow = (1.0 - smoothstep(uRadius, reach, best)) * 0.3;
+    float inner = clamp(1.0 - best / uRadius, 0.0, 1.0);
+    float up = gl_FragCoord.y / uScreen.y;
+    vec3 col = mix(vec3(0.0, 0.32, 0.66), vec3(0.50, 0.82, 1.0), clamp(0.3 + 0.45 * inner + 0.35 * up, 0.0, 1.0));
+    float a = max(core, glow);
+
+    gl_FragColor = vec4(col * a, a);
   }
 `;

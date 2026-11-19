@@ -128,6 +128,7 @@ function computeBankCommands(frame: EngineFrame, bank: Bank) {
 
   // The flanges at the ports, and the welds where the intake runners leave the plenum and meet the head
   if (!SCENE_OPTIONS.seeThrough) emitInBank(bank, r.exhaustFlanges, 1, 0, dx, 0, 0); // (the headers' port flanges: with the headers, solid engine only)
+  if (!SCENE_OPTIONS.seeThrough) emitInBank(bank, r.runnerDetail, 1, 0, dx, 0, 0); // (the runners' ribs, lips and lined mouths)
   if (!SCENE_OPTIONS.seeThrough) emitInBank(bank, r.intakeWelds, 1, 0, dx, 0, 0); // (the intake rail and its port flanges behind the head: solid engine only)
 
   // Camshafts: this bank's, made for its own phases and its own sense of turn
@@ -360,6 +361,7 @@ export function computeSceneCommands(frame: EngineFrame): DrawCmd[] {
   // and the intake manifold in front of it, the Y collecting the two cooled pipes and the throttle: on the solid engine only,
   // as the pipes themselves and their welds
   if (!SCENE_OPTIONS.seeThrough && SCENE_OPTIONS.plenum) emit(r.intakeManifold, 1, 0, 0, 0, 0);
+  if (!SCENE_OPTIONS.seeThrough && SCENE_OPTIONS.plenum) emit(r.plenumLogs, 1, 0, 0, 0, 0); // (the two log plenums inside it)
   if (!SCENE_OPTIONS.seeThrough && SCENE_OPTIONS.plenum) emit(r.coolWelds, 1, 0, 0, 0, 0);
 
   // The intercoolers, one on each side of the engine (see icPlace): each core, the fan on its outer face, its two tanks
