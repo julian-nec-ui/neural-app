@@ -24,12 +24,13 @@ export default function Joystick({ size, onMove, onCenter, style }: Props) {
   const bootRef = useRef<HTMLDivElement | null>(null);
   const dotRef = useRef<HTMLDivElement | null>(null);
   const move = useRef(onMove);
-
-  move.current = onMove;
-
   const center = useRef(onCenter);
 
-  center.current = onCenter;
+  // the latest handlers, for the native listeners set up once (kept after each render, not during it)
+  useEffect(() => {
+    move.current = onMove;
+    center.current = onCenter;
+  });
 
   const S = size;
   const well = S * 0.62; // the boot's well
@@ -222,7 +223,7 @@ export default function Joystick({ size, onMove, onCenter, style }: Props) {
       root.removeEventListener("wheel", stop);
       root.removeEventListener("keydown", key);
     };
-  }, [S, throw_]);
+  }, [S, throw_, knob]);
 
   const arrow = (rot: number) => (
     <svg
@@ -243,6 +244,10 @@ export default function Joystick({ size, onMove, onCenter, style }: Props) {
       ref={rootRef}
       role="slider"
       aria-label="Move the engine on the stage (drag, or the arrow keys)"
+      aria-valuemin={-1}
+      aria-valuemax={1}
+      aria-valuenow={0}
+      aria-valuetext="Centred: drag or use the arrow keys to move the engine"
       tabIndex={0}
       style={{
         position: "absolute",

@@ -4,7 +4,7 @@
 // matte metallic green while the value is low, yellow from 70% of the most, a strong orange from 88%. The page sets the values many times a
 // second, so a dial is moved by hand, not by React: `set` on the handle it puts in `api`.
 
-import { useEffect, useRef } from "react";
+import { useEffect, useImperativeHandle, useRef } from "react";
 import { AMBIENT_F, RPM_MAX, useEngineClock } from "../sim/clock";
 
 export type GaugeHandle = { set: (value: number | null) => void }; // null: the dial is off, its needle at rest
@@ -82,8 +82,10 @@ export function Gauge({ api, label, unit, max, ticks, tickText = (v) => `${v}`, 
   const needleGlow = useRef<SVGPathElement | null>(null);
   const needleEdges = useRef<Array<SVGElement | null>>([]);
 
-  useEffect(() => {
-    api.current = {
+  // its handle, put in `api` by React (useImperativeHandle: the dial does not write into its props itself)
+  useImperativeHandle(
+    api,
+    (): GaugeHandle => ({
       set(raw: number | null) {
         // off (null): the needle down at the scale's start, nothing read, nothing lit; a value that is not a number reads 0
         const off = raw === null;
@@ -115,12 +117,9 @@ export function Gauge({ api, label, unit, max, ticks, tickText = (v) => `${v}`, 
           segs.current.forEach((el, i) => el?.setAttribute("opacity", i < n ? "1" : DIM));
         }
       },
-    };
-
-    return () => {
-      api.current = null;
-    };
-  }, [api, max, min, span, digits, tint]);
+    }),
+    [min, span, digits, tint]
+  );
 
   const zone = (i: number) => {
     const s = (i + 0.5) / SEGMENTS;

@@ -282,7 +282,12 @@ function backPlate(b: MeshBuilder, outline: P2[]) {
   }
 }
 
-export function buildTimingCover(b: MeshBuilder) {
+// The cover's outline (in its bank's frame: [y, z]), and its face's and its back's x: for what is bolted to it
+export function timingCoverOutline(): { outline: P2[]; xFace: number; xBack: number } {
+  return { outline: coverOutline(), xFace: X_FACE, xBack: X_BACK };
+}
+
+function coverOutline(): P2[] {
   const circles: Array<[number, number, number]> = [
     [VT.yCam, VT.zCam, CAM_RC + 20],
     [VT.yCam, -VT.zCam, CAM_RC + 20],
@@ -312,7 +317,11 @@ export function buildTimingCover(b: MeshBuilder) {
     for (let k = 0; k < 12; k++) pts.push([y + 12 * Math.cos((k / 12) * TAU), z + 12 * Math.sin((k / 12) * TAU)]);
   }
 
-  const outline = hull(pts);
+  return hull(pts);
+}
+
+export function buildTimingCover(b: MeshBuilder) {
+  const outline = coverOutline();
 
   piece(b, clip(outline, JOINT_Y, -1)); // the upper piece, over the cams
   piece(b, clip(outline, JOINT_Y + 1.5, 1)); // the lower one, a hair below: the joint shows as a line

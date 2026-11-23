@@ -6,7 +6,7 @@ import type { FwMaterial, FwVec3 } from "./builder";
 import { MAT_ALU_CAST, MAT_ALU_TURNED, MAT_CT_NUT_HEAD, MAT_CT_NUT_SIDE, MAT_EXH_GUNMETAL, MAT_HDR_BLUE, MAT_TURBO_INLET_PLATE, MAT_HDR_GOLD, MAT_HDR_PURPLE, MAT_IRON, MAT_MANIFOLD_GREY, MAT_MANIFOLD_GREY_DEEP, MAT_BOLT_MATTE_HEAD, MAT_BOLT_MATTE_SIDE, MAT_INTAKE_FLANGE, MAT_INTAKE_FLANGE_EDGE, MAT_PIPE_BLACK, MAT_RAIL_FACE, MAT_STEEL_BRIGHT, MAT_TURBO_GRAIN, MAT_WELD, MAT_FLANGE_BLACK, MAT_AIR_DUCT, MAT_INJ_ORING, MAT_INJ_PLUG, MAT_INJ_LATCH, MAT_INJ_MOUNT, MAT_CT_GROOVE, MAT_RUNNER, MAT_RUNNER_RIB, MAT_RUNNER_IN } from "./materials";
 import { collar, curveAt, curveFromPoints, flangeJoint, ovalFlare, roundedCurve, subCurve, sweepTube } from "./tubes";
 import type { Curve, MeshBuilder } from "./tubes";
-import { COLLECTOR_CONE, COLLECTOR_LEN, COMPRESSOR_OUTLET_LEN, HDR_CX, HDR_CZ, HDR_MOUTH_Y, PLENUM_Y, PLENUM_Z, PORT_Y, TB, collectorRadius, compressorCentre, turboWorld, TURBO_SCALE } from "./turbo";
+import { COLLECTOR_CONE, COLLECTOR_LEN, HDR_CX, HDR_CZ, HDR_MOUTH_Y, PLENUM_Y, PLENUM_Z, PORT_Y, collectorRadius, compressorOutletLocal, turboWorld, TURBO_SCALE, INTAKE_R } from "./turbo";
 import { IN_SIDE, VT, valveX } from "./valvetrain";
 import { buildAirFilter } from "./airFilter";
 import { lobedPlate } from "./shapes";
@@ -28,6 +28,8 @@ export function seatX(cyl: number, sigma: number, sx: number) {
 // The compressor's outlet points down: the hot charge pipe runs straight down from it this far, to the level where it
 // turns toward the intercooler, round an elbow of HOT_BEND
 export const OUTLET_DROP = 56;
+// the hot pipe's bore, all the way from the compressor's outlet (its reducer's end) to the intercooler: the intake's own
+export const HOT_R = INTAKE_R;
 export const HOT_BEND = 22;
 
 // The distributor, in a bank's frame: at the middle of the bank, on the outside, a little above the ports
@@ -148,7 +150,7 @@ export function bodySection(x: number): Array<[number, number]> {
 // the gate's axis, at x
 export const plenumCentre = (_zs: number, x: number): FwVec3 => [x, PLENUM.yGate, 0];
 // where the cooled charge's pipes end, on the Y's two branches in front of the throttle, facing forward
-export const Y_BRANCH = { z: 54, len: 76, r: 31 }; // (a little over the cooled charge's pipes, 27)
+export const Y_BRANCH = { z: 54, len: 76, r: 24.8 }; // (a little over the cooled charge's pipes, COOL_R 21.6)
 export const PLENUM_INLETS: FwVec3[] = [-1, 1].map((zs): FwVec3 => [PLENUM.xn - 12 - PLENUM.throttle.len - 6 - Y_BRANCH.len, PLENUM.yGate, zs * Y_BRANCH.z]);
 // the middle of each half of the plenum, where the charge is gathered for the runners
 export const PLENUM_MIDS: FwVec3[] = [-1, 1].map((zs): FwVec3 => [(PLENUM.xf + PLENUM.xr) / 2, -410, zs * 60]);
@@ -226,10 +228,13 @@ export const PIPES = (() => {
 
   const runner = (cyl: number) => intakeRunners[cyl];
 
-  // ---- the compressor's outlet: the charge leaves it downward, through a metal coupler. The pipe that
-  // goes on from there to the intercooler is CHARGE_PIPES' ----
-  const outlet = turboWorld([TB.half, compressorCentre(1), -COMPRESSOR_OUTLET_LEN]);
-  const outletRun = curveFromPoints([outlet, [outlet[0], outlet[1] + OUTLET_DROP - HOT_BEND, outlet[2]]], 5);
+  // ---- the compressor's outlet: the charge leaves it level, square out from the block, through a bolted flange joint. The
+  // pipe that goes on from there to the intercooler is CHARGE_PIPES' ----
+  const co = compressorOutletLocal();
+  const outlet = turboWorld(co.p);
+  const outletAhead = turboWorld([co.p[0] + co.d[0] * 10, co.p[1] + co.d[1] * 10, co.p[2] + co.d[2] * 10]);
+  const outletDir = vnorm(vsub(outletAhead, outlet)); // (in the module's frame)
+  const outletRun = curveFromPoints([outlet, vadd(outlet, vscale(outletDir, OUTLET_DROP - HOT_BEND))], 5);
   const throttleEnd: FwVec3 = PLENUM_INLETS[1]; // where the cooled charge's pipe ends (B's)
 
   // The air intake leaves the compressor's inlet along the shaft, turns out from the engine, runs out level, and bends
@@ -248,7 +253,7 @@ export const PIPES = (() => {
     vadd(intakeBend, vscale(FILTER_DIR, 58)), // (its leg down to the filter: the same bend, a shorter straight after it)
   ], 72, 12);
 
-  return { log, plenum, runner, collectorEnd, outlet, outletRun, intake, throttleEnd };
+  return { log, plenum, runner, collectorEnd, outlet, outletDir, outletRun, intake, throttleEnd };
 })();
 
 // The pipes' skins, drawn see-through: the air moving inside them can be seen.
@@ -589,7 +594,7 @@ export function socketCap(b: MeshBuilder, p: FwVec3, dir: FwVec3, r: number) {
 
 // A turbocharger module's air intake, from the compressor up to the filter
 export function buildTurboIntakePipe(b: MeshBuilder) {
-  sweepTube(b, PIPES.intake, () => 20, MAT_AIR_DUCT, { segments: 26 });
+  sweepTube(b, PIPES.intake, () => INTAKE_R, MAT_AIR_DUCT, { segments: 26 });
 }
 
 // The exhaust collector's skin, drawn see-through with a steel contour: the cone and its stub
@@ -819,6 +824,9 @@ export const PORT_JOINT = {
   bolt: 3.8,
 };
 
+// the hot pipe's joints (at the compressor's outlet and at the intercooler's port): as PORT_JOINT, sized to the pipe's bore
+export const HOT_JOINT = { ...PORT_JOINT, pipeR: HOT_R, r: HOT_R + 13, pitch: HOT_R + 7, bolts: 8 };
+
 // The solid fittings of a turbocharger module's own pipes: the metal coupler on the compressor's outlet, the air
 // intake's flange, ring and lip, and the air filter on its end
 export function buildTurboFittings(b: MeshBuilder) {
@@ -834,8 +842,8 @@ export function buildTurboFittings(b: MeshBuilder) {
 
     const dir = vnorm(vsub(p1, p0));
 
-    sweepTube(b, curveFromPoints([vadd(p0, vscale(dir, -6)), p1], 2), () => 19, MAT_TURBO_GRAIN, { segments: 40 });
-    flangeJoint(b, vadd(p1, vscale(dir, PORT_JOINT.castT)), dir, PORT_JOINT);
+    sweepTube(b, curveFromPoints([vadd(p0, vscale(dir, -6)), p1], 2), () => HOT_R + 0.6, MAT_TURBO_GRAIN, { segments: 48 });
+    flangeJoint(b, vadd(p1, vscale(dir, HOT_JOINT.castT)), dir, HOT_JOINT);
   }
 
 }

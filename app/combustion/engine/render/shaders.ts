@@ -1429,7 +1429,37 @@ export const ID_FRAGMENT_SHADER = `
   }
 `;
 
-// The selected component's outline: a band of metallic blue, some 3.5 pixels wide, round what of it shows (from the picking
+// The picking pass, narrowed (the selected component only): a pixel of it is kept only if all round it, within `uErode`
+// pixels, is of it too, so that slivers of it seen through gaps between other parts (a few pixels wide) are dropped, and
+// the outline goes round only what of it really shows
+export const ERODE_FRAGMENT_SHADER = `
+  precision highp float;
+
+  uniform sampler2D uMask;
+  uniform vec2 uMaskSize;
+  uniform float uSel;
+  uniform float uErode;
+
+  float picked(vec2 uv) {
+    return abs(texture2D(uMask, uv).r * 255.0 - uSel) < 0.5 ? 1.0 : 0.0;
+  }
+
+  void main() {
+    vec2 uv = gl_FragCoord.xy / uMaskSize;
+    vec2 t = uErode / uMaskSize;
+    float k = picked(uv);
+
+    for (int a = 0; a < 8; a++) {
+      float ang = float(a) * 0.7853982;
+
+      k *= picked(uv + vec2(cos(ang), sin(ang)) * t);
+    }
+
+    gl_FragColor = vec4(k, 0.0, 0.0, 1.0);
+  }
+`;
+
+// The selected component's outline: a band of deep metallic blue, some 3.5 pixels wide, round what of it shows (from the picking
 // pass), lighter at its inner edge and toward the top, with a faint glow beyond it
 export const OUTLINE_VERTEX_SHADER = `
   attribute vec2 aXY;
@@ -1443,6 +1473,9 @@ export const OUTLINE_FRAGMENT_SHADER = `
   precision highp float;
 
   uniform sampler2D uMask;
+  uniform sampler2D uCore; // the narrowed pass (ERODE_FRAGMENT_SHADER): 1 where the component surely shows
+  uniform sampler2D uFull; // the component drawn alone, nothing in front of it: its whole silhouette
+  uniform float uErode;    // how much it was narrowed by, in the picking pass's pixels
   uniform vec2 uScreen;   // the drawing buffer, in its pixels
   uniform vec2 uMaskSize; // the picking pass's, in its pixels
   uniform float uSel;     // the selected component's number
@@ -1452,13 +1485,19 @@ export const OUTLINE_FRAGMENT_SHADER = `
     return abs(texture2D(uMask, uv).r * 255.0 - uSel) < 0.5 ? 1.0 : 0.0;
   }
 
+  float coreAt(vec2 uv) {
+    return texture2D(uCore, uv).r;
+  }
+
   void main() {
     vec2 uv = gl_FragCoord.xy / uScreen;
 
-    if (picked(uv) > 0.5) discard;
+    // within its whole silhouette there is no band: on it, or on whatever stands in front of it (the band goes only round
+    // its true edges, where they show)
+    if (picked(uv) > 0.5 || texture2D(uFull, uv).r > 0.5) discard;
 
     vec2 texel = 1.0 / uMaskSize;
-    float reach = uRadius * 1.8;
+    float reach = (uRadius + uErode) * 1.8;
     float best = 1e3;
 
     for (int r = 1; r <= 9; r++) {
@@ -1467,7 +1506,7 @@ export const OUTLINE_FRAGMENT_SHADER = `
       for (int a = 0; a < 16; a++) {
         float ang = float(a) * 0.3926991;
 
-        if (picked(uv + vec2(cos(ang), sin(ang)) * rad * texel) > 0.5) best = min(best, rad);
+        if (coreAt(uv + vec2(cos(ang), sin(ang)) * rad * texel) > 0.5) best = min(best, rad);
       }
 
       if (best < 1e3) break;
@@ -1475,11 +1514,14 @@ export const OUTLINE_FRAGMENT_SHADER = `
 
     if (best >= 1e3) discard;
 
+    best -= uErode; // (measured from the narrowed shape: back to the component's own edge)
+    reach -= uErode * 1.8;
+
     float core = 1.0 - smoothstep(uRadius - 0.8, uRadius + 0.4, best);
     float glow = (1.0 - smoothstep(uRadius, reach, best)) * 0.3;
     float inner = clamp(1.0 - best / uRadius, 0.0, 1.0);
     float up = gl_FragCoord.y / uScreen.y;
-    vec3 col = mix(vec3(0.0, 0.32, 0.66), vec3(0.50, 0.82, 1.0), clamp(0.3 + 0.45 * inner + 0.35 * up, 0.0, 1.0));
+    vec3 col = mix(vec3(0.0, 0.17, 0.42), vec3(0.22, 0.52, 0.86), clamp(0.3 + 0.45 * inner + 0.35 * up, 0.0, 1.0));
     float a = max(core, glow);
 
     gl_FragColor = vec4(col * a, a);

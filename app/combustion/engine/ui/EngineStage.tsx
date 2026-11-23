@@ -347,7 +347,7 @@ function ViewPanel({ onChange }: { onChange: () => void }) {
         <div className="ak-vp-row">
           <span className="ak-vp-label" tabIndex={open ? 0 : -1}>
             Intercoolers
-            <span className="ak-vp-tip" role="tooltip">Hides the two intercoolers: their cores, their fans, their tanks and the pipes' flanges on them</span>
+            <span className="ak-vp-tip" role="tooltip">Hides the two intercoolers: their cores, their fans, their tanks and the pipes&apos; flanges on them</span>
           </span>
           <button type="button" className="ak-vp-switch" role="switch" aria-checked={intercoolers} aria-label="Intercoolers" tabIndex={open ? 0 : -1} data-on={intercoolers} onClick={toggleIntercoolers} />
         </div>
@@ -371,8 +371,8 @@ function ViewPanel({ onChange }: { onChange: () => void }) {
 }
 
 // The selection and the detail window (core/select.ts). A right click (on a phone or a tablet, a finger held still for half
-// a second) opens the context menu; its "Select component" turns the pointer to a cross, and the next press picks the
-// component under it, outlined in metallic blue on the stage. A drag begun on it carries it, in a small card, toward the
+// a second) opens the context menu, for the component under the pointer (named in its title); its "Select component"
+// selects that component, outlined in deep metallic blue on the stage. A drag begun on it carries it, in a small card, toward the
 // detail window, which shows only then: its edge metallic blue, turning metallic green once the pointer is inside it. Let
 // go there, the component leaves the engine for the window (silver, with minimize, maximize and close: closing puts it
 // back); let go anywhere else (or Escape), it glides back and nothing changes
@@ -383,12 +383,15 @@ const SELECT_CSS = `
   font: 12px/1.3 system-ui, -apple-system, "Segoe UI", sans-serif; color: #e4e7ec; animation: ak-menu-in .12s ease-out; transform-origin: top left; }
 @keyframes ak-menu-in { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: none; } }
 .ak-menu-title { padding: 4px 9px 5px; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: #8e959f; border-bottom: 1px solid rgba(255,255,255,0.07); margin-bottom: 3px; }
+.ak-menu, .ak-menu * { cursor: default !important; }
 .ak-menu button { display: flex !important; align-items: center; gap: 9px; width: 100% !important; min-height: 0 !important; margin: 0 !important; padding: 7px 9px !important;
-  border: 0 !important; border-radius: 5px !important; background: transparent; color: inherit; font: inherit !important; text-align: left; cursor: pointer;
+  border: 0 !important; border-radius: 5px !important; background: transparent; color: inherit; font: inherit !important; text-align: left; cursor: default;
   -webkit-appearance: none; appearance: none; -webkit-tap-highlight-color: transparent; }
 .ak-menu button svg { flex: none; color: #8fc9f2; }
+.ak-menu button:disabled { color: #6f757e; }
+.ak-menu button:disabled svg { color: #5a6068; }
 .ak-menu button:focus-visible { outline: none; background: rgba(0,122,204,0.35); }
-@media (hover: hover) { .ak-menu button:hover { background: linear-gradient(180deg, rgba(0,122,204,0.62), rgba(0,92,156,0.62)); } .ak-menu button:hover svg { color: #fff; } }
+@media (hover: hover) { .ak-menu button:not(:disabled):hover { background: linear-gradient(180deg, rgba(0,122,204,0.62), rgba(0,92,156,0.62)); } .ak-menu button:not(:disabled):hover svg { color: #fff; } }
 .ak-dw { position: absolute; right: 10px; top: 10px; width: min(52%, 760px); height: min(88%, 700px); z-index: 3; box-sizing: border-box; border-radius: 8px;
   transition: box-shadow .15s ease, background-color .15s ease; }
 .ak-dw::before { content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 2px; pointer-events: none; z-index: 2;
@@ -398,9 +401,18 @@ const SELECT_CSS = `
 .ak-dw[data-state="target"]::before { background: linear-gradient(160deg, #7cc8f7, #007acc 45%, #00487d); }
 .ak-dw[data-state="hot"] { background-color: rgba(75,181,121,0.06); box-shadow: 0 0 11px 2px rgba(75,181,121,0.45), 0 4px 14px rgba(0,0,0,0.35); }
 .ak-dw[data-state="hot"]::before { background: linear-gradient(160deg, #a6ebc3, #4bb579 45%, #226c47); }
-.ak-dw[data-state="open"] { background-color: #15171b; box-shadow: 0 8px 22px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,0,0,0.5); }
+.ak-dw[data-state="open"] { background-color: #16181b; box-shadow: 0 8px 22px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,0,0,0.5); }
 .ak-dw[data-state="open"]::before { background: linear-gradient(160deg, #f1f3f6, #b9c0ca 38%, #7b828c 75%, #a9b0ba); }
-.ak-dw[data-max="true"] { left: 6px; right: 6px; top: 6px; bottom: 6px; width: auto; height: auto; }
+.ak-dw[data-max="true"] { left: 6px !important; right: 6px !important; top: 6px !important; bottom: 6px !important; width: auto !important; height: auto !important; }
+.ak-dw-rs { position: absolute; z-index: 3; touch-action: none; }
+.ak-dw-rs[data-e="n"] { left: 10px; right: 10px; top: -5px; height: 7px; cursor: ns-resize; }
+.ak-dw-rs[data-e="s"] { left: 10px; right: 10px; bottom: -5px; height: 9px; cursor: ns-resize; }
+.ak-dw-rs[data-e="w"] { top: 34px; bottom: 10px; left: -5px; width: 9px; cursor: ew-resize; }
+.ak-dw-rs[data-e="e"] { top: 34px; bottom: 10px; right: -5px; width: 9px; cursor: ew-resize; }
+.ak-dw-rs[data-e="nw"] { left: -6px; top: -6px; width: 10px; height: 10px; cursor: nwse-resize; }
+.ak-dw-rs[data-e="ne"] { right: -6px; top: -6px; width: 10px; height: 10px; cursor: nesw-resize; }
+.ak-dw-rs[data-e="se"] { right: -6px; bottom: -6px; width: 16px; height: 16px; cursor: nwse-resize; }
+.ak-dw-rs[data-e="sw"] { left: -6px; bottom: -6px; width: 16px; height: 16px; cursor: nesw-resize; }
 .ak-dw[data-min="true"] { height: 34px; width: min(52%, 300px); }
 .ak-dw-drop { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
   font: 600 13px/1.3 system-ui, -apple-system, "Segoe UI", sans-serif; letter-spacing: .06em; text-transform: uppercase; }
@@ -418,26 +430,30 @@ const SELECT_CSS = `
 .ak-dw-bar button:last-child { margin-right: 1px !important; border-radius: 4px 5px 4px 4px !important; }
 .ak-dw-bar button:focus-visible { outline: none; background: rgba(255,255,255,0.12); }
 @media (hover: hover) { .ak-dw-bar button:hover { background: rgba(255,255,255,0.12); color: #fff; } .ak-dw-bar button.ak-dw-x:hover { background: #c42b1c; color: #fff; } }
-.ak-dw-body { position: absolute; left: 2px; right: 2px; top: 33px; bottom: 2px; border-radius: 0 0 6px 6px; overflow: hidden; }
-.ak-ghost { position: absolute; left: 0; top: 0; width: 170px; height: 116px; border-radius: 8px; z-index: 5; pointer-events: none; display: none;
+.ak-dw-body { position: absolute; left: 2px; right: 2px; top: 32px; bottom: 2px; border-radius: 0 0 6px 6px; overflow: hidden; background: #16181b; }
+.ak-out { position: absolute; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none; }
+.ak-ghost { position: absolute; left: 0; top: 0; width: 170px; height: 116px; border-radius: 8px; z-index: 5; pointer-events: none; display: none; overflow: hidden; background: #1a1c21;
   box-shadow: 0 12px 26px rgba(0,0,0,0.6), 0 0 0 1.5px rgba(124,200,247,0.75), 0 0 10px rgba(0,122,204,0.35); will-change: transform; }
 .ak-insp { position: absolute; inset: 0; box-sizing: border-box; cursor: grab; touch-action: none; }
 .ak-insp:active { cursor: grabbing; }
 .ak-insp-ctl { position: absolute; left: 8px; top: 6px; display: flex; flex-direction: column; gap: 6px; cursor: default;
   font: 11px/1.3 system-ui, -apple-system, "Segoe UI", sans-serif; color: #c3c8d0; }
 .ak-insp-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 132px; }
-.ak-insp-center { padding-left: 25px; margin-top: 2px; }
+.ak-insp-center { padding-left: 25px; margin-top: 2px; transform: scale(0.7); transform-origin: 0 0; height: 38px; }
 .ak-insp-hint { position: absolute; left: 8px; bottom: 6px; font: 10px/1.3 system-ui, -apple-system, "Segoe UI", sans-serif; color: #6c727c; pointer-events: none; }
 @media (max-width: 600px), (max-height: 500px) and (orientation: landscape) {
   .ak-dw { right: 6px; top: 6px; width: 58%; height: 62%; }
   .ak-dw[data-min="true"] { width: 58%; height: 30px; }
   .ak-dw-bar { height: 26px; font-size: 11px; }
   .ak-dw-bar button { width: 30px !important; height: 24px !important; }
-  .ak-dw-body { top: 29px; }
+  .ak-dw-body { top: 28px; }
   .ak-ghost { width: 120px; height: 82px; }
   .ak-insp-ctl { font-size: 9px; gap: 4px; }
   .ak-insp-row { width: 104px; }
-  .ak-insp-center { transform: scale(0.6); transform-origin: 0 0; height: 32px; }
+  .ak-insp-center { transform: scale(0.52); transform-origin: 0 0; height: 28px; }
+  .ak-dw-rs[data-e="s"] { height: 16px; bottom: -8px; } .ak-dw-rs[data-e="w"], .ak-dw-rs[data-e="e"] { width: 16px; }
+  .ak-dw-rs[data-e="w"] { left: -8px; } .ak-dw-rs[data-e="e"] { right: -8px; }
+  .ak-dw-rs[data-e="se"], .ak-dw-rs[data-e="sw"] { width: 26px; height: 26px; }
   .ak-insp-hint { display: none; }
 }`;
 
@@ -446,7 +462,7 @@ let inspectCam: CameraController | null = null;
 
 const getInspectCam = () => {
   if (!inspectCam) {
-    inspectCam = createCameraController({ auto: false, autoSpeed: 0 });
+    inspectCam = createCameraController({ auto: false, autoSpeed: 0, zoomMin: 0.6, zoomMax: 2.6 }); // (never much larger than its window)
     inspectCam.lookAt([0, 0, 0], 215, 28, 1);
     for (let k = 0; k < 400; k++) inspectCam.update(0.05);
   }
@@ -475,6 +491,7 @@ function PlenumInspector({ onChange }: { onChange: () => void }) {
 
     INSPECT.view = () => cam.view;
     INSPECT.el = el;
+    INSPECT.out = el.querySelector<HTMLCanvasElement>(".ak-out");
     INSPECT.on = true;
     onChange();
 
@@ -575,6 +592,7 @@ function PlenumInspector({ onChange }: { onChange: () => void }) {
       el.removeEventListener("dblclick", stop);
       INSPECT.on = false;
       INSPECT.el = null;
+      INSPECT.out = null;
       INSPECT.view = null;
       onChange();
     };
@@ -590,6 +608,7 @@ function PlenumInspector({ onChange }: { onChange: () => void }) {
 
   return (
     <div ref={ref} className="ak-insp" role="img" aria-label="The intake plenum, its two log plenums and its runners: drag to turn it, pinch or scroll to zoom">
+      <canvas className="ak-out" aria-hidden="true" />
       <div className="ak-insp-ctl">
         <div className="ak-insp-row">
           <span>Left section</span>
@@ -609,9 +628,11 @@ function PlenumInspector({ onChange }: { onChange: () => void }) {
 }
 
 // The context menu, where it was opened (in the stage's CSS pixels, kept inside it)
-function ContextMenu({ at, onSelect, onClose }: { at: { x: number; y: number }; onSelect: () => void; onClose: () => void }) {
+function ContextMenu({ at, onSelect, onClose }: { at: { x: number; y: number; id: number }; onSelect: () => void; onClose: () => void }) {
   const ref = useRef<HTMLDivElement | null>(null);
-  const [pos, setPos] = useState(at);
+  const [pos, setPos] = useState({ x: at.x, y: at.y });
+
+  const comp = componentById(at.id);
 
   useLayoutEffect(() => {
     const el = ref.current;
@@ -656,8 +677,8 @@ function ContextMenu({ at, onSelect, onClose }: { at: { x: number; y: number }; 
 
   return (
     <div ref={ref} className="ak-menu" role="menu" style={{ left: pos.x, top: pos.y }}>
-      <div className="ak-menu-title">Component</div>
-      <button type="button" role="menuitem" onClick={onSelect}>
+      <div className="ak-menu-title">{comp ? comp.name : "No component here"}</div>
+      <button type="button" role="menuitem" disabled={!comp} onClick={onSelect}>
         <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
           <circle cx="7" cy="7" r="4.2" fill="none" stroke="currentColor" strokeWidth="1.4" />
           <path d="M7 0.5 V3.5 M7 10.5 V13.5 M0.5 7 H3.5 M10.5 7 H13.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
@@ -673,45 +694,57 @@ export type DockState = "none" | "target" | "hot" | "open";
 // The detail window, on the stage's right: while a component is dragged, only its edge and "Drop here" (blue, green once the
 // pointer is in it); once one is dropped there, a silver window with a title bar (minimize, maximize, close) and the component
 // in it, turned and cut as the inspector lets it be
+type GrabEvent = { button: number; target: EventTarget | null; currentTarget: HTMLElement; pointerId: number; clientX: number; clientY: number; preventDefault: () => void; stopPropagation: () => void };
+
+// The window's edges and corners, that a drag on resizes it (`onGrab`: the window's, with the edge pressed)
+function ResizeHandles({ edges, onGrab }: { edges: string[]; onGrab: (edge: string, e: GrabEvent) => void }) {
+  return (
+    <>
+      {edges.map((edge) => (
+        <div key={edge} className="ak-dw-rs" data-e={edge} onPointerDown={(e) => onGrab(edge, e)} />
+      ))}
+    </>
+  );
+}
+
 function DetailWindow({ state, boxRef, onChange, onClose }: { state: DockState; boxRef: { current: HTMLDivElement | null }; onChange: () => void; onClose: () => void }) {
   const [min, setMin] = useState(false);
   const [max, setMax] = useState(false);
   const [size, setSize] = useState("");
+  // where it was moved or resized to, in the stage's CSS pixels (null: its place by default, on the stage's right)
+  const [geo, setGeo] = useState<{ l: number; t: number; w: number; h: number } | null>(null);
   const comp = componentById(SELECT.detached);
+  // a window no longer open forgets being minimised or maximised (worked out while rendering, from the state last seen:
+  // React's way, rather than an effect setting state after the render)
+  const [seen, setSeen] = useState(state);
 
-  useEffect(() => {
+  if (seen !== state) {
+    setSeen(state);
     if (state !== "open") {
       setMin(false);
       setMax(false);
     }
-  }, [state]);
+  }
 
   // the box's size, shown while a component is carried over it
   useLayoutEffect(() => {
     const el = boxRef.current;
 
     if (el && (state === "target" || state === "hot")) setSize(`${Math.round(el.clientWidth)} × ${Math.round(el.clientHeight)}`);
-  }, [state, boxRef]);
+  }, [state, boxRef, geo]);
 
   useEffect(() => {
     const el = boxRef.current;
 
     if (!el) return;
 
-    const stop = (e: Event) => e.stopPropagation();
+    // (its presses are not stopped here, for React's handlers on it, at the page's root, must still see them: the stage
+    // passes over what falls in it, `inUi`)
     const noMenu = (e: Event) => e.preventDefault();
 
-    el.addEventListener("pointerdown", stop);
-    el.addEventListener("dblclick", stop);
-    el.addEventListener("wheel", stop);
     el.addEventListener("contextmenu", noMenu);
 
-    return () => {
-      el.removeEventListener("pointerdown", stop);
-      el.removeEventListener("dblclick", stop);
-      el.removeEventListener("wheel", stop);
-      el.removeEventListener("contextmenu", noMenu);
-    };
+    return () => el.removeEventListener("contextmenu", noMenu);
   }, [boxRef, state]);
 
   // the renderer reads the box's place each frame: a redraw once it has moved or changed size
@@ -719,13 +752,81 @@ function DetailWindow({ state, boxRef, onChange, onClose }: { state: DockState; 
     const t = window.setTimeout(onChange, 0);
 
     return () => window.clearTimeout(t);
-  }, [min, max, state, onChange]);
+  }, [min, max, state, geo, onChange]);
+
+  // A drag on an edge or a corner resizes it, on the title bar moves it; kept inside the stage, and no smaller than a
+  // usable window. (`edge`: the sides that move, of n, s, e, w; "move" for the whole)
+  const grab = (edge: string, e: GrabEvent) => {
+    const el = boxRef.current;
+    const stage = el?.parentElement;
+
+    if (!el || !stage || max || e.button !== 0) return;
+    if (edge === "move" && (e.target as HTMLElement).closest("button")) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    const target = e.currentTarget;
+
+    target.setPointerCapture(e.pointerId);
+
+    const sw = stage.clientWidth;
+    const sh = stage.clientHeight;
+    const start = { x: e.clientX, y: e.clientY, l: el.offsetLeft, t: el.offsetTop, w: el.offsetWidth, h: el.offsetHeight };
+    const MIN_W = Math.min(240, sw - 12);
+    const MIN_H = Math.min(min ? 30 : 180, sh - 12);
+
+    const move = (ev: PointerEvent) => {
+      const dx = ev.clientX - start.x;
+      const dy = ev.clientY - start.y;
+      let { l, t, w, h } = start;
+
+      if (edge === "move") {
+        l = Math.max(0, Math.min(sw - w, l + dx));
+        t = Math.max(0, Math.min(sh - h, t + dy));
+      } else {
+        if (edge.includes("e")) w = Math.max(MIN_W, Math.min(sw - l, w + dx));
+        if (edge.includes("s")) h = Math.max(MIN_H, Math.min(sh - t, h + dy));
+        if (edge.includes("w")) {
+          const nl = Math.max(0, Math.min(l + w - MIN_W, l + dx));
+
+          w += l - nl;
+          l = nl;
+        }
+        if (edge.includes("n")) {
+          const nt = Math.max(0, Math.min(t + h - MIN_H, t + dy));
+
+          h += t - nt;
+          t = nt;
+        }
+      }
+
+      setGeo({ l, t, w, h });
+    };
+    const up = (ev: PointerEvent) => {
+      target.releasePointerCapture(ev.pointerId);
+      target.removeEventListener("pointermove", move);
+      target.removeEventListener("pointerup", up);
+      target.removeEventListener("pointercancel", up);
+    };
+
+    target.addEventListener("pointermove", move);
+    target.addEventListener("pointerup", up);
+    target.addEventListener("pointercancel", up);
+  };
 
   if (state === "none") return null;
 
+  const open = state === "open";
+  const placed = open && !max && geo ? { left: geo.l, top: geo.t, width: geo.w, height: min ? undefined : geo.h, right: "auto" } : undefined;
+  const toggleMax = () => {
+    setMax(!max);
+    setMin(false);
+  };
+
   return (
-    <div ref={(el) => { boxRef.current = el; }} className="ak-dw" data-state={state} data-min={state === "open" && min} data-max={state === "open" && max && !min}>
-      {state !== "open" ? (
+    <div ref={(el) => { boxRef.current = el; }} className="ak-dw" data-state={state} data-min={open && min} data-max={open && max && !min} style={placed}>
+      {!open ? (
         <div className="ak-dw-drop">
           <svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true">
             <rect x="2" y="2" width="26" height="26" rx="5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeDasharray="4 3" />
@@ -736,12 +837,12 @@ function DetailWindow({ state, boxRef, onChange, onClose }: { state: DockState; 
         </div>
       ) : (
         <>
-          <div className="ak-dw-bar">
+          <div className="ak-dw-bar" onPointerDown={(e) => grab("move", e)} onDoubleClick={(e) => { if (!(e.target as HTMLElement).closest("button")) toggleMax(); }} style={{ cursor: max ? "default" : "move" }}>
             <span className="ak-dw-name">{comp?.name ?? "Component"}</span>
             <button type="button" aria-label={min ? "Restore" : "Minimize"} title={min ? "Restore" : "Minimize"} onClick={() => setMin(!min)}>
               <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M1.5 9.5 H10.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" /></svg>
             </button>
-            <button type="button" aria-label={max ? "Restore" : "Maximize"} title={max ? "Restore" : "Maximize"} onClick={() => { setMax(!max); setMin(false); }}>
+            <button type="button" aria-label={max ? "Restore" : "Maximize"} title={max ? "Restore" : "Maximize"} onClick={toggleMax}>
               {max ? (
                 <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><rect x="1.5" y="3.5" width="7" height="7" fill="none" stroke="currentColor" strokeWidth="1.2" /><path d="M3.5 3.5 V1.5 H10.5 V8.5 H8.5" fill="none" stroke="currentColor" strokeWidth="1.2" /></svg>
               ) : (
@@ -757,6 +858,7 @@ function DetailWindow({ state, boxRef, onChange, onClose }: { state: DockState; 
               <PlenumInspector onChange={onChange} />
             </div>
           )}
+          {!max && <ResizeHandles edges={min ? ["e", "w"] : ["n", "s", "e", "w", "ne", "nw", "se", "sw"]} onGrab={grab} />}
         </>
       )}
     </div>
@@ -770,19 +872,21 @@ export function EngineStage() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [failed, setFailed] = useState(false);
   const [loaded, setLoaded] = useState(false); // the engine is drawn: the loader goes
-  const notifyCamera = useRef(() => camera.notify()).current; // (one function for good: the inspector's effect runs once)
-  const [menu, setMenu] = useState<{ x: number; y: number } | null>(null); // the context menu, where it was opened
-  const [arm, setArm] = useState(false); // "Select component" chosen: the next press picks
+  const [notifyCamera] = useState(() => () => camera.notify()); // (one function for good: the inspector's effect runs once)
+  // the context menu: where it was opened, and the component under that point (0 none)
+  const [menu, setMenu] = useState<{ x: number; y: number; id: number } | null>(null);
+  const [arm, setArm] = useState(false); // (a press that picks: not used by the menu, which knows its component)
   const [dock, setDock] = useState<DockState>("none"); // the detail window
   const dockRef = useRef<HTMLDivElement | null>(null);
   const ghostRef = useRef<HTMLDivElement | null>(null);
   // shared with the pointer's handlers (set up once): the menu's choice, and when the menu last opened
-  const ix = useRef({ arm: false, menuAt: -1e9 }).current;
-  const closeMenu = useRef(() => setMenu(null)).current;
+  const ixRef = useRef({ arm: false, menuAt: -1e9 });
+  const [closeMenu] = useState(() => () => setMenu(null));
+  // "Select component": the component the menu was opened on, outlined at once
   const chooseSelect = () => {
+    if (menu?.id) SELECT.selected = menu.id;
     setMenu(null);
-    ix.arm = true;
-    setArm(true);
+    camera.notify();
   };
   const closeDock = () => {
     SELECT.detached = 0;
@@ -791,6 +895,8 @@ export function EngineStage() {
   };
 
   useLayoutEffect(() => {
+    const ix = ixRef.current; // (the menu's state, shared with the handlers below)
+
     const canvas = canvasRef.current;
     const frameEl = frameRef.current;
 
@@ -902,7 +1008,7 @@ export function EngineStage() {
       ix.menuAt = performance.now();
       ix.arm = false;
       setArm(false);
-      setMenu({ x, y });
+      setMenu({ x, y, id: renderer?.pick(x, y) ?? 0 });
     };
 
     const placeGhost = (x: number, y: number) => {
@@ -929,6 +1035,7 @@ export function EngineStage() {
         SELECT.detached = d.id;
         SELECT.selected = 0;
         GHOST.el = null;
+        GHOST.out = null;
         GHOST.view = null;
         if (g) g.style.display = "none";
         setDock("open");
@@ -953,6 +1060,7 @@ export function EngineStage() {
           g.style.display = "none";
           g.style.opacity = "";
           GHOST.el = null;
+          GHOST.out = null;
           GHOST.view = null;
           camera.notify();
         }
@@ -971,7 +1079,11 @@ export function EngineStage() {
       return event.clientX >= b.left && event.clientX <= b.right && event.clientY >= b.top && event.clientY <= b.bottom;
     };
 
+    // a press, a wheel or a double click on the detail window or the menu is theirs, not the engine's
+    const inUi = (event: Event) => !!(event.target as HTMLElement | null)?.closest?.(".ak-dw, .ak-menu");
+
     const onDown = (event: PointerEvent) => {
+      if (inUi(event)) return;
       if (event.button === 2) return; // (the right button opens the menu: contextmenu)
 
       const at = local(event);
@@ -1061,6 +1173,7 @@ export function EngineStage() {
           }
 
           GHOST.el = g;
+          GHOST.out = g ? g.querySelector<HTMLCanvasElement>(".ak-out") : null;
           GHOST.view = () => {
             const v = camera.view;
 
@@ -1136,12 +1249,14 @@ export function EngineStage() {
     };
 
     const onWheel = (event: WheelEvent) => {
+      if (inUi(event)) return;
       event.preventDefault();
       camera.zoomBy(Math.exp(-event.deltaY * 0.0012));
     };
 
     // A double click steps through the views, in the buttons' order (the button of the view shown is lit)
     const onDouble = (event: MouseEvent) => {
+      if (inUi(event)) return;
       // (on a touch screen the double tap has done it already)
       if ((event as PointerEvent).pointerType === "touch" || performance.now() - lastTapDone < 400) return;
       if (SELECT.selected || drag) return; // (two presses on a selected component are no change of view)
@@ -1153,6 +1268,8 @@ export function EngineStage() {
     // the held finger has done it (a browser that also sends contextmenu then is not heeded)
     const onContext = (event: MouseEvent) => {
       event.preventDefault();
+
+      if (inUi(event)) return;
 
       if (performance.now() - ix.menuAt < 900 || drag) return;
       if ((event as PointerEvent).pointerType === "touch") return;
@@ -1266,7 +1383,9 @@ export function EngineStage() {
 
       <style>{SELECT_CSS}</style>
       <DetailWindow state={dock} boxRef={dockRef} onChange={notifyCamera} onClose={closeDock} />
-      <div ref={ghostRef} className="ak-ghost" aria-hidden="true" />
+      <div ref={ghostRef} className="ak-ghost" aria-hidden="true">
+        <canvas className="ak-out" />
+      </div>
       {menu && <ContextMenu at={menu} onSelect={chooseSelect} onClose={closeMenu} />}
 
       <Loader hidden={loaded} />

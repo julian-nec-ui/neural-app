@@ -36,7 +36,10 @@ export default function SideButton({ direction, onPress, place }: { direction: S
   const ref = useRef<HTMLButtonElement | null>(null);
   const press = useRef(onPress);
 
-  press.current = onPress;
+  // the latest handler, for the native listeners set up once (kept after each render, not during it)
+  useEffect(() => {
+    press.current = onPress;
+  });
 
   // A press moves the engine one step at once; held, it goes on stepping, after a short pause, until it is let go (the
   // camera stops it at the stage's edge). The listeners are native, as the stage's own are: inside the stage, which turns

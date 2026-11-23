@@ -11,7 +11,7 @@ import { FW_DIM, FW_VERTICES } from "../mesh/flywheel";
 import { buildHeadWiring } from "../mesh/headWiring";
 import { buildDeck, buildDeckSlab, buildHeadShell, buildHeadSolid, buildHeadTopFittings, buildLinerRim } from "../mesh/head";
 import { buildHeadText, buildLidSignature } from "../mesh/headText";
-import { buildIntakeManifold, buildPlenumGate, buildVPlenum } from "../mesh/plenum";
+import { buildIntakeManifold, buildPlenumGate, buildVPlenum, buildVPlenumClose } from "../mesh/plenum";
 import { buildInjector, buildSparkPlug } from "../mesh/injectionIgnition";
 import { buildBlock } from "../mesh/block";
 import { buildDrySump, buildSumpFrontCover } from "../mesh/drySump";
@@ -19,6 +19,7 @@ import { buildAccessories, buildAlternatorPulley, buildBeltPiece, buildCrankPull
 import { buildTimingCover } from "../mesh/timingCover";
 import { buildEngineMount } from "../mesh/engineMount";
 import { buildSmallFan } from "../mesh/fan";
+import { buildIcMounts } from "../mesh/icMounts";
 import { buildBlowOffValves, buildChargeCouplers, buildChargePipes, buildCoolPipeWelds, buildCoolPipes, buildIntercooler, buildIntercoolerTank } from "../mesh/intercooler";
 import { MAT_VT_HEAD_EX, MAT_VT_HEAD_IN, MAT_VT_VALVE_EX, MAT_VT_VALVE_IN } from "../mesh/materials";
 import { buildCollector, buildCollectorFittings, buildIntakePipes, buildIntakeWelds, buildRunnerDetail, buildPlenumLogs, buildTurboFittings, buildTurboIntakePipe, buildAirIntakeFittings } from "../mesh/plumbing";
@@ -40,9 +41,9 @@ export const PART_NAMES = [
   "valveIn", "valveEx", "valveStatic", "spring", "camIn", "camEx", "camInB", "camExB", "towers", "deck", "deckB", "deckSlab", "deckSlabB",
   "headShell", "headShellB", "headSolid", "headSolidB", "headTop", "headTopB", "headWiring", "headWiringB", "linerRim", "turboHousing", "turboCasing", "intakePipes", "turboIntakePipe", "collector",
   "turboFilter", "seatIn", "seatEx", "turboWheelC", "turboWheelT", "collectorFittings", "turboFittings", "airIntakeFittings",
-  "intercooler", "blowOffValves", "manifoldWelds", "intakeWelds", "runnerDetail", "turbineArc", "timingCover", "starterShell", "starterYoke", "drySump", "drySumpShell", "drySumpShellB", "block", "icTank", "icTankB", "icTankLow", "icTankLowB", "icTankBare", "icTankBareB", "fanShroud", "fanRotor", "chargePipes", "chargePipesB", "coolPipes", "coolPipesB", "coolWelds", "chargeCouplers", "exhaustLogs", "exhaustLogsR", "exhaustLogsB", "exhaustLogsBR", "turboFeed", "turboFeedB", "exhaustStubs",
+  "intercooler", "blowOffValves", "manifoldWelds", "intakeWelds", "runnerDetail", "turbineArc", "timingCover", "starterShell", "starterYoke", "drySump", "drySumpShell", "drySumpShellB", "block", "icTank", "icTankB", "icTankLow", "icTankLowB", "icTankBare", "icTankBareB", "fanShroud", "fanRotor", "icMounts", "chargePipes", "chargePipesB", "coolPipes", "coolPipesB", "coolWelds", "chargeCouplers", "exhaustLogs", "exhaustLogsR", "exhaustLogsB", "exhaustLogsBR", "turboFeed", "turboFeedB", "exhaustStubs",
   "exhaustFlanges", "downpipes", "downpipesB", "mufflers", "starterBody", "starterShaft", "starterDrive", "starterDriveShell", "starterPinion", "starterPlunger",
-  "starterDisc", "starterSpring", "starterFork", "headTextA", "headTextB", "lidText", "vPlenum", "plenumGate", "intakeManifold", "plenumLogs", "gearCrank", "sumpFrontCover", "beltCrank", "beltAlternator", "beltPump", "beltIdler", "beltSteering", "beltAccessories", "beltPiece",
+  "starterDisc", "starterSpring", "starterFork", "headTextA", "headTextB", "lidText", "vPlenum", "vClose", "plenumGate", "intakeManifold", "plenumLogs", "gearCrank", "sumpFrontCover", "beltCrank", "beltAlternator", "beltPump", "beltIdler", "beltSteering", "beltAccessories", "beltPiece",
   "gearIdler1", "idlerPost2", "idlerPost2Spaced", "sprocketIdler", "sprocketCam",
   "sprocketCamSpaced", "chainInner", "chainOuter", "guideFixed", "guideArm", "injector", "sparkPlug", "engineMount",
 ] as const;
@@ -154,6 +155,7 @@ function buildHeadMesh(): HeadMesh {
   part("intakeWelds", () => buildIntakeWelds(b));
   part("runnerDetail", () => buildRunnerDetail(b));
   part("vPlenum", () => buildVPlenum(b));
+  part("vClose", () => buildVPlenumClose(b)); // (after the plenum, whose build makes it)
   part("plenumGate", () => buildPlenumGate(b));
   part("intakeManifold", () => buildIntakeManifold(b));
   part("plenumLogs", () => buildPlenumLogs(b));
@@ -163,6 +165,7 @@ function buildHeadMesh(): HeadMesh {
   part("icTankLowB", () => buildIntercoolerTank(b, -1, true, false));
   part("icTankBare", () => buildIntercoolerTank(b, 1, false, false));
   part("icTankBareB", () => buildIntercoolerTank(b, -1, false, false));
+  part("icMounts", () => buildIcMounts(b)); // (the intercoolers' arms to the timing covers)
   part("fanShroud", () => buildSmallFan(b, "shroud"));
   part("fanRotor", () => buildSmallFan(b, "rotor"));
   part("chargePipes", () => buildChargePipes(b, 0));

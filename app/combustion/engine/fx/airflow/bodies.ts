@@ -5,7 +5,7 @@ import type { Bank } from "../../core/constants";
 import { vadd, vlen, vnorm, vscale, vsub } from "../../math/vec3";
 import type { FwVec3 } from "../../mesh/builder";
 import { DOWNPIPES, EXHAUST_RUNNERS, MODULES, MODULE_ORIGIN, exhaustStub, modulePoint } from "../../mesh/exhaust";
-import { CHARGE_PIPES, IC_CHARGE_IN_Z, IC_CHARGE_OUT_Z, IC_STAND_Y, icPlace } from "../../mesh/intercooler";
+import { CHARGE_PIPES, IC_CHARGE_IN_Z, IC_CHARGE_OUT_Z, IC_STAND_Y, IC_TUBES, IC_TUBE_PITCH, IC_TUBE_SPAN, icPlace } from "../../mesh/intercooler";
 import { PIPES, PLENUM_MIDS, PORT_SEAT_Y, seatX } from "../../mesh/plumbing";
 import { curveFromPoints, roundedCurve } from "../../mesh/tubes";
 import { COMPRESSOR_OUTLET_LEN, IC, IC_HALF, PORT_Y, TB, TURBINE_INLET_LEN, compressorPathLocal, compressorSection, turbinePathLocal, turbineSection, turboWorld } from "../../mesh/turbo";
@@ -235,9 +235,9 @@ function buildBankFog(bank: Bank, bi: number) {
   });
   const coreTubes: FogSpec[] = [];
 
-  for (let k = 0; k < 9; k++) {
+  for (let k = 0; k < IC_TUBES; k++) {
     coreTubes.push({
-      points: [IP([IC.x, IC_STAND_Y - 88 + k * 22, zs * IC_CHARGE_IN_Z]), IP([IC.x, IC_STAND_Y - 88 + k * 22, zs * IC_CHARGE_OUT_Z])],
+      points: [IP([IC.x, IC_STAND_Y - IC_TUBE_SPAN + k * IC_TUBE_PITCH, zs * IC_CHARGE_IN_Z]), IP([IC.x, IC_STAND_Y - IC_TUBE_SPAN + k * IC_TUBE_PITCH, zs * IC_CHARGE_OUT_Z])],
       nodes: flat(5.5), fadeIn: 14, fadeOut: 14, seg: 10, spacing: 8,
       tone: (s, total) => 1 - smooth01(s / total), // cooled along the tube
     });

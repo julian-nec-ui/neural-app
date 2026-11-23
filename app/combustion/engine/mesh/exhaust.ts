@@ -103,7 +103,7 @@ export const exhaustStub = (cx: number) => curveFromPoints([[cx, PORT_Y, EX * (1
 const PR = 25.5; // a primary's radius
 const SEC_R = 34; // a collector's end, the joint, and the Y's branches
 const MAIN_R = 43.5; // the Y's neck onto the turbine
-export const runnerRadius = (_s: number) => PR;
+export const runnerRadius: (s: number) => number = () => PR; // (the same all along: `s`, how far along, makes no difference)
 const PACK = (2 * PR) / Math.sqrt(3) + 1.2; // how far each of the three, packed in their triangle, is from its middle
 const COLL_R0 = PACK + PR + 3; // a collector's mouth: round the three
 const COLL_LEN = 84; // its cone

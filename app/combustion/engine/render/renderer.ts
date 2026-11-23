@@ -24,7 +24,7 @@ import { CAM_FOV, LIGHT_FILL, LIGHT_KEY, LIGHT_KICK, inspectView, viewProjection
 import type { CameraController } from "./camera";
 import { blurSteps, createMotionBlur } from "./motionBlur";
 import { BACKGROUND, BLOCK_RIM, STARTER_YOKE_OPACITY, CAM_NEAR_DEPTH, CASING_OPACITY, COOL_PIPE_OPACITY, DECK_OPACITY, HOT_CHARGE_OPACITY, EXHAUST_PALE, JET_STEEL, FLOOR_Y, FOG_DENSITY, FOG_PALETTE, HOT_PIPE_OPACITY, INTAKE_DUCT_OPACITY, OIL_BAND, PIPE_OPACITY, PIPE_RIM, RIM_CHARGE, RIM_EXHAUST, RIM_STEEL, SUMP_OPACITY, headOpacityAt, mix3, smooth01 } from "./look";
-import { FLOOR_FRAGMENT_SHADER, FLOOR_VERTEX_SHADER, FOG_FRAGMENT_SHADER, ID_FRAGMENT_SHADER, ID_VERTEX_SHADER, OUTLINE_FRAGMENT_SHADER, OUTLINE_VERTEX_SHADER, FOG_VERTEX_SHADER, GLASS_FRAGMENT_SHADER, GLASS_VERTEX_SHADER, PART_FRAGMENT_SHADER, POINT_FRAGMENT_SHADER, POINT_VERTEX_SHADER, SCENE_VERTEX_SHADER, STREAK_FRAGMENT_SHADER, STREAK_VERTEX_SHADER, VOLUME_FRAGMENT_SHADER, VOLUME_VERTEX_SHADER } from "./shaders";
+import { FLOOR_FRAGMENT_SHADER, FLOOR_VERTEX_SHADER, FOG_FRAGMENT_SHADER, ID_FRAGMENT_SHADER, ID_VERTEX_SHADER, ERODE_FRAGMENT_SHADER, OUTLINE_FRAGMENT_SHADER, OUTLINE_VERTEX_SHADER, FOG_VERTEX_SHADER, GLASS_FRAGMENT_SHADER, GLASS_VERTEX_SHADER, PART_FRAGMENT_SHADER, POINT_FRAGMENT_SHADER, POINT_VERTEX_SHADER, SCENE_VERTEX_SHADER, STREAK_FRAGMENT_SHADER, STREAK_VERTEX_SHADER, VOLUME_FRAGMENT_SHADER, VOLUME_VERTEX_SHADER } from "./shaders";
 import { computeSceneCommands } from "../scene/commands";
 import type { DrawCmd } from "../scene/commands";
 import { HEAD_RANGE, SCENE_VERTICES, bankPart, partCenter } from "../scene/meshes";
@@ -220,6 +220,7 @@ export function createEngineRenderer(
     const fogProgram = link(FOG_VERTEX_SHADER, FOG_FRAGMENT_SHADER);
     const idProgram = link(ID_VERTEX_SHADER, ID_FRAGMENT_SHADER);
     const outlineProgram = link(OUTLINE_VERTEX_SHADER, OUTLINE_FRAGMENT_SHADER);
+    const erodeProgram = link(OUTLINE_VERTEX_SHADER, ERODE_FRAGMENT_SHADER);
 
     const uniformCache = new Map<WebGLProgram, Map<string, WebGLUniformLocation | null>>();
 
@@ -280,6 +281,7 @@ export function createEngineRenderer(
     const idAttribs: AttribSpec[] = [{ location: attrib(idProgram, "aPosition"), size: 3, stride: sceneStride, offset: 0 }];
     const quadBuffer = makeBuffer(new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
     const quadAttribs: AttribSpec[] = [{ location: attrib(outlineProgram, "aXY"), size: 2, stride: 0, offset: 0 }];
+    const erodeAttribs: AttribSpec[] = [{ location: attrib(erodeProgram, "aXY"), size: 2, stride: 0, offset: 0 }];
 
     // each part's first vertex -> its component's number (core/select.ts), for the picking pass
     const componentOf = new Map<number, number>();
@@ -908,7 +910,8 @@ export function createEngineRenderer(
     // signature on its lid, and both banks' runners down to the heads, from its own view; the plenum cut open along its
     // length on the side toward the eye, so that the chamber and the runners' mouths in it show
     // (`el`: the box on the stage; `turn`: how it is turned; `section`: the half cut away; `bg`: what the box is cleared to)
-    const drawBox = (el: HTMLElement, turn: InspectView, section: -1 | 0 | 1, bg: [number, number, number]) => {
+    // (`out`: the box's own canvas, which the picture is copied into, at once, while the drawing buffer still holds it)
+    const drawBox = (el: HTMLElement, turn: InspectView, section: -1 | 0 | 1, bg: [number, number, number], out: HTMLCanvasElement | null) => {
       const cb = canvas.getBoundingClientRect();
       const eb = el.getBoundingClientRect();
       const sx = canvas.width / Math.max(1, cb.width);
@@ -967,16 +970,35 @@ export function createEngineRenderer(
         for (const name of ["intakePipes", "runnerDetail", "intakeWelds"] as const) put(HEAD_RANGE[name], bank.orient, [bank.dx, 0, 0], false);
       }
 
-      // the signature, pulled a little toward the eye as on the engine
-      gl.uniform4f(uniform(sceneProgram, "uClip"), 0, 0, side, 2);
-      gl.enable(gl.POLYGON_OFFSET_FILL);
-      gl.polygonOffset(-1, -4);
-      put(HEAD_RANGE.lidText, 0, [0, 0, 0], clip);
+      // the signature, pulled toward the eye exactly as on the engine (by its distance from the eye), so that its letters show
+      // on the lid's face
+      {
+        const lc: FwVec3 = [(PLENUM.xf + PLENUM.xr) / 2, PLENUM.yLid - 60, 0];
+        const dist = Math.max(200, Math.hypot(eye[0] - lc[0], eye[1] - lc[1], eye[2] - lc[2]));
+
+        gl.uniform4f(uniform(sceneProgram, "uClip"), 0, 0, side, 2);
+        gl.enable(gl.POLYGON_OFFSET_FILL);
+        gl.polygonOffset(0, -((CAM_NEAR_DEPTH * 7) / (dist * dist)) * 16777216);
+        put(HEAD_RANGE.lidText, 0, [0, 0, 0], clip);
+      }
       gl.disable(gl.POLYGON_OFFSET_FILL);
 
       gl.uniform1f(uniform(sceneProgram, "uClipOn"), 0);
       gl.disable(gl.SCISSOR_TEST);
       gl.viewport(0, 0, canvas.width, canvas.height);
+
+      if (out) {
+        if (out.width !== w || out.height !== h) {
+          out.width = w;
+          out.height = h;
+        }
+
+        const ctx = out.getContext("2d");
+
+        if (ctx) {
+          ctx.drawImage(canvas, x, canvas.height - y - h, w, h, 0, 0, w, h);
+        }
+      }
 
       viewProj = saveVP;
       eye = saveEye;
@@ -984,14 +1006,16 @@ export function createEngineRenderer(
     };
 
     const drawInspector = () => {
-      if (INSPECT.on && INSPECT.el && INSPECT.view) drawBox(INSPECT.el, INSPECT.view(), INSPECT.section, [0.085, 0.09, 0.1]);
-      if (GHOST.el && GHOST.view) drawBox(GHOST.el, GHOST.view(), 0, [0.1, 0.11, 0.13]);
+      if (INSPECT.on && INSPECT.el && INSPECT.view) drawBox(INSPECT.el, INSPECT.view(), INSPECT.section, [0.085, 0.09, 0.1], INSPECT.out);
+      if (GHOST.el && GHOST.view) drawBox(GHOST.el, GHOST.view(), 0, [0.1, 0.11, 0.13], GHOST.out);
     };
 
     // ---- picking, and the selected component's outline ----
     // The picking pass goes into a buffer of its own, at the screen's resolution (not the drawing buffer's, which in HD is
     // finer still): every part flat in its component's number, with its depth
-    let mask: { fb: WebGLFramebuffer; tex: WebGLTexture; depth: WebGLRenderbuffer; w: number; h: number } | null = null;
+    // (`coreFb`, `coreTex`: the selected component's part of it, narrowed, ERODE_FRAGMENT_SHADER)
+    // (`fullFb`, `fullTex`: the selected component drawn alone, its whole silhouette)
+    let mask: { fb: WebGLFramebuffer; tex: WebGLTexture; depth: WebGLRenderbuffer; coreFb: WebGLFramebuffer; coreTex: WebGLTexture; fullFb: WebGLFramebuffer; fullTex: WebGLTexture; w: number; h: number } | null = null;
 
     const maskSize = (): [number, number] => {
       const ratio = Math.min(2, Math.max(1, window.devicePixelRatio || 1));
@@ -1005,6 +1029,10 @@ export function createEngineRenderer(
       if (!mask) return;
       gl.deleteFramebuffer(mask.fb);
       gl.deleteTexture(mask.tex);
+      gl.deleteFramebuffer(mask.coreFb);
+      gl.deleteTexture(mask.coreTex);
+      gl.deleteFramebuffer(mask.fullFb);
+      gl.deleteTexture(mask.fullTex);
       gl.deleteRenderbuffer(mask.depth);
       mask = null;
     };
@@ -1019,29 +1047,43 @@ export function createEngineRenderer(
       const fb = gl.createFramebuffer();
       const tex = gl.createTexture();
       const depth = gl.createRenderbuffer();
+      const coreFb = gl.createFramebuffer();
+      const coreTex = gl.createTexture();
+      const fullFb = gl.createFramebuffer();
+      const fullTex = gl.createTexture();
 
-      if (!fb || !tex || !depth) return null;
+      if (!fb || !tex || !depth || !coreFb || !coreTex || !fullFb || !fullTex) return null;
 
+      for (const t of [coreTex, fullTex, tex]) {
+        gl.bindTexture(gl.TEXTURE_2D, t);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      }
+
+      gl.bindFramebuffer(gl.FRAMEBUFFER, coreFb);
+      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, coreTex, 0);
       gl.bindTexture(gl.TEXTURE_2D, tex);
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
       gl.bindRenderbuffer(gl.RENDERBUFFER, depth);
       gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, w, h);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, fullFb);
+      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, fullTex, 0);
+      gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, depth); // (the depth shared with the picking pass's)
       gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
       gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
       gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, depth);
       gl.bindFramebuffer(gl.FRAMEBUFFER, null);
       gl.bindTexture(gl.TEXTURE_2D, null);
       gl.bindRenderbuffer(gl.RENDERBUFFER, null);
-      mask = { fb, tex, depth, w, h };
+      mask = { fb, tex, depth, coreFb, coreTex, fullFb, fullTex, w, h };
 
       return mask;
     };
 
-    const drawMask = (frame: EngineFrame) => {
+    // (`only`: a component's number: it alone, into its own buffer, fullFb, every part of it in 1)
+    const drawMask = (frame: EngineFrame, only = 0) => {
       const m = ensureMask();
 
       if (!m) return null;
@@ -1050,7 +1092,7 @@ export function createEngineRenderer(
 
       const cmds = computeSceneCommands(frame);
 
-      gl.bindFramebuffer(gl.FRAMEBUFFER, m.fb);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, only ? m.fullFb : m.fb);
       gl.viewport(0, 0, m.w, m.h);
       gl.disable(gl.SCISSOR_TEST);
       gl.disable(gl.BLEND);
@@ -1074,7 +1116,11 @@ export function createEngineRenderer(
 
       for (const cmd of cmds) {
         if (hiddenStarts.has(cmd.range[0])) continue;
-        gl.uniform1f(idU, componentOf.get(cmd.range[0]) ?? 0);
+
+        const id = componentOf.get(cmd.range[0]) ?? 0;
+
+        if (only && id !== only) continue;
+        gl.uniform1f(idU, only ? 255 : id);
         gl.uniform2f(spinU, cmd.spin[0], cmd.spin[1]);
         gl.uniform3f(offsetU, cmd.offset[0], cmd.offset[1], cmd.offset[2]);
         gl.uniform1f(scaleU, cmd.scaleY);
@@ -1121,6 +1167,8 @@ export function createEngineRenderer(
 
       const m = drawMask(frame);
 
+      if (m) drawMask(frame, c.id); // (its whole silhouette)
+
       gl.bindFramebuffer(gl.FRAMEBUFFER, null);
       gl.viewport(0, 0, canvas.width, canvas.height);
 
@@ -1129,6 +1177,28 @@ export function createEngineRenderer(
       const [ax, ay, aw, ah] = outlineArea(c.center, c.radius);
 
       if (aw < 1 || ah < 1) return;
+
+      const perCss = m.w / Math.max(1, cssWidth);
+      const erode = 2 * perCss; // (slivers under some 4 CSS pixels across are dropped)
+
+      // the narrowed shape, into its own buffer
+      gl.bindFramebuffer(gl.FRAMEBUFFER, m.coreFb);
+      gl.viewport(0, 0, m.w, m.h);
+      gl.disable(gl.SCISSOR_TEST);
+      gl.disable(gl.DEPTH_TEST);
+      gl.disable(gl.BLEND);
+      gl.useProgram(erodeProgram);
+      gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
+      bindAttribs(erodeAttribs);
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, m.tex);
+      gl.uniform1i(uniform(erodeProgram, "uMask"), 0);
+      gl.uniform2f(uniform(erodeProgram, "uMaskSize"), m.w, m.h);
+      gl.uniform1f(uniform(erodeProgram, "uSel"), c.id);
+      gl.uniform1f(uniform(erodeProgram, "uErode"), erode);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      gl.viewport(0, 0, canvas.width, canvas.height);
 
       gl.enable(gl.SCISSOR_TEST);
       gl.scissor(ax, ay, aw, ah);
@@ -1141,11 +1211,22 @@ export function createEngineRenderer(
       gl.activeTexture(gl.TEXTURE0);
       gl.bindTexture(gl.TEXTURE_2D, m.tex);
       gl.uniform1i(uniform(outlineProgram, "uMask"), 0);
+      gl.activeTexture(gl.TEXTURE1);
+      gl.bindTexture(gl.TEXTURE_2D, m.coreTex);
+      gl.uniform1i(uniform(outlineProgram, "uCore"), 1);
+      gl.uniform1f(uniform(outlineProgram, "uErode"), erode);
+      gl.activeTexture(gl.TEXTURE2);
+      gl.bindTexture(gl.TEXTURE_2D, m.fullTex);
+      gl.uniform1i(uniform(outlineProgram, "uFull"), 2);
       gl.uniform2f(uniform(outlineProgram, "uScreen"), canvas.width, canvas.height);
       gl.uniform2f(uniform(outlineProgram, "uMaskSize"), m.w, m.h);
       gl.uniform1f(uniform(outlineProgram, "uSel"), c.id);
-      gl.uniform1f(uniform(outlineProgram, "uRadius"), 3.5 * (m.w / Math.max(1, cssWidth)));
+      gl.uniform1f(uniform(outlineProgram, "uRadius"), 3.5 * perCss);
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+      gl.bindTexture(gl.TEXTURE_2D, null);
+      gl.activeTexture(gl.TEXTURE1);
+      gl.bindTexture(gl.TEXTURE_2D, null);
+      gl.activeTexture(gl.TEXTURE0);
       gl.bindTexture(gl.TEXTURE_2D, null);
       gl.disable(gl.BLEND);
       gl.disable(gl.SCISSOR_TEST);

@@ -136,7 +136,8 @@ export function viewProjection(view: CameraView, aspect: number): Float32Array {
   return out;
 }
 
-type CameraOptions = { auto: boolean; autoSpeed: number };
+// (`zoomMin`, `zoomMax`: how far a pinch or the wheel may take it; 0.55 to 7 unless given)
+type CameraOptions = { auto: boolean; autoSpeed: number; zoomMin?: number; zoomMax?: number };
 
 // The centred view (the C button). How much of the stage's height the engine takes along each of the world's axes, for one
 // step of zoom (measured, square on: about 1560 long, 940 high, 1290 across, the intercoolers' fans included; and a little
@@ -311,7 +312,7 @@ export function createCameraController(options: CameraOptions) {
     },
 
     zoomBy(factor: number) {
-      goal.zoom = clamp(goal.zoom * factor, 0.55, 7);
+      goal.zoom = clamp(goal.zoom * factor, options.zoomMin ?? 0.55, options.zoomMax ?? 7);
     },
 
     setView(name: ViewName) {

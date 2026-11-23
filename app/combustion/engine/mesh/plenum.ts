@@ -145,8 +145,13 @@ export function buildVPlenum(b: MeshBuilder) {
   buildLidFins(b);
   buildFlange(b);
   buildBody(b, xs);
-  buildVClose(b);
   runnerPads(b);
+
+  // the castings that fill the V at the block's two ends: built here, for the reds' span and shading, then kept apart (a part
+  // of their own, vClose: they are the block's, and stay on the engine when the plenum is taken out of it)
+  const vcStart = b.out.length;
+
+  buildVClose(b);
 
   // its length, from its front to the back of its reds
   let x1 = -1e9;
@@ -157,6 +162,15 @@ export function buildVPlenum(b: MeshBuilder) {
 
   redSpan = [PLENUM.xf, x1];
   redGradient(b, start);
+  vCloseVerts = b.out.slice(vcStart);
+  b.out.length = vcStart;
+}
+
+let vCloseVerts: number[] = [];
+
+// The V's end castings (built with the plenum, buildVPlenum, which is to be built first)
+export function buildVPlenumClose(b: MeshBuilder) {
+  for (let i = 0; i < vCloseVerts.length; i++) b.out.push(vCloseVerts[i]);
 }
 
 // The lid: its dome over the flange, two lobes and the valley between them, its edges rolling down on to the flange
@@ -719,8 +733,8 @@ export function buildIntakeManifold(b: MeshBuilder) {
     if (zs > 0) crossFins(b, branch, branchR, mouth, y);
     // where the intercooler's pipe comes into the branch: the black clamp flange, six hex bolts
     flangeJoint(b, inlet, [1, 0, 0], {
-      pipeR: 27, r: 43, castT: 8, mateT: 7, bolts: 6, pitch: 35,
-      cast: MAT_CLAMP_BLACK, mate: MAT_CLAMP_BLACK, gasket: MAT_CLAMP_BLACK_DEEP, bolt: 4.4,
+      pipeR: 21.6, r: 34.4, castT: 6.4, mateT: 5.6, bolts: 6, pitch: 28, // (a fifth smaller, as the pipe)
+      cast: MAT_CLAMP_BLACK, mate: MAT_CLAMP_BLACK, gasket: MAT_CLAMP_BLACK_DEEP, bolt: 3.5,
     });
   }
 }

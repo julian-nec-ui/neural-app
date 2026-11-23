@@ -28,7 +28,8 @@ export const FAN = {
 
 // Each core has two smaller fans side by side along it, each the fan above built at this scale, in its own half of the
 // core's face; their axes this far either side of the core's middle
-export const FAN_PAIR = { scale: 0.72, offset: 69 };
+// (the scale to the core's width: the shroud's flange within its face, IC_HALF.y)
+export const FAN_PAIR = { scale: 0.627, offset: 69 }; // (drawn at the intercooler's scale, IC_SCALE 0.88: the fans as they were at 0.8)
 
 // One of the pair: the fan built in a frame scaled down about its axis, its shroud's arms reaching its own half's corners
 export function buildSmallFan(b: MeshBuilder, part: "shroud" | "rotor") {

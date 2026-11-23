@@ -102,7 +102,8 @@ export const TB = {
 
 export const IC_PORT_DX = 56; // how far ahead of x = -537 the intercooler's middle stands
 export const IC = { x: -537 - IC_PORT_DX, y: 28, z: 18.5 }; // the intercooler's centre
-export const IC_HALF = { x: 40, y: 100, z: 138 }; // the core
+// the core: x its thickness (front to back), y its width across the face, z its length along the bank (two fans along it)
+export const IC_HALF = { x: 24, y: 70, z: 138 }; // (thickness 60%, width 70% of what they were: 40, 100)
 
 /* ---- the turbocharger, in its own frame (shaft along X) ---- */
 
@@ -139,7 +140,27 @@ export const compressorSection = (u: number) => (7 + 15 * u) * SPIRAL_WIDEN; // 
 export const compressorCentre = (u: number) => TB.compressorTip + 2 + compressorSection(u);
 
 export const TURBINE_INLET_LEN = 50;
-export const COMPRESSOR_OUTLET_LEN = 48;
+export const COMPRESSOR_OUTLET_LEN = 60; // (straight, round, standing clear of the scroll and of the block)
+// The intake's pipe (from the air filter to the compressor) and the hot pipe (from the compressor to the intercooler): one
+// thickness. The compressor's outlet narrows to it along its straight run, a reducer cast in the housing
+export const INTAKE_R = 20;
+const OUTLET_END_R = INTAKE_R / TURBO_SCALE; // (in the turbo's own frame)
+
+// the compressor's section along its whole sweep (`s` from the spiral's start; `spiralLen` where the outlet begins): the
+// spiral widening, then the outlet narrowing smoothly to the pipe's bore
+export function compressorSweepR(s: number, spiralLen: number): number {
+  if (s < spiralLen) return compressorSection(s / spiralLen);
+
+  const t = Math.min(1, (s - spiralLen) / COMPRESSOR_OUTLET_LEN);
+  const k = Math.max(0, Math.min(1, (t - 0.12) / 0.6));
+
+  return compressorSection(1) + (OUTLET_END_R - compressorSection(1)) * k * k * (3 - 2 * k);
+}
+// the compressor's scroll turned round the shaft (its sweep, its sections and its wheel's turning all as they were), so that
+// its outlet leaves it level, square out from the block, at the height of the intercooler's port
+export const COMPRESSOR_TURN_DEG = -120;
+const C_TURN_C = Math.cos((COMPRESSOR_TURN_DEG * Math.PI) / 180);
+const C_TURN_S = Math.sin((COMPRESSOR_TURN_DEG * Math.PI) / 180);
 
 export function turbinePathLocal(): FwVec3[] {
   const x = -TB.half;
@@ -159,8 +180,18 @@ export function compressorPathLocal(): FwVec3[] {
 
   pts.push([x, outY, -COMPRESSOR_OUTLET_LEN]);
 
-  // wound the other way: the spiral and its outlet are the mirror image of what they were
-  return pts.map((p): FwVec3 => [p[0], -p[1], p[2]]);
+  // wound the other way: the spiral and its outlet are the mirror image of what they were; then turned round the shaft
+  return pts.map((p): FwVec3 => [p[0], -p[1], p[2]]).map((p): FwVec3 => [p[0], p[1] * C_TURN_C - p[2] * C_TURN_S, p[1] * C_TURN_S + p[2] * C_TURN_C]);
+}
+
+// the compressor's outlet, in the turbo's frame: its end (the joint) and its way out
+export function compressorOutletLocal(): { p: FwVec3; d: FwVec3 } {
+  const pts = compressorPathLocal();
+  const p = pts[pts.length - 1];
+  const q = pts[pts.length - 2];
+  const l = Math.hypot(p[0] - q[0], p[1] - q[1], p[2] - q[2]) || 1;
+
+  return { p, d: [(p[0] - q[0]) / l, (p[1] - q[1]) / l, (p[2] - q[2]) / l] };
 }
 
 // The two housings' skins are drawn see-through, so that the wheels and the gas
@@ -387,12 +418,12 @@ export function buildTurboCasing(b: MeshBuilder) {
     (u) => {
       const s = u * compressorCurve.total;
 
-      return s < spiralLen ? compressorSection(s / spiralLen) : compressorSection(1);
+      return compressorSweepR(s, spiralLen);
     },
     MAT_TURBO_GRAIN, { segments: 26, capStart: true }
   );
   // (on the cold side all the way round the tube, and on along its outlet to the flange)
-  scrollRidges(b, compressorCurve, 2, compressorCurve.total - 5, (s) => (s < spiralLen ? compressorSection(s / spiralLen) : compressorSection(1)), RIDGE_ANGLES_ROUND);
+  scrollRidges(b, compressorCurve, 2, compressorCurve.total - 5, (s) => compressorSweepR(s, spiralLen), RIDGE_ANGLES_ROUND);
   rev(112, 26, 96, 26, [0, 1], MAT_MUFFLER_WIRE); // (under the woven wire, as on from it: buildTurboFilter)
   rev(96, 26, 72, 44, [0.6, 0.8], MAT_TURBO_GRAIN);
   rev(72, 44, 44, 44, [0, 1], MAT_TURBO_GRAIN);
@@ -411,7 +442,7 @@ export function buildTurboHousing(b: MeshBuilder) {
 
   const compressorCurve = curveFromPoints(compressorPathLocal(), 4);
 
-  pipeFlange(b, compressorCurve, true, 38, MAT_ALU_TURNED);
+  pipeFlange(b, compressorCurve, true, OUTLET_END_R + 9, MAT_ALU_TURNED); // (on the reducer's end: the pipe's size)
 
   // turbine outlet flange and the back plates
   rev(-130, 24, -130, 32, [-1, 0], MAT_TURBO_FLANGE_DARK);

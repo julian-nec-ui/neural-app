@@ -5,7 +5,7 @@ import type { FwVec3 } from "../../mesh/builder";
 import { IC_CORE_Z, IC_STAND_Y, icPlace } from "../../mesh/intercooler";
 import { PORT_SEAT_Y } from "../../mesh/plumbing";
 import { curveFromPoints } from "../../mesh/tubes";
-import { IC } from "../../mesh/turbo";
+import { IC, IC_HALF } from "../../mesh/turbo";
 import { VT_LIFT_PEAK, camLift } from "../../mesh/valvetrain";
 import { AIR_COOL, AIR_WARM, mixColor, scatter, smooth01 } from "./common";
 import type { Flow } from "./common";
@@ -60,7 +60,7 @@ export const AIR_FLOWS: Flow[] = (() => {
   let seed = 1;
 
   for (const dz of [-IC_CORE_Z - 80, -IC_CORE_Z, -IC_CORE_Z + 80, IC_CORE_Z - 80, IC_CORE_Z, IC_CORE_Z + 80]) {
-    for (const dy of [-80, -40, 0, 40, 80]) {
+    for (const dy of [-0.8, -0.4, 0, 0.4, 0.8].map((k) => k * IC_HALF.y)) { // (across the core's face, as wide as it is)
       seed++;
 
       const count = 6;

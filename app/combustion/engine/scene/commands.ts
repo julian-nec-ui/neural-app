@@ -357,6 +357,7 @@ export function computeSceneCommands(frame: EngineFrame): DrawCmd[] {
 
   // The intake plenum on top of the V: on the solid engine only; on the see-through one it is taken away, to see in
   if (!SCENE_OPTIONS.seeThrough && SCENE_OPTIONS.plenum) emit(r.vPlenum, 1, 0, 0, 0, 0);
+  if (!SCENE_OPTIONS.seeThrough && SCENE_OPTIONS.plenum) emit(r.vClose, 1, 0, 0, 0, 0); // (the V's end castings, the block's)
   if (!SCENE_OPTIONS.seeThrough && SCENE_OPTIONS.plenum) emit(r.plenumGate, 1, 0, 0, 0, 0); // its gate and square flange go with it
   // and the intake manifold in front of it, the Y collecting the two cooled pipes and the throttle: on the solid engine only,
   // as the pipes themselves and their welds
@@ -388,6 +389,7 @@ export function computeSceneCommands(frame: EngineFrame): DrawCmd[] {
   }
 
   emit(r.mufflers, 1, 0, 0, 0, 0); // the silencers, solid, in their wire sleeves
+  if (SCENE_OPTIONS.intercoolers && !SCENE_OPTIONS.seeThrough) emit(r.icMounts, 1, 0, 0, 0, 0); // (their arms to the timing covers: with them, and with the covers, solid only)
   if (SCENE_OPTIONS.intercoolers) emit(r.chargeCouplers, 1, 0, 0, 0, 0); // (the tanks' ports and the pipes' flanges on them: gone with the intercoolers)
   if (!SCENE_OPTIONS.seeThrough) emit(r.blowOffValves, 1, 0, 0, 0, 0); // (on the hot pipes: gone with them, see-through)
   if (!SCENE_OPTIONS.seeThrough) emit(r.manifoldWelds, 1, 0, 0, 0, 0); // (the headers' joints and bungs: likewise)
